@@ -1,32 +1,46 @@
 <script setup>
-import { ref } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { ref } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { useUserStore } from "@/stores/user";
+import OnboardingModal from "@/components/onboarding/OnboardingModal.vue";
+import EventSwitcher from "@/components/EventSwitcher.vue";
 
 const router = useRouter();
 const route = useRoute();
+const userStore = useUserStore();
+
+// 初始化用戶狀態
+userStore.initFromStorage();
+
+const showOnboarding = ref(!userStore.isOnboarded);
 
 // 依據功能邏輯重新整理的選單 (加入座次管理)
 const menuItems = [
-  // --- 報名與活動設定 ---
-  { id: 1, name: '報名頁面設定', path: '/admin/registration-setting', icon: '📝' },
-  { id: 2, name: '參與貴賓', path: '/admin/guests', icon: '👤' },
-  { id: 3, name: '座次劃位管理', path: '/admin/seating-plan', icon: '🪑' }, // 新增選項
-  { id: 4, name: '報名表欄位', path: '/admin/form-fields', icon: '📋' },
-  { id: 5, name: '通知信設定', path: '/admin/notifications', icon: '✉️' },
-
-  // --- 名單與現場管理 ---
-  { id: 6, name: '參與者資訊', path: '/admin/participants', icon: '👥' },
-  { id: 7, name: '現場報到紀錄', path: '/admin/checkin-history', icon: '✅' },
-  { id: 8, name: '識別證列印', path: '/admin/badge-printing', icon: '🖨️' },
-
-  // --- 互動與其他設定 ---
-  { id: 9, name: '中獎名單管理', path: '/admin/lottery-winners', icon: '🎁' },
-  { id: 10, name: '主辦單位資訊', path: '/admin/organizer-info', icon: '🏢' },
-  { id: 11, name: 'AI客服設定', path: '/admin/ai-service', icon: '🤖' }
+  { id: 1, name: "報名頁面設定", path: "/admin/registration-setting", icon: "" },
+  { id: 2, name: "參與貴賓", path: "/admin/guests", icon: "" },
+  { id: 3, name: "座次劃位管理", path: "/admin/seating-plan", icon: "" },
+  { id: 4, name: "報名表欄位", path: "/admin/form-fields", icon: "" },
+  { id: 5, name: "通知信設定", path: "/admin/notifications", icon: "" },
+  { id: 6, name: "參與者資訊", path: "/admin/participants", icon: "" },
+  { id: 7, name: "現場報到紀錄", path: "/admin/checkin-history", icon: "" },
+  { id: 8, name: "識別證列印", path: "/admin/badge-printing", icon: "" },
+  { id: 9, name: "中獎名單管理", path: "/admin/lottery-winners", icon: "" },
+  { id: 10, name: "主辦單位資訊", path: "/admin/organizer-info", icon: "" },
+  { id: 11, name: "AI客服設定", path: "/admin/ai-service", icon: "" },
 ];
 
 const navigateTo = (path) => {
   router.push(path);
+};
+
+const handleOnboardingComplete = (data) => {
+  userStore.completeOnboarding(data);
+  showOnboarding.value = false;
+};
+
+const handleOnboardingClose = () => {
+  // 可以選擇不允許關閉，或提供跳過選項
+  // showOnboarding.value = false;
 };
 </script>
 
@@ -47,7 +61,6 @@ const navigateTo = (path) => {
           @click="navigateTo(item.path)"
         >
           <span class="index">{{ item.id }}.</span>
-          <span class="icon-span">{{ item.icon }}</span>
           <span class="label">{{ item.name }}</span>
         </div>
       </nav>
@@ -60,7 +73,10 @@ const navigateTo = (path) => {
     <main class="content-area">
       <header class="content-header">
         <div class="breadcrumb">
-          {{ menuItems.find(m => route.path.startsWith(m.path))?.name || '控制台' }}
+          {{ menuItems.find((m) => route.path.startsWith(m.path))?.name || "控制台" }}
+        </div>
+        <div class="header-actions">
+          <EventSwitcher />
         </div>
       </header>
 
@@ -72,6 +88,13 @@ const navigateTo = (path) => {
         </router-view>
       </section>
     </main>
+
+    <!-- 引導彈跳視窗 -->
+    <OnboardingModal
+      :show="showOnboarding"
+      @complete="handleOnboardingComplete"
+      @close="handleOnboardingClose"
+    />
   </div>
 </template>
 
@@ -129,7 +152,7 @@ const navigateTo = (path) => {
     align-items: center;
 
     .index {
-      font-family: 'Monaco', monospace;
+      font-family: "Monaco", monospace;
       margin-right: 8px;
       font-size: 0.8rem;
       opacity: 0.5;
@@ -191,6 +214,7 @@ const navigateTo = (path) => {
   height: 64px;
   padding: 0 40px;
   display: flex;
+  justify-content: space-between;
   align-items: center;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
@@ -198,6 +222,10 @@ const navigateTo = (path) => {
     color: var(--text-muted);
     font-size: 0.9rem;
     letter-spacing: 1px;
+  }
+  .header-actions {
+    display: flex;
+    align-items: center;
   }
 }
 
@@ -209,9 +237,18 @@ const navigateTo = (path) => {
 }
 
 /* 頁面切換動畫 */
-.page-fade-enter-active, .page-fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
-.page-fade-enter-from { opacity: 0; transform: translateY(10px); }
-.page-fade-leave-to { opacity: 0; transform: translateY(-10px); }
+.page-fade-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.page-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
 </style>
