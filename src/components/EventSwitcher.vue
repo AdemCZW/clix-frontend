@@ -307,33 +307,34 @@ onUnmounted(() => {
 .switcher-button {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 10px;
+  padding: 10px 16px;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
-  max-width: 300px;
+  max-width: 350px;
   user-select: none;
   position: relative;
   z-index: 1;
 
   &:hover {
     background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(56, 189, 248, 0.4);
   }
 
   &.active {
-    background: rgba(56, 189, 248, 0.1);
+    background: rgba(56, 189, 248, 0.15);
     border-color: var(--accent-blue);
     color: var(--accent-blue);
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
   }
 
   .current-event {
-    font-size: 0.9rem;
-    font-weight: 500;
+    font-size: 0.95rem;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -403,29 +404,44 @@ onUnmounted(() => {
 }
 
 .series-item {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 4px;
 
   &.active .series-header {
-    background: rgba(56, 189, 248, 0.1);
-    border-left: 3px solid var(--accent-blue);
+    background: transparent;
+    border-left: 5px solid var(--accent-blue);
+    padding-left: 15px;
+
+    .series-name {
+      color: var(--accent-blue);
+    }
   }
 
   .series-header {
-    padding: 12px 20px;
+    padding: 14px 20px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition:
+      background-color 0.2s ease,
+      border-left 0.2s ease,
+      padding-left 0.2s ease,
+      color 0.2s ease;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-radius: 6px;
+    margin: 4px 8px;
+    border-left: 5px solid transparent;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.03);
+      background: transparent;
     }
 
     .series-name {
-      font-weight: 600;
+      font-weight: 700;
+      font-size: 1rem;
       color: var(--text-main);
       flex: 1;
+      letter-spacing: 0.3px;
     }
 
     .expand-icon {
@@ -439,31 +455,63 @@ onUnmounted(() => {
   }
 
   .events-sublist {
-    background: rgba(255, 255, 255, 0.02);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: transparent;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 6px 0;
+    margin: 0 8px;
+    border-radius: 0 0 6px 6px;
   }
 
   .event-subitem {
-    padding: 10px 20px 10px 40px;
+    padding: 12px 20px 12px 36px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition:
+      background-color 0.2s ease,
+      border-left 0.2s ease,
+      padding-left 0.2s ease;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+    gap: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    position: relative;
+    margin: 0 4px;
+    border-radius: 4px;
+    border-left: 5px solid transparent;
+
+    &::before {
+      content: "•";
+      position: absolute;
+      left: 20px;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+    }
 
     &:hover {
-      background: rgba(255, 255, 255, 0.03);
+      background: transparent;
     }
 
     &.active {
-      background: rgba(56, 189, 248, 0.08);
-      border-left: 3px solid var(--accent-blue);
-      padding-left: 37px;
+      background: transparent;
+      border-left: 5px solid var(--accent-blue);
+      padding-left: 31px;
+
+      .event-name {
+        color: var(--accent-blue);
+        font-weight: 700;
+      }
+
+      &::before {
+        content: "▶";
+        color: var(--accent-blue);
+        font-size: 0.8rem;
+        left: 15px;
+      }
     }
 
     .event-name {
-      font-weight: 500;
+      font-weight: 600;
+      font-size: 0.95rem;
       color: var(--text-main);
       flex: 1;
     }
@@ -471,29 +519,36 @@ onUnmounted(() => {
     .event-meta {
       font-size: 0.8rem;
       color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 500;
     }
 
     .current-indicator {
       color: var(--accent-blue);
-      font-weight: 600;
-      font-size: 1.1rem;
+      font-weight: 700;
+      font-size: 1.2rem;
     }
   }
 
   .add-event-in-series {
-    padding: 12px 20px 12px 40px;
+    padding: 12px 20px 12px 36px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    margin: 4px 4px 0;
+    border-radius: 0 0 4px 4px;
 
     &:hover {
-      background: rgba(56, 189, 248, 0.05);
+      background: rgba(56, 189, 248, 0.1);
     }
 
     .add-event-text {
       color: var(--accent-blue);
-      font-weight: 500;
-      font-size: 0.9rem;
+      font-weight: 600;
+      font-size: 0.88rem;
+      letter-spacing: 0.3px;
     }
   }
 }

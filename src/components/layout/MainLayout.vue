@@ -12,7 +12,11 @@ const userStore = useUserStore();
 // 初始化用戶狀態
 userStore.initFromStorage();
 
-const showOnboarding = ref(!userStore.isOnboarded);
+// 如果有系列/活動資料，但未選擇當前活動，則顯示選擇視窗
+const showOnboarding = ref(!userStore.isOnboarded || !userStore.currentEvent);
+
+// 決定模態視窗的模式：如果已經有資料就用選擇模式，否則用建立模式
+const onboardingMode = ref(userStore.isOnboarded ? "select" : "create");
 
 // 依據功能邏輯重新整理的選單 (加入座次管理)
 const menuItems = [
@@ -34,7 +38,14 @@ const navigateTo = (path) => {
 };
 
 const handleOnboardingComplete = (data) => {
-  userStore.completeOnboarding(data);
+  if (onboardingMode.value === "select") {
+    // 選擇模式：切換到選中的活動
+    userStore.switchEvent(data.event);
+    userStore.switchSeries(data.series);
+  } else {
+    // 建立模式：完成引導並保存新資料
+    userStore.completeOnboarding(data);
+  }
   showOnboarding.value = false;
 };
 
@@ -72,9 +83,6 @@ const handleOnboardingClose = () => {
 
     <main class="content-area">
       <header class="content-header">
-        <div class="breadcrumb">
-          {{ menuItems.find((m) => route.path.startsWith(m.path))?.name || "控制台" }}
-        </div>
         <div class="header-actions">
           <EventSwitcher />
         </div>
@@ -92,6 +100,7 @@ const handleOnboardingClose = () => {
     <!-- 引導彈跳視窗 -->
     <OnboardingModal
       :show="showOnboarding"
+      :mode="onboardingMode"
       @complete="handleOnboardingComplete"
       @close="handleOnboardingClose"
     />
@@ -212,17 +221,12 @@ const handleOnboardingClose = () => {
 
 .content-header {
   height: 64px;
-  padding: 0 40px;
+  padding: 0 24px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
-  .breadcrumb {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    letter-spacing: 1px;
-  }
   .header-actions {
     display: flex;
     align-items: center;

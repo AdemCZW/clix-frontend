@@ -1,15 +1,17 @@
 <script setup>
-import { reactive } from 'vue';
-import { useRouter } from 'vue-router';
+import { reactive } from "vue";
+import { useRouter } from "vue-router";
 
 const router = useRouter();
 const loginForm = reactive({
-  email: '',
-  password: ''
+  email: "",
+  password: "",
 });
 
 const handleLogin = () => {
-  router.push('/admin/registration-setting');
+  // 清除當前選擇的活動，強制用戶重新選擇
+  localStorage.removeItem("current_event");
+  router.push("/admin/registration-setting");
 };
 </script>
 
@@ -25,11 +27,13 @@ const handleLogin = () => {
 
       <form @submit.prevent="handleLogin">
         <div class="input-group">
-          <label>E-mail</label> <input v-model="loginForm.email" type="email" placeholder="請輸入電子信箱" required />
+          <label>E-mail</label>
+          <input v-model="loginForm.email" type="email" placeholder="請輸入電子信箱" required />
         </div>
 
         <div class="input-group">
-          <label>PASSWORD</label> <input v-model="loginForm.password" type="password" placeholder="請輸入密碼" required />
+          <label>PASSWORD</label>
+          <input v-model="loginForm.password" type="password" placeholder="請輸入密碼" required />
         </div>
 
         <button type="submit" class="login-btn-rounded">ENTER SYSTEM</button>
@@ -45,7 +49,11 @@ const handleLogin = () => {
   align-items: center;
   justify-content: center;
   background-color: #f8fafc; /* 改為明亮的淺灰色底 */
-  background-image: radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.05) 0%, transparent 90%);
+  background-image: radial-gradient(
+    circle at 10% 20%,
+    rgba(56, 189, 248, 0.05) 0%,
+    transparent 90%
+  );
 }
 
 .login-card {
@@ -59,7 +67,9 @@ const handleLogin = () => {
 }
 
 .shadow-soft {
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.05),
+    0 8px 10px -6px rgba(0, 0, 0, 0.05);
 }
 
 .logo-area {
@@ -106,7 +116,9 @@ const handleLogin = () => {
     color: #1e293b;
     border-radius: 14px; /* 欄位也圓潤化 */
     transition: all 0.2s ease;
-    &::placeholder { color: #cbd5e1; }
+    &::placeholder {
+      color: #cbd5e1;
+    }
     &:focus {
       outline: none;
       background: #ffffff;

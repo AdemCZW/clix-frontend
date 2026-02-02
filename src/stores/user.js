@@ -96,10 +96,8 @@ export const useUserStore = defineStore("user", () => {
 
         if (storedCurrentEvent) {
             currentEvent.value = JSON.parse(storedCurrentEvent);
-        } else if (events.value.length > 0) {
-            // 如果沒有儲存的目前活動，預設選擇第一個
-            currentEvent.value = events.value[0];
         }
+        // 移除自動設置第一個活動的邏輯，讓用戶每次登入都要選擇
     };
 
     // 清除資料（用於測試或重置）

@@ -18,101 +18,162 @@
 
           <!-- 步驟內容 -->
           <div class="step-content">
-            <!-- 步驟 1: 創建系列 -->
-            <div v-if="currentStep === 1" class="step-section">
+            <!-- 選擇模式：選擇現有系列和活動 -->
+            <div v-if="mode === 'select'" class="step-section select-mode">
               <div class="step-header">
-                <h2>歡迎使用報到系統！</h2>
-                <p>首先，讓我們建立您的活動系列</p>
+                <h2>選擇要管理的活動</h2>
+                <p>請選擇您要管理的系列和活動</p>
               </div>
 
               <div class="form-group">
-                <label>系列名稱 *</label>
-                <input
-                  v-model="seriesForm.name"
-                  type="text"
-                  placeholder="例如：公司年度活動"
-                  class="input-field"
-                />
+                <label>選擇系列</label>
+                <div class="series-list">
+                  <div
+                    v-for="series in userStore.series"
+                    :key="series.id"
+                    class="series-item"
+                    :class="{ selected: selectedSeries?.id === series.id }"
+                    @click="
+                      selectedSeries = series;
+                      selectedEvent = null;
+                    "
+                  >
+                    <div class="series-name">{{ series.name }}</div>
+                    <div v-if="series.description" class="series-desc">
+                      {{ series.description }}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div class="form-group">
-                <label>系列描述（選填）</label>
-                <textarea
-                  v-model="seriesForm.description"
-                  placeholder="簡要描述這個系列的用途..."
-                  class="input-field textarea"
-                  rows="3"
-                ></textarea>
+              <div v-if="selectedSeries && currentSeriesEvents.length > 0" class="form-group">
+                <label>選擇活動</label>
+                <div class="event-list">
+                  <div
+                    v-for="event in currentSeriesEvents"
+                    :key="event.id"
+                    class="event-item"
+                    :class="{ selected: selectedEvent?.id === event.id }"
+                    @click="selectedEvent = event"
+                  >
+                    <div class="event-name">{{ event.name }}</div>
+                    <div class="event-details">
+                      <span>📅 {{ event.date }} {{ event.time }}</span>
+                      <span>📍 {{ event.location }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="selectedSeries && currentSeriesEvents.length === 0" class="no-events">
+                <p>此系列尚無活動</p>
               </div>
             </div>
 
-            <!-- 步驟 2: 創建活動 -->
-            <div v-if="currentStep === 2" class="step-section">
-              <div class="step-header">
-                <h2>太好了！現在建立您的第一個活動</h2>
-                <p>在「{{ seriesForm.name }}」系列下建立活動</p>
-              </div>
+            <!-- 建立模式：原有的步驟 -->
+            <div v-if="mode === 'create'">
+              <!-- 步驟 1: 創建系列 -->
+              <div v-if="currentStep === 1" class="step-section">
+                <div class="step-header">
+                  <h2>歡迎使用報到系統！</h2>
+                  <p>首先，讓我們建立您的活動系列</p>
+                </div>
 
-              <div class="form-group">
-                <label>活動名稱 *</label>
-                <input
-                  v-model="eventForm.name"
-                  type="text"
-                  placeholder="例如：2026 新春團拜"
-                  class="input-field"
-                />
-              </div>
-
-              <div class="form-row">
                 <div class="form-group">
-                  <label>日期 *</label>
-                  <input v-model="eventForm.date" type="date" class="input-field" />
+                  <label>系列名稱 *</label>
+                  <input
+                    v-model="seriesForm.name"
+                    type="text"
+                    placeholder="例如：公司年度活動"
+                    class="input-field"
+                  />
                 </div>
+
                 <div class="form-group">
-                  <label>時間 *</label>
-                  <input v-model="eventForm.time" type="time" class="input-field" />
+                  <label>系列描述（選填）</label>
+                  <textarea
+                    v-model="seriesForm.description"
+                    placeholder="簡要描述這個系列的用途..."
+                    class="input-field textarea"
+                    rows="3"
+                  ></textarea>
                 </div>
               </div>
 
-              <div class="form-group">
-                <label>地點 *</label>
-                <input
-                  v-model="eventForm.location"
-                  type="text"
-                  placeholder="活動舉辦地點"
-                  class="input-field"
-                />
-              </div>
-            </div>
+              <!-- 步驟 2: 創建活動 -->
+              <div v-if="currentStep === 2" class="step-section">
+                <div class="step-header">
+                  <h2>太好了！現在建立您的第一個活動</h2>
+                  <p>在「{{ seriesForm.name }}」系列下建立活動</p>
+                </div>
 
-            <!-- 步驟 3: 完成 -->
-            <div v-if="currentStep === 3" class="step-section">
-              <div class="step-header">
-                <h2>設定完成！</h2>
-                <p>您的活動已準備就緒</p>
-              </div>
+                <div class="form-group">
+                  <label>活動名稱 *</label>
+                  <input
+                    v-model="eventForm.name"
+                    type="text"
+                    placeholder="例如：2026 新春團拜"
+                    class="input-field"
+                  />
+                </div>
 
-              <div class="summary-card">
-                <h3>{{ seriesForm.name }}</h3>
-                <div class="event-summary">
-                  <h4>{{ eventForm.name }}</h4>
-                  <p>📅 {{ eventForm.date }} {{ eventForm.time }}</p>
-                  <p>📍 {{ eventForm.location }}</p>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>日期 *</label>
+                    <input v-model="eventForm.date" type="date" class="input-field" />
+                  </div>
+                  <div class="form-group">
+                    <label>時間 *</label>
+                    <input v-model="eventForm.time" type="time" class="input-field" />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>地點 *</label>
+                  <input
+                    v-model="eventForm.location"
+                    type="text"
+                    placeholder="活動舉辦地點"
+                    class="input-field"
+                  />
                 </div>
               </div>
 
-              <div class="welcome-message">
-                <p>🎉 現在您可以開始使用報到系統的所有功能了！</p>
+              <!-- 步驟 3: 完成 -->
+              <div v-if="currentStep === 3" class="step-section">
+                <div class="step-header">
+                  <h2>設定完成！</h2>
+                  <p>您的活動已準備就緒</p>
+                </div>
+
+                <div class="summary-card">
+                  <h3>{{ seriesForm.name }}</h3>
+                  <div class="event-summary">
+                    <h4>{{ eventForm.name }}</h4>
+                    <p>📅 {{ eventForm.date }} {{ eventForm.time }}</p>
+                    <p>📍 {{ eventForm.location }}</p>
+                  </div>
+                </div>
+
+                <div class="welcome-message">
+                  <p>🎉 現在您可以開始使用報到系統的所有功能了！</p>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- 按鈕區域 -->
           <div class="modal-footer">
-            <button v-if="currentStep > 1" class="btn-secondary" @click="prevStep">上一步</button>
+            <button
+              v-if="mode === 'create' && currentStep > 1"
+              class="btn-secondary"
+              @click="prevStep"
+            >
+              上一步
+            </button>
 
             <button
-              v-if="currentStep < 3"
+              v-if="mode === 'create' && currentStep < 3"
               class="btn-primary"
               :disabled="!canProceed"
               @click="nextStep"
@@ -120,8 +181,21 @@
               下一步
             </button>
 
-            <button v-if="currentStep === 3" class="btn-primary" @click="complete">
+            <button
+              v-if="mode === 'create' && currentStep === 3"
+              class="btn-primary"
+              @click="complete"
+            >
               開始使用系統
+            </button>
+
+            <button
+              v-if="mode === 'select'"
+              class="btn-primary"
+              :disabled="!canProceed"
+              @click="complete"
+            >
+              確認選擇
             </button>
           </div>
         </div>
@@ -132,15 +206,22 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
+import { useUserStore } from "@/stores/user";
 
 const props = defineProps({
   show: {
     type: Boolean,
     default: false,
   },
+  mode: {
+    type: String,
+    default: "create", // 'create' 或 'select'
+  },
 });
 
 const emit = defineEmits(["close", "complete"]);
+
+const userStore = useUserStore();
 
 const currentStep = ref(1);
 const steps = [
@@ -161,7 +242,21 @@ const eventForm = ref({
   location: "",
 });
 
+// 選擇模式的狀態
+const selectedSeries = ref(null);
+const selectedEvent = ref(null);
+
+// 當前系列的活動列表
+const currentSeriesEvents = computed(() => {
+  if (!selectedSeries.value) return [];
+  return userStore.events.filter((e) => e.seriesId === selectedSeries.value.id);
+});
+
 const canProceed = computed(() => {
+  if (props.mode === "select") {
+    return selectedEvent.value !== null;
+  }
+
   if (currentStep.value === 1) {
     return seriesForm.value.name.trim().length > 0;
   }
@@ -189,14 +284,22 @@ const prevStep = () => {
 };
 
 const complete = () => {
-  // 這裡可以發送 API 請求保存資料
-  console.log("Series:", seriesForm.value);
-  console.log("Event:", eventForm.value);
+  if (props.mode === "select") {
+    // 選擇模式：直接切換到選中的活動
+    emit("complete", {
+      series: selectedSeries.value,
+      event: selectedEvent.value,
+    });
+  } else {
+    // 建立模式：發送新建的系列和活動
+    console.log("Series:", seriesForm.value);
+    console.log("Event:", eventForm.value);
 
-  emit("complete", {
-    series: seriesForm.value,
-    event: eventForm.value,
-  });
+    emit("complete", {
+      series: seriesForm.value,
+      event: eventForm.value,
+    });
+  }
 };
 
 const close = () => {
@@ -211,6 +314,17 @@ watch(
       currentStep.value = 1;
       seriesForm.value = { name: "", description: "" };
       eventForm.value = { name: "", date: "", time: "", location: "" };
+      selectedSeries.value = null;
+      selectedEvent.value = null;
+    } else if (props.mode === "select") {
+      // 選擇模式時，預設選擇第一個系列
+      if (userStore.series.length > 0) {
+        selectedSeries.value = userStore.series[0];
+        const events = userStore.events.filter((e) => e.seriesId === selectedSeries.value.id);
+        if (events.length > 0) {
+          selectedEvent.value = events[0];
+        }
+      }
     }
   },
 );
@@ -295,6 +409,73 @@ watch(
       margin: 0;
       font-size: 0.95rem;
     }
+  }
+}
+
+.select-mode {
+  .series-list,
+  .event-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .series-item,
+  .event-item {
+    padding: 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: #3b82f6;
+      background: #f0f9ff;
+    }
+
+    &.selected {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+  }
+
+  .series-item {
+    .series-name {
+      font-weight: 600;
+      color: #1f2937;
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+
+    .series-desc {
+      color: #6b7280;
+      font-size: 0.85rem;
+    }
+  }
+
+  .event-item {
+    .event-name {
+      font-weight: 600;
+      color: #1f2937;
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+
+    .event-details {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+  }
+
+  .no-events {
+    text-align: center;
+    padding: 40px 20px;
+    color: #9ca3af;
+    font-size: 0.9rem;
   }
 }
 
