@@ -450,19 +450,15 @@ onUnmounted(() => {
 
 /* 相機視圖 */
 .camera-view {
-  width: 100%;
-  max-width: 500px;
-  text-align: center;
-}
-
-.camera-frame {
   position: relative;
   width: 100%;
   max-width: 500px;
   margin: 0 auto;
+  text-align: center;
 }
 
 .camera-preview {
+  display: block;
   width: 100%;
   max-height: 70vh;
   border-radius: 16px;
@@ -472,12 +468,13 @@ onUnmounted(() => {
 
 .scan-overlay {
   position: absolute;
-  top: 50%;
+  top: 30%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: 250px;
   height: 250px;
   pointer-events: none;
+  z-index: 10;
 }
 
 .scan-box {
