@@ -129,13 +129,23 @@ const startScanning = async () => {
       }
     });
 
+    console.log("相機串流取得成功", stream);
+    
+    // 先設定為 scanning 狀態以顯示 video 元素
+    isScanning.value = true;
+
+    // 等待下一個 tick 確保 DOM 已更新
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     // 將串流綁定到 video 元素
     if (videoElement.value) {
+      console.log("綁定串流到 video 元素", videoElement.value);
       videoElement.value.srcObject = stream;
       
       // 等待 video 載入
       await new Promise((resolve) => {
         videoElement.value.onloadedmetadata = () => {
+          console.log("Video metadata 已載入");
           videoElement.value.play();
           resolve();
         };
@@ -145,10 +155,12 @@ const startScanning = async () => {
       canvas = document.createElement('canvas');
       canvasContext = canvas.getContext('2d');
       
-      isScanning.value = true;
-      
+      console.log("開始掃描");
       // 開始掃描
       tick();
+    } else {
+      console.error("videoElement.value 是 null");
+      throw new Error("無法找到 video 元素");
     }
 
   } catch (error) {
