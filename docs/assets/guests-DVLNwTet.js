@@ -1,0 +1,1 @@
+import{B as n,d as a,e as r}from"./index-qyFvYSul.js";const v=n("guests",()=>{const e=a([]),u=s=>{const t=e.value.findIndex(d=>d.id===s.id);t>-1?e.value.splice(t,1):e.value.push(s)},o=s=>e.value.some(t=>t.id===s),c=()=>{e.value=[]},l=r(()=>e.value);return{selectedGuests:e,toggleGuest:u,isGuestSelected:o,clearSelectedGuests:c,getSelectedGuests:l}});export{v as u};

@@ -13,6 +13,11 @@
         <div class="camera-icon">📷</div>
         <h2>準備開始掃描</h2>
         <p>點擊下方按鈕啟動相機</p>
+        <div class="help-tips">
+          <p class="tip-item">💡 請使用 Chrome 或 Safari 瀏覽器</p>
+          <p class="tip-item">🔒 首次使用需允許相機權限</p>
+          <p class="tip-item">📱 建議使用手機後置鏡頭</p>
+        </div>
         <button class="btn-start-scan" @click="startScanning">
           <span class="icon">📱</span>
           啟動掃描器
@@ -95,6 +100,11 @@ let html5QrCode = null;
 
 const startScanning = async () => {
   try {
+    // 檢查是否支援相機 API
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('您的瀏覽器不支援相機功能，請使用 Chrome 或 Safari 開啟');
+    }
+
     // 先請求相機權限
     const stream = await navigator.mediaDevices.getUserMedia({ 
       video: { facingMode: "environment" } 
@@ -124,17 +134,26 @@ const startScanning = async () => {
     console.error("無法啟動相機:", error);
     
     let errorMsg = "無法啟動相機";
+    let helpText = "";
+    
     if (error.name === 'NotAllowedError') {
-      errorMsg = "相機權限被拒絕，請在瀏覽器設定中允許相機權限";
+      errorMsg = "相機權限被拒絕";
+      helpText = "請在手機設定中開啟瀏覽器的相機權限，或點擊網址列的鎖頭圖示允許相機存取";
     } else if (error.name === 'NotFoundError') {
       errorMsg = "找不到相機設備";
+      helpText = "請確認您的裝置有相機功能";
     } else if (error.name === 'NotReadableError') {
       errorMsg = "相機正被其他應用程式使用";
+      helpText = "請關閉其他使用相機的 App 後重試";
     } else if (error.name === 'SecurityError') {
-      errorMsg = "安全性錯誤：請確認使用 HTTPS 連線";
+      errorMsg = "安全性錯誤";
+      helpText = "請確認使用 HTTPS 連線開啟此頁面";
+    } else if (error.message) {
+      errorMsg = error.message;
+      helpText = "建議使用 Chrome 或 Safari 瀏覽器開啟";
     }
     
-    errorMessage.value = errorMsg;
+    errorMessage.value = helpText ? `${errorMsg}\n\n${helpText}` : errorMsg;
     resultType.value = "error";
     showResult.value = true;
   }
@@ -301,6 +320,21 @@ onUnmounted(() => {
   font-size: 1rem;
   color: #94a3b8;
   margin: 0 0 32px 0;
+}
+
+.help-tips {
+  background: rgba(59, 130, 246, 0.08);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 32px;
+  text-align: left;
+}
+
+.tip-item {
+  font-size: 0.9rem;
+  color: #475569;
+  margin: 8px 0 !important;
+  line-height: 1.6;
 }
 
 .btn-start-scan {
@@ -473,6 +507,8 @@ onUnmounted(() => {
   font-size: 1rem;
   margin-bottom: 24px;
   font-weight: 600;
+  white-space: pre-line;
+  line-height: 1.6;
 }
 
 .btn-continue {
