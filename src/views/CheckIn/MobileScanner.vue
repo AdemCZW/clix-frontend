@@ -28,7 +28,16 @@
       </div>
 
       <div v-else class="camera-view">
-        <div id="qr-reader" class="camera-frame"></div>
+        <video 
+          ref="videoElement" 
+          class="camera-preview" 
+          autoplay 
+          playsinline
+          muted
+        ></video>
+        <div class="scan-overlay">
+          <div class="scan-box"></div>
+        </div>
         <p class="scan-hint">請將 QR Code 對準掃描框</p>
         <button class="btn-stop-scan" @click="stopScanning">停止掃描</button>
       </div>
@@ -87,7 +96,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
-import { Html5Qrcode } from "html5-qrcode";
+import jsQR from "jsqr";
 
 const router = useRouter();
 const isScanning = ref(false);
@@ -99,7 +108,10 @@ const errorMessage = ref("");
 const todayCheckins = ref(127);
 const totalCheckins = ref(642);
 
-let html5QrCode = null;
+let stream = null;
+let animationId = null;
+let canvas = null;
+let canvasContext = null;
 
 const startScanning = async () => {
   try {
@@ -108,46 +120,36 @@ const startScanning = async () => {
       throw new Error('您的瀏覽器不支援相機功能，請使用 Chrome 或 Safari 開啟');
     }
 
-    // 初始化 QR Code 掃描器
-    if (!html5QrCode) {
-      html5QrCode = new Html5Qrcode("qr-reader");
-    }
-
-    const config = {
-      fps: 10,
-      qrbox: { width: 250, height: 250 },
-      aspectRatio: 1.0,
-      disableFlip: false,
-    };
-
-    // 嘗試多種相機配置
-    const cameraConfigs = [
-      { facingMode: { exact: "environment" } },
-      { facingMode: "environment" },
-      { facingMode: "user" },
-      true // 使用預設相機
-    ];
-
-    let lastError = null;
-    for (const cameraConfig of cameraConfigs) {
-      try {
-        await html5QrCode.start(
-          cameraConfig,
-          config,
-          onScanSuccess,
-          onScanError,
-        );
-        isScanning.value = true;
-        return; // 成功啟動，退出
-      } catch (err) {
-        console.warn("嘗試相機配置失敗:", cameraConfig, err);
-        lastError = err;
-        // 繼續嘗試下一個配置
+    // 請求相機權限並取得串流
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
       }
-    }
+    });
 
-    // 所有配置都失敗
-    throw lastError || new Error("無法啟動相機");
+    // 將串流綁定到 video 元素
+    if (videoElement.value) {
+      videoElement.value.srcObject = stream;
+      
+      // 等待 video 載入
+      await new Promise((resolve) => {
+        videoElement.value.onloadedmetadata = () => {
+          videoElement.value.play();
+          resolve();
+        };
+      });
+
+      // 建立 canvas 用於讀取影格
+      canvas = document.createElement('canvas');
+      canvasContext = canvas.getContext('2d');
+      
+      isScanning.value = true;
+      
+      // 開始掃描
+      tick();
+    }
 
   } catch (error) {
     console.error("無法啟動相機:", error);
@@ -167,9 +169,6 @@ const startScanning = async () => {
     } else if (error.name === 'SecurityError') {
       errorMsg = "安全性錯誤";
       helpText = "請確認使用 HTTPS 連線開啟此頁面";
-    } else if (error.name === 'OverconstrainedError') {
-      errorMsg = "相機配置不符";
-      helpText = "您的裝置可能不支援後置鏡頭，已自動切換為前置鏡頭";
     } else if (error.message) {
       errorMsg = error.message;
       helpText = "建議使用 Chrome 或 Safari 瀏覽器開啟\n\n詳細錯誤：" + (error.toString());
@@ -181,19 +180,31 @@ const startScanning = async () => {
   }
 };
 
-const stopScanning = async () => {
-  if (html5QrCode && html5QrCode.isScanning) {
-    try {
-      await html5QrCode.stop();
-      html5QrCode.clear();
-    } catch (error) {
-      console.error("停止掃描時發生錯誤:", error);
+const tick = () => {
+  if (!isScanning.value || !videoElement.value || !canvas || !canvasContext) {
+    return;
+  }
+
+  if (videoElement.value.readyState === videoElement.value.HAVE_ENOUGH_DATA) {
+    canvas.width = videoElement.value.videoWidth;
+    canvas.height = videoElement.value.videoHeight;
+    canvasContext.drawImage(videoElement.value, 0, 0, canvas.width, canvas.height);
+    
+    const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: "dontInvert",
+    });
+
+    if (code) {
+      onScanSuccess(code.data);
+      return; // 找到 QR code，停止掃描
     }
   }
-  isScanning.value = false;
+
+  animationId = requestAnimationFrame(tick);
 };
 
-const onScanSuccess = (decodedText, decodedResult) => {
+const onScanSuccess = (decodedText) => {
   console.log("掃描成功:", decodedText);
 
   // 停止掃描
@@ -202,20 +213,33 @@ const onScanSuccess = (decodedText, decodedResult) => {
   // 解析 QR Code 內容
   try {
     const data = JSON.parse(decodedText);
-
-    // 模擬 API 驗證報到
     validateCheckin(data);
   } catch (error) {
-    // 如果不是 JSON 格式，直接顯示內容
     errorMessage.value = "無效的 QR Code 格式";
     resultType.value = "error";
     showResult.value = true;
   }
 };
 
-const onScanError = (errorMessage) => {
-  // 掃描錯誤（正常情況，持續掃描中）
-  // console.log('掃描中...', errorMessage);
+const stopScanning = () => {
+  isScanning.value = false;
+  
+  // 停止動畫循環
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+  
+  // 停止視訊串流
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+  
+  // 清除 video 元素
+  if (videoElement.value) {
+    videoElement.value.srcObject = null;
+  }
 };
 
 const validateCheckin = async (qrData) => {
@@ -438,29 +462,48 @@ onUnmounted(() => {
   margin: 0 auto;
 }
 
-#qr-reader {
+.camera-preview {
+  width: 100%;
+  max-height: 70vh;
   border-radius: 16px;
-  overflow: hidden;
-  margin-bottom: 20px;
+  background: #000;
+  object-fit: cover;
 }
 
-/* 覆蓋 html5-qrcode 預設樣式 */
-#qr-reader video {
+.scan-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 250px;
+  height: 250px;
+  pointer-events: none;
+}
+
+.scan-box {
+  width: 100%;
+  height: 100%;
+  border: 3px solid #3b82f6;
   border-radius: 16px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+  animation: pulse 2s ease-in-out infinite;
 }
 
-#qr-reader__dashboard {
-  display: none !important;
-}
-
-#qr-reader__scan_region {
-  border-radius: 16px !important;
+@keyframes pulse {
+  0%, 100% {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(59, 130, 246, 0.5);
+  }
+  50% {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(96, 165, 250, 0.8);
+  }
 }
 
 .scan-hint {
   font-size: 1rem;
   color: #cbd5e1;
-  margin: 0 0 16px 0;
+  margin: 20px 0 16px 0;
 }
 
 .btn-stop-scan {
