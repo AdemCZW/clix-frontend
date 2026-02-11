@@ -171,35 +171,35 @@ const sendTestEmail = () => {
 // 生成 QR Code
 const generateQRCode = async (participant) => {
   previewParticipant.value = participant;
-  
+
   // 建立 QR Code 資料
   const qrData = {
-    participantId: `P${String(participant.id).padStart(3, '0')}`,
+    participantId: `P${String(participant.id).padStart(3, "0")}`,
     name: participant.name,
     company: participant.company,
     title: participant.title,
     activity: participant.activity,
     email: participant.email,
     eventId: "EVT2026001",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
-  
+
   try {
     // 生成 QR Code 圖片（Data URL）
     const dataUrl = await QRCode.toDataURL(JSON.stringify(qrData), {
       width: 300,
       margin: 2,
       color: {
-        dark: '#0f172a',
-        light: '#ffffff'
-      }
+        dark: "#0f172a",
+        light: "#ffffff",
+      },
     });
-    
+
     qrCodeDataUrl.value = dataUrl;
     showQRPreview.value = true;
   } catch (error) {
-    console.error('生成 QR Code 失敗:', error);
-    alert('生成 QR Code 失敗');
+    console.error("生成 QR Code 失敗:", error);
+    alert("生成 QR Code 失敗");
   }
 };
 
@@ -210,7 +210,7 @@ const closeQRPreview = () => {
 };
 
 const downloadQRCode = () => {
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.download = `QRCode_${previewParticipant.value.name}.png`;
   link.href = qrCodeDataUrl.value;
   link.click();
@@ -265,7 +265,9 @@ onMounted(() => {
           <h3 class="panel-title">郵件內文編輯</h3>
           <div class="variable-bar">
             <div class="tag-list">
-              <button class="tag-item" @click="insertTag('{name}')"><span>{name}</span> 姓名</button>
+              <button class="tag-item" @click="insertTag('{name}')">
+                <span>{name}</span> 姓名
+              </button>
               <button class="tag-item" @click="insertTag('{event_name}')">
                 <span>{event_name}</span> 活動名
               </button>
@@ -379,9 +381,7 @@ onMounted(() => {
                 </div>
                 <p class="qr-hint">此 QR Code 將包含在報名成功通知信中，供現場報到使用</p>
                 <div class="qr-actions">
-                  <button class="btn-download" @click="downloadQRCode">
-                    📥 下載 QR Code
-                  </button>
+                  <button class="btn-download" @click="downloadQRCode">📥 下載 QR Code</button>
                 </div>
               </div>
             </div>

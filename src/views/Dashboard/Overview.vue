@@ -77,18 +77,20 @@
               <div class="link-section">
                 <label>掃描器連結</label>
                 <div class="link-input-group">
-                  <input 
-                    type="text" 
-                    :value="checkinUrl" 
-                    readonly 
+                  <input
+                    type="text"
+                    :value="checkinUrl"
+                    readonly
                     class="link-input"
                     ref="linkInput"
                   />
                   <button class="btn-copy" @click="copyLink">
-                    {{ linkCopied ? '✓ 已複製' : '複製' }}
+                    {{ linkCopied ? "✓ 已複製" : "複製" }}
                   </button>
                 </div>
-                <p class="link-hint">將此連結分享給現場工作人員，用手機開啟後即可掃描參與者的報到 QR Code</p>
+                <p class="link-hint">
+                  將此連結分享給現場工作人員，用手機開啟後即可掃描參與者的報到 QR Code
+                </p>
               </div>
             </div>
           </div>
@@ -132,7 +134,7 @@ const copyLink = async () => {
   } catch (err) {
     // 備用方案
     linkInput.value?.select();
-    document.execCommand('copy');
+    document.execCommand("copy");
     linkCopied.value = true;
     setTimeout(() => {
       linkCopied.value = false;

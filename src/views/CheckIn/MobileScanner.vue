@@ -31,10 +31,10 @@
       <div v-if="showResult" class="result-overlay" @click="closeResult">
         <div class="result-card" :class="resultType" @click.stop>
           <div class="result-icon">
-            {{ resultType === 'success' ? '✓' : '✕' }}
+            {{ resultType === "success" ? "✓" : "✕" }}
           </div>
           <h2 class="result-title">
-            {{ resultType === 'success' ? '報到成功' : '報到失敗' }}
+            {{ resultType === "success" ? "報到成功" : "報到失敗" }}
           </h2>
           <div v-if="resultType === 'success' && scannedData" class="participant-info">
             <div class="info-row">
@@ -57,9 +57,7 @@
           <div v-else class="error-message">
             {{ errorMessage }}
           </div>
-          <button class="btn-continue" @click="closeResult">
-            繼續掃描
-          </button>
+          <button class="btn-continue" @click="closeResult">繼續掃描</button>
         </div>
       </div>
     </Transition>
@@ -79,17 +77,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { Html5Qrcode } from 'html5-qrcode';
+import { ref, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import { Html5Qrcode } from "html5-qrcode";
 
 const router = useRouter();
 const isScanning = ref(false);
 const videoElement = ref(null);
 const showResult = ref(false);
-const resultType = ref('success'); // 'success' | 'error'
+const resultType = ref("success"); // 'success' | 'error'
 const scannedData = ref(null);
-const errorMessage = ref('');
+const errorMessage = ref("");
 const todayCheckins = ref(127);
 const totalCheckins = ref(642);
 
@@ -97,27 +95,47 @@ let html5QrCode = null;
 
 const startScanning = async () => {
   try {
+    // 先請求相機權限
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: "environment" } 
+    });
+    
+    // 權限獲取成功後立即停止預覽流，讓 html5-qrcode 接管
+    stream.getTracks().forEach(track => track.stop());
+
     // 初始化 QR Code 掃描器
     html5QrCode = new Html5Qrcode("qr-reader");
-    
+
     const config = {
       fps: 10, // 每秒掃描幀數
       qrbox: { width: 250, height: 250 }, // 掃描框大小
-      aspectRatio: 1.0
+      aspectRatio: 1.0,
     };
 
     await html5QrCode.start(
       { facingMode: "environment" }, // 使用後置鏡頭
       config,
       onScanSuccess,
-      onScanError
+      onScanError,
     );
-    
+
     isScanning.value = true;
   } catch (error) {
-    console.error('無法啟動相機:', error);
-    errorMessage.value = '無法啟動相機，請檢查權限設定';
-    resultType.value = 'error';
+    console.error("無法啟動相機:", error);
+    
+    let errorMsg = "無法啟動相機";
+    if (error.name === 'NotAllowedError') {
+      errorMsg = "相機權限被拒絕，請在瀏覽器設定中允許相機權限";
+    } else if (error.name === 'NotFoundError') {
+      errorMsg = "找不到相機設備";
+    } else if (error.name === 'NotReadableError') {
+      errorMsg = "相機正被其他應用程式使用";
+    } else if (error.name === 'SecurityError') {
+      errorMsg = "安全性錯誤：請確認使用 HTTPS 連線";
+    }
+    
+    errorMessage.value = errorMsg;
+    resultType.value = "error";
     showResult.value = true;
   }
 };
@@ -128,28 +146,28 @@ const stopScanning = async () => {
       await html5QrCode.stop();
       html5QrCode.clear();
     } catch (error) {
-      console.error('停止掃描時發生錯誤:', error);
+      console.error("停止掃描時發生錯誤:", error);
     }
   }
   isScanning.value = false;
 };
 
 const onScanSuccess = (decodedText, decodedResult) => {
-  console.log('掃描成功:', decodedText);
-  
+  console.log("掃描成功:", decodedText);
+
   // 停止掃描
   stopScanning();
-  
+
   // 解析 QR Code 內容
   try {
     const data = JSON.parse(decodedText);
-    
+
     // 模擬 API 驗證報到
     validateCheckin(data);
   } catch (error) {
     // 如果不是 JSON 格式，直接顯示內容
-    errorMessage.value = '無效的 QR Code 格式';
-    resultType.value = 'error';
+    errorMessage.value = "無效的 QR Code 格式";
+    resultType.value = "error";
     showResult.value = true;
   }
 };
@@ -162,40 +180,40 @@ const onScanError = (errorMessage) => {
 const validateCheckin = async (qrData) => {
   // 這裡應該呼叫後端 API 驗證
   // 目前為模擬功能
-  
+
   // 模擬 API 延遲
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
   // 模擬驗證成功
   if (qrData.participantId) {
     scannedData.value = {
-      name: qrData.name || '張小明',
-      company: qrData.company || '文靜科技',
-      title: qrData.title || 'CTO',
-      checkinTime: new Date().toLocaleString('zh-TW', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      name: qrData.name || "張小明",
+      company: qrData.company || "文靜科技",
+      title: qrData.title || "CTO",
+      checkinTime: new Date().toLocaleString("zh-TW", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
-    resultType.value = 'success';
+    resultType.value = "success";
     todayCheckins.value++;
     totalCheckins.value++;
   } else {
-    errorMessage.value = '查無此參與者資料';
-    resultType.value = 'error';
+    errorMessage.value = "查無此參與者資料";
+    resultType.value = "error";
   }
-  
+
   showResult.value = true;
 };
 
 const closeResult = () => {
   showResult.value = false;
   scannedData.value = null;
-  errorMessage.value = '';
-  
+  errorMessage.value = "";
+
   // 繼續掃描
   setTimeout(() => {
     startScanning();
@@ -262,8 +280,15 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.8; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
 }
 
 .start-screen h2 {
