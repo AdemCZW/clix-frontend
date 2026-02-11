@@ -105,31 +105,47 @@ const startScanning = async () => {
       throw new Error('您的瀏覽器不支援相機功能，請使用 Chrome 或 Safari 開啟');
     }
 
-    // 先請求相機權限
-    const stream = await navigator.mediaDevices.getUserMedia({ 
-      video: { facingMode: "environment" } 
-    });
-    
-    // 權限獲取成功後立即停止預覽流，讓 html5-qrcode 接管
-    stream.getTracks().forEach(track => track.stop());
-
     // 初始化 QR Code 掃描器
-    html5QrCode = new Html5Qrcode("qr-reader");
+    if (!html5QrCode) {
+      html5QrCode = new Html5Qrcode("qr-reader");
+    }
 
     const config = {
-      fps: 10, // 每秒掃描幀數
-      qrbox: { width: 250, height: 250 }, // 掃描框大小
+      fps: 10,
+      qrbox: { width: 250, height: 250 },
       aspectRatio: 1.0,
+      disableFlip: false,
     };
 
-    await html5QrCode.start(
-      { facingMode: "environment" }, // 使用後置鏡頭
-      config,
-      onScanSuccess,
-      onScanError,
-    );
+    // 嘗試多種相機配置
+    const cameraConfigs = [
+      { facingMode: { exact: "environment" } },
+      { facingMode: "environment" },
+      { facingMode: "user" },
+      true // 使用預設相機
+    ];
 
-    isScanning.value = true;
+    let lastError = null;
+    for (const cameraConfig of cameraConfigs) {
+      try {
+        await html5QrCode.start(
+          cameraConfig,
+          config,
+          onScanSuccess,
+          onScanError,
+        );
+        isScanning.value = true;
+        return; // 成功啟動，退出
+      } catch (err) {
+        console.warn("嘗試相機配置失敗:", cameraConfig, err);
+        lastError = err;
+        // 繼續嘗試下一個配置
+      }
+    }
+
+    // 所有配置都失敗
+    throw lastError || new Error("無法啟動相機");
+
   } catch (error) {
     console.error("無法啟動相機:", error);
     
@@ -148,9 +164,12 @@ const startScanning = async () => {
     } else if (error.name === 'SecurityError') {
       errorMsg = "安全性錯誤";
       helpText = "請確認使用 HTTPS 連線開啟此頁面";
+    } else if (error.name === 'OverconstrainedError') {
+      errorMsg = "相機配置不符";
+      helpText = "您的裝置可能不支援後置鏡頭，已自動切換為前置鏡頭";
     } else if (error.message) {
       errorMsg = error.message;
-      helpText = "建議使用 Chrome 或 Safari 瀏覽器開啟";
+      helpText = "建議使用 Chrome 或 Safari 瀏覽器開啟\n\n詳細錯誤：" + (error.toString());
     }
     
     errorMessage.value = helpText ? `${errorMsg}\n\n${helpText}` : errorMsg;
