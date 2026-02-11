@@ -82,7 +82,7 @@ const handleLogin = () => {
     border-radius: 12px; /* Logo 改為圓角矩形 */
   }
   .brand-name {
-    color: #64748b;
+    color: #475569;
     font-size: 0.85rem;
     letter-spacing: 3px;
     font-weight: 500;
@@ -104,7 +104,7 @@ const handleLogin = () => {
     display: block;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #94a3b8;
+    color: #64748b;
     margin-bottom: 8px;
     padding-left: 4px;
   }

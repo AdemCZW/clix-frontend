@@ -876,7 +876,7 @@ const seatSize = computed(() => {
 
 .seat-label {
   font-size: 0.7rem;
-  color: #94a3b8;
+  color: #64748b;
   font-weight: 700;
   margin-bottom: 8px;
   letter-spacing: 0.05em;

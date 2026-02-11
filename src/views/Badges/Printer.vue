@@ -95,10 +95,6 @@ const handlePrint = () => {
 <template>
   <div class="registration-view">
     <div class="page-header no-print">
-      <div class="title-group">
-        <h2 class="title">識別證列印設計</h2>
-        <p class="subtitle">拖動預覽區的元件調整位置，點擊元件修改樣式</p>
-      </div>
       <button class="btn-preview-action" :disabled="selectedIds.length === 0" @click="handlePrint">
         <span class="btn-inner"> 🖨️ 確認列印 ({{ selectedIds.length }}) </span>
         <span class="pulse-ring"></span>

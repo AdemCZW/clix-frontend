@@ -18,19 +18,25 @@ const showOnboarding = ref(!userStore.isOnboarded || !userStore.currentEvent);
 // 決定模態視窗的模式：如果已經有資料就用選擇模式，否則用建立模式
 const onboardingMode = ref(userStore.isOnboarded ? "select" : "create");
 
-// 依據功能邏輯重新整理的選單 (加入座次管理)
-const menuItems = [
-  { id: 1, name: "報名頁面設定", path: "/admin/registration-setting", icon: "" },
-  { id: 2, name: "參與貴賓", path: "/admin/guests", icon: "" },
-  { id: 3, name: "座次劃位管理", path: "/admin/seating-plan", icon: "" },
-  { id: 4, name: "報名表欄位", path: "/admin/form-fields", icon: "" },
-  { id: 5, name: "通知信設定", path: "/admin/notifications", icon: "" },
-  { id: 6, name: "參與者資訊", path: "/admin/participants", icon: "" },
-  { id: 7, name: "現場報到紀錄", path: "/admin/checkin-history", icon: "" },
-  { id: 8, name: "識別證列印", path: "/admin/badge-printing", icon: "" },
-  { id: 9, name: "中獎名單管理", path: "/admin/lottery-winners", icon: "" },
-  { id: 10, name: "主辦單位資訊", path: "/admin/organizer-info", icon: "" },
-  { id: 11, name: "AI客服設定", path: "/admin/ai-service", icon: "" },
+// 依據功能邏輯重新整理的選單 (兩層架構)
+const mainMenuItems = [
+  { id: 1, name: "主辦中心", path: "/admin/dashboard", icon: "🏠" },
+  { id: 2, name: "活動列表", path: "/admin/events", icon: "📋" },
+  { id: 3, name: "帳戶權限", path: "/admin/account", icon: "👤" },
+];
+
+const eventMenuItems = [
+  { id: 1, name: "報名頁面設定", path: "/admin/registration-setting", icon: "⚙️" },
+  { id: 2, name: "參與貴賓", path: "/admin/guests", icon: "⭐" },
+  { id: 3, name: "座次劃位管理", path: "/admin/seating-plan", icon: "🪑" },
+  { id: 4, name: "報名表欄位", path: "/admin/form-fields", icon: "📝" },
+  { id: 5, name: "通知信設定", path: "/admin/notifications", icon: "✉️" },
+  { id: 6, name: "參與者資訊", path: "/admin/participants", icon: "👥" },
+  { id: 7, name: "現場報到紀錄", path: "/admin/checkin-history", icon: "✅" },
+  { id: 8, name: "識別證列印", path: "/admin/badge-printing", icon: "🎫" },
+  { id: 9, name: "中獎名單管理", path: "/admin/lottery-winners", icon: "🎁" },
+  { id: 10, name: "主辦單位資訊", path: "/admin/organizer-info", icon: "🏢" },
+  { id: 11, name: "AI客服設定", path: "/admin/ai-service", icon: "🤖" },
 ];
 
 const navigateTo = (path) => {
@@ -64,15 +70,37 @@ const handleOnboardingClose = () => {
       </div>
 
       <nav class="menu">
-        <div
-          v-for="item in menuItems"
-          :key="item.id"
-          class="menu-item"
-          :class="{ active: route.path === item.path }"
-          @click="navigateTo(item.path)"
-        >
-          <span class="index">{{ item.id }}.</span>
-          <span class="label">{{ item.name }}</span>
+        <!-- 主選單 -->
+        <div class="menu-section">
+          <div class="section-label">主要功能</div>
+          <div
+            v-for="item in mainMenuItems"
+            :key="'main-' + item.id"
+            class="menu-item"
+            :class="{ active: route.path === item.path }"
+            @click="navigateTo(item.path)"
+          >
+            <span class="icon-span">{{ item.icon }}</span>
+            <span class="label">{{ item.name }}</span>
+          </div>
+        </div>
+
+        <!-- 活動管理選單 -->
+        <div class="menu-section" v-if="userStore.currentEvent">
+          <div class="section-label">
+            活動管理
+            <span class="event-badge">{{ userStore.currentEvent.name }}</span>
+          </div>
+          <div
+            v-for="item in eventMenuItems"
+            :key="'event-' + item.id"
+            class="menu-item sub-item"
+            :class="{ active: route.path === item.path }"
+            @click="navigateTo(item.path)"
+          >
+            <span class="icon-span">{{ item.icon }}</span>
+            <span class="label">{{ item.name }}</span>
+          </div>
         </div>
       </nav>
 
@@ -148,10 +176,45 @@ const handleOnboardingClose = () => {
 .menu {
   flex: 1;
   padding: 0 12px;
-  overflow-y: auto; // 防止選單過長
+  overflow-y: auto;
+
+  .menu-section {
+    margin-bottom: 28px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      padding: 8px 16px;
+      opacity: 0.6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .event-badge {
+        font-size: 0.7rem;
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--accent-blue);
+        padding: 2px 8px;
+        border-radius: 10px;
+        text-transform: none;
+        font-weight: 600;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
 
   .menu-item {
-    padding: 14px 16px;
+    padding: 12px 16px;
     margin-bottom: 4px;
     border-radius: 8px;
     cursor: pointer;
@@ -160,22 +223,27 @@ const handleOnboardingClose = () => {
     display: flex;
     align-items: center;
 
-    .index {
-      font-family: "Monaco", monospace;
-      margin-right: 8px;
-      font-size: 0.8rem;
-      opacity: 0.5;
-      width: 20px;
+    &.sub-item {
+      padding-left: 20px;
+      font-size: 0.9rem;
+
+      .icon-span {
+        font-size: 1rem;
+      }
     }
 
     .icon-span {
-      margin-right: 10px;
-      font-size: 1.1rem;
+      margin-right: 12px;
+      font-size: 1.2rem;
+      min-width: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .label {
       font-size: 0.95rem;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
     }
 
     &:hover {
@@ -187,7 +255,7 @@ const handleOnboardingClose = () => {
       background: rgba(56, 189, 248, 0.1);
       color: var(--accent-blue);
       box-shadow: inset 3px 0 0 var(--accent-blue);
-      font-weight: 500;
+      font-weight: 600;
     }
   }
 }

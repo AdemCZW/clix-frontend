@@ -1,5 +1,9 @@
 <script setup>
 import { reactive, ref, computed } from "vue";
+import { useGuestsStore } from "@/stores/guests";
+
+// 貴賓 store
+const guestsStore = useGuestsStore();
 
 const activityOptions = ref(["所有活動", "2025 技術峰會", "AI 產業論壇"]);
 const selectedActivity = ref("所有活動");
@@ -86,7 +90,9 @@ const deleteGuest = (guest) => {
 };
 
 const openEditPanel = (guest) => {
+  console.log("Opening edit panel for:", guest);
   editingGuest.value = guest;
+  console.log("editingGuest.value:", editingGuest.value);
 };
 
 const closeEditPanel = () => {
@@ -145,8 +151,16 @@ const getInitials = (name) => {
         v-for="guest in filteredGuests"
         :key="guest.id"
         class="guest-item"
-        :class="{ active: editingGuest === guest }"
+        :class="{ active: editingGuest === guest, selected: guestsStore.isGuestSelected(guest.id) }"
       >
+        <label class="checkbox-wrapper" @click.stop>
+          <input
+            type="checkbox"
+            :checked="guestsStore.isGuestSelected(guest.id)"
+            @change="guestsStore.toggleGuest(guest)"
+          />
+          <span class="checkmark"></span>
+        </label>
         <div class="guest-info" @click="openEditPanel(guest)">
           <div class="avatar-wrapper">
             <div
@@ -415,6 +429,10 @@ const getInitials = (name) => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: all 0.3s;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-left: 20px;
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -425,16 +443,78 @@ const getInitials = (name) => {
     border-color: var(--primary-blue, #3b82f6);
     box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
   }
+
+  &.selected {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-color: #10b981;
+  }
+}
+
+/* 勾選框樣式 */
+.checkbox-wrapper {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+
+  input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+  }
+
+  .checkmark {
+    height: 24px;
+    width: 24px;
+    background-color: white;
+    border: 2px solid #cbd5e1;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:after {
+      content: "";
+      display: none;
+      width: 6px;
+      height: 11px;
+      border: solid white;
+      border-width: 0 3px 3px 0;
+      transform: rotate(45deg);
+    }
+  }
+
+  input:checked ~ .checkmark {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-color: #10b981;
+
+    &:after {
+      display: block;
+    }
+  }
+
+  &:hover .checkmark {
+    border-color: #10b981;
+    transform: scale(1.1);
+  }
 }
 
 .guest-info {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 16px 20px;
+  padding: 16px 20px 16px 0;
   cursor: pointer;
   gap: 16px;
   text-align: left;
+  flex: 1;
+  position: relative;
+  z-index: 1;
 }
 
 .avatar-wrapper {
@@ -482,7 +562,7 @@ const getInitials = (name) => {
 
 .guest-company {
   font-size: 0.9rem;
-  color: #6b7280;
+  color: #374151;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -616,7 +696,7 @@ const getInitials = (name) => {
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    color: #94a3b8;
+    color: #64748b;
 
     span {
       font-size: 0.85rem;

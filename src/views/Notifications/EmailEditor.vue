@@ -2,6 +2,7 @@
 import { reactive, ref, onMounted, computed } from "vue";
 import { QuillEditor } from "@vueup/vue-quill";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
+import QRCode from "qrcode";
 
 // 1. 通知信資料模型
 const mailSettings = reactive({
@@ -9,12 +10,14 @@ const mailSettings = reactive({
   senderName: "活動小辦公室",
   content:
     "<h1>親愛的 {name} 您好：</h1><p>感謝您報名參加 <strong>{event_name}</strong>。</p><p>您的專屬報名序號為：{order_id}</p><p>期待您的蒞臨！</p>",
-  enableAutoSend: true,
 });
 
 const myQuill = ref(null);
 const showTemplateDrawer = ref(false);
 const savedTemplates = ref([]);
+const showQRPreview = ref(false);
+const qrCodeDataUrl = ref("");
+const previewParticipant = ref(null);
 
 // 參與者資料
 const participants = ref([
@@ -165,6 +168,54 @@ const sendTestEmail = () => {
   }
 };
 
+// 生成 QR Code
+const generateQRCode = async (participant) => {
+  previewParticipant.value = participant;
+  
+  // 建立 QR Code 資料
+  const qrData = {
+    participantId: `P${String(participant.id).padStart(3, '0')}`,
+    name: participant.name,
+    company: participant.company,
+    title: participant.title,
+    activity: participant.activity,
+    email: participant.email,
+    eventId: "EVT2026001",
+    timestamp: new Date().toISOString()
+  };
+  
+  try {
+    // 生成 QR Code 圖片（Data URL）
+    const dataUrl = await QRCode.toDataURL(JSON.stringify(qrData), {
+      width: 300,
+      margin: 2,
+      color: {
+        dark: '#0f172a',
+        light: '#ffffff'
+      }
+    });
+    
+    qrCodeDataUrl.value = dataUrl;
+    showQRPreview.value = true;
+  } catch (error) {
+    console.error('生成 QR Code 失敗:', error);
+    alert('生成 QR Code 失敗');
+  }
+};
+
+const closeQRPreview = () => {
+  showQRPreview.value = false;
+  qrCodeDataUrl.value = "";
+  previewParticipant.value = null;
+};
+
+const downloadQRCode = () => {
+  const link = document.createElement('a');
+  link.download = `QRCode_${previewParticipant.value.name}.png`;
+  link.href = qrCodeDataUrl.value;
+  link.click();
+};
+
 const editorOptions = {
   modules: {
     toolbar: [
@@ -187,10 +238,6 @@ onMounted(() => {
 <template>
   <div class="email-editor-view">
     <div class="page-header">
-      <div class="header-text">
-        <h2 class="title">4. 通知信設定</h2>
-        <p class="subtitle">管理您的參與者名單並發送 HTML 郵件</p>
-      </div>
       <div class="header-actions">
         <button class="btn-send" @click="sendTestEmail">發送信件</button>
         <button class="btn-save" @click="saveSettings">儲存目前樣板</button>
@@ -199,47 +246,42 @@ onMounted(() => {
     </div>
 
     <div class="editor-layout">
-      <div class="panel config-side">
-        <h3 class="panel-title">發送參數設定</h3>
-        <div class="input-group">
-          <label>郵件主旨</label>
-          <input v-model="mailSettings.subject" class="custom-input" />
-        </div>
-        <div class="input-group">
-          <label>寄件者名稱</label>
-          <input v-model="mailSettings.senderName" class="custom-input" />
-        </div>
-        <div class="auto-send-card">
-          <div class="card-info">
-            <span class="label">報名完成即刻發送</span>
+      <div class="left-section">
+        <div class="panel config-side">
+          <h3 class="panel-title">發送參數設定</h3>
+          <div class="config-grid">
+            <div class="input-group">
+              <label>郵件主旨</label>
+              <input v-model="mailSettings.subject" class="custom-input" />
+            </div>
+            <div class="input-group">
+              <label>寄件者名稱</label>
+              <input v-model="mailSettings.senderName" class="custom-input" />
+            </div>
           </div>
-          <label class="switch-container">
-            <input type="checkbox" v-model="mailSettings.enableAutoSend" />
-            <span class="switch-slider"></span>
-          </label>
         </div>
-      </div>
 
-      <div class="panel editor-side">
-        <h3 class="panel-title">郵件內文編輯</h3>
-        <div class="variable-bar">
-          <div class="tag-list">
-            <button class="tag-item" @click="insertTag('{name}')"><span>{name}</span> 姓名</button>
-            <button class="tag-item" @click="insertTag('{event_name}')">
-              <span>{event_name}</span> 活動名
-            </button>
-            <button class="tag-item" @click="insertTag('{order_id}')">
-              <span>{order_id}</span> 序號
-            </button>
+        <div class="panel editor-side">
+          <h3 class="panel-title">郵件內文編輯</h3>
+          <div class="variable-bar">
+            <div class="tag-list">
+              <button class="tag-item" @click="insertTag('{name}')"><span>{name}</span> 姓名</button>
+              <button class="tag-item" @click="insertTag('{event_name}')">
+                <span>{event_name}</span> 活動名
+              </button>
+              <button class="tag-item" @click="insertTag('{order_id}')">
+                <span>{order_id}</span> 序號
+              </button>
+            </div>
           </div>
-        </div>
-        <div class="quill-container-fixed">
-          <QuillEditor
-            ref="myQuill"
-            v-model:content="mailSettings.content"
-            contentType="html"
-            :options="editorOptions"
-          />
+          <div class="quill-container-fixed">
+            <QuillEditor
+              ref="myQuill"
+              v-model:content="mailSettings.content"
+              contentType="html"
+              :options="editorOptions"
+            />
+          </div>
         </div>
       </div>
 
@@ -266,13 +308,14 @@ onMounted(() => {
             :key="p.id"
             class="participant-item"
             :class="{ selected: isParticipantSelected(p) }"
-            @click="toggleParticipantSelection(p)"
           >
-            <div class="participant-info">
+            <div class="participant-info" @click="toggleParticipantSelection(p)">
               <div class="participant-name">{{ p.name }}</div>
               <div class="participant-email">{{ p.email }}</div>
             </div>
-            <div class="participant-activity">{{ p.activity }}</div>
+            <button class="btn-qr-generate" @click="generateQRCode(p)" title="生成 QR Code">
+              <span class="qr-icon">⊞</span>
+            </button>
           </div>
         </div>
       </div>
@@ -305,6 +348,47 @@ onMounted(() => {
         </div>
       </Transition>
     </Teleport>
+
+    <!-- QR Code 預覽彈窗 -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showQRPreview" class="modal-overlay" @click="closeQRPreview">
+          <div class="qr-preview-modal" @click.stop>
+            <div class="modal-header">
+              <h3>報到 QR Code</h3>
+              <button class="btn-close" @click="closeQRPreview">✕</button>
+            </div>
+            <div class="modal-body">
+              <div v-if="previewParticipant" class="participant-preview">
+                <div class="preview-info">
+                  <div class="info-item">
+                    <span class="label">姓名</span>
+                    <span class="value">{{ previewParticipant.name }}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">公司</span>
+                    <span class="value">{{ previewParticipant.company }}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">活動</span>
+                    <span class="value">{{ previewParticipant.activity }}</span>
+                  </div>
+                </div>
+                <div class="qr-display">
+                  <img :src="qrCodeDataUrl" alt="QR Code" class="qr-image" />
+                </div>
+                <p class="qr-hint">此 QR Code 將包含在報名成功通知信中，供現場報到使用</p>
+                <div class="qr-actions">
+                  <button class="btn-download" @click="downloadQRCode">
+                    📥 下載 QR Code
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -314,10 +398,15 @@ onMounted(() => {
    =========================================== */
 
 .email-editor-view {
-  background-color: #f8fafc;
+  background: #f8fafc;
   min-height: 100vh;
-  padding: 30px;
+  padding: 20px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --primary-blue: #3b82f6;
+  --deep-dark: #0f172a;
+  --text-gray: #475569;
+  --bg-soft: #f8fafc;
+  --border-light: #e2e8f0;
 }
 
 /* ===========================================
@@ -325,14 +414,11 @@ onMounted(() => {
    =========================================== */
 
 .page-header {
+  padding: 0 0 20px 0;
+  margin-bottom: 20px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 24px;
-  padding: 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .header-text {
@@ -341,14 +427,14 @@ onMounted(() => {
 
 .title {
   font-size: 1.5rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 4px 0;
+  font-weight: 800;
+  color: white;
+  margin: 0 0 6px 0;
 }
 
 .subtitle {
   font-size: 0.9rem;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.95);
   margin: 0;
 }
 
@@ -375,55 +461,71 @@ onMounted(() => {
 }
 
 .btn-send {
-  background: #10b981;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .btn-send:hover {
-  background: #059669;
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
 .btn-save {
-  background: #0ea5e9;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .btn-save:hover {
-  background: #0284c7;
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
 .btn-view-templates {
-  background: #e2e8f0;
+  background: white;
   color: #475569;
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  border: 2px solid #e2e8f0;
   cursor: pointer;
-  font-weight: 500;
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .btn-view-templates:hover {
-  background: #cbd5e1;
-  transform: translateY(-1px);
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .btn-secondary {
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  border: 1px solid #d1d5db;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  border: 2px solid #e2e8f0;
   background: white;
-  color: #374151;
+  color: #475569;
   cursor: pointer;
-  border-radius: 6px;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
 /* ===========================================
@@ -432,74 +534,96 @@ onMounted(() => {
 
 .editor-layout {
   display: grid;
-  grid-template-columns: 280px 1fr 320px;
-  gap: 24px;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
   align-items: start;
+}
+
+.left-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .panel {
   background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--border-light);
+  padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.3s;
+}
+
+.panel:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .panel-title {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 16px;
-  color: #1e293b;
-  border-left: 4px solid #0ea5e9;
-  padding-left: 12px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--deep-dark);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f1f5f9;
 }
 
 /* ===========================================
    ⚙️ 配置面板
    =========================================== */
 
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
 .input-group {
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .input-group label {
   display: block;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--deep-dark);
+  margin-bottom: 8px;
 }
 
 .custom-input {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  transition: border-color 0.2s ease;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.custom-input:hover {
+  border-color: #cbd5e1;
 }
 
 .custom-input:focus {
+  border-color: var(--primary-blue);
   outline: none;
-  border-color: #0ea5e9;
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
 .auto-send-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  gap: 16px;
   margin-top: 16px;
 }
 
 .card-info .label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #374151;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--deep-dark);
 }
 
 /* ===========================================
@@ -517,37 +641,52 @@ onMounted(() => {
 }
 
 .tag-item {
-  padding: 6px 12px;
-  border-radius: 20px;
-  border: 1px solid #e2e8f0;
-  background: white;
-  cursor: pointer;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  color: var(--primary-blue);
+  padding: 5px 12px;
+  border-radius: 8px;
   font-size: 0.8rem;
-  font-weight: 500;
-  color: #475569;
-  transition: all 0.2s ease;
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: 6px;
+  transition: 0.2s;
 }
 
 .tag-item:hover {
-  border-color: #0ea5e9;
-  background: #f0f9ff;
+  background: var(--primary-blue);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .tag-item span {
-  color: #0ea5e9;
-  font-weight: 700;
+  color: inherit;
+  font-weight: inherit;
   margin-right: 4px;
 }
 
 .quill-container-fixed {
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
   overflow: hidden;
 }
 
+.quill-container-fixed :deep(.ql-container) {
+  min-height: 450px;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.quill-container-fixed :deep(.ql-toolbar) {
+  border: none;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border-light);
+}
+
 .quill-container-fixed:focus-within {
-  border-color: #0ea5e9;
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
 /* ===========================================
@@ -562,9 +701,12 @@ onMounted(() => {
 }
 
 .selection-info {
-  font-size: 0.8rem;
-  color: #64748b;
-  font-weight: 500;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+  background: #eff6ff;
+  padding: 4px 10px;
+  border-radius: 8px;
 }
 
 .participants-controls {
@@ -577,31 +719,42 @@ onMounted(() => {
 
 .filter-select {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  background: white;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  font-weight: 600;
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+.filter-select:hover {
+  border-color: #cbd5e1;
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: #0ea5e9;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
 .search-input {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.9rem;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  font-weight: 600;
+  transition: 0.3s;
   margin-bottom: 12px;
+}
+
+.search-input:hover {
+  border-color: #cbd5e1;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #0ea5e9;
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
 .action-buttons {
@@ -637,11 +790,12 @@ onMounted(() => {
 
 .participant-item.selected {
   background: #eff6ff;
-  border-left: 3px solid #0ea5e9;
+  border-left: 3px solid var(--primary-blue);
 }
 
 .participant-info {
   flex: 1;
+  cursor: pointer;
 }
 
 .participant-name {
@@ -653,13 +807,33 @@ onMounted(() => {
 
 .participant-email {
   font-size: 0.8rem;
-  color: #64748b;
+  color: #475569;
 }
 
-.participant-activity {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  font-weight: 500;
+.btn-qr-generate {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.btn-qr-generate:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+.qr-icon {
+  font-size: 1rem;
+  font-weight: bold;
 }
 
 /* ===========================================
@@ -712,7 +886,7 @@ onMounted(() => {
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: #64748b;
+  color: #475569;
   cursor: pointer;
   padding: 4px;
   border-radius: 6px;
@@ -837,6 +1011,137 @@ input:checked + .switch-slider:before {
 .drawer-leave-to {
   transform: translateX(100%);
   opacity: 0;
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .qr-preview-modal,
+.modal-leave-to .qr-preview-modal {
+  transform: scale(0.9) translateY(20px);
+}
+
+/* ===========================================
+   📱 QR Code 預覽彈窗
+   =========================================== */
+
+.qr-preview-modal {
+  background: white;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.qr-preview-modal .modal-header {
+  padding: 24px 28px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.qr-preview-modal .modal-header h3 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.qr-preview-modal .modal-body {
+  padding: 32px 28px;
+}
+
+.participant-preview {
+  text-align: center;
+}
+
+.preview-info {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-item .label {
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.info-item .value {
+  font-size: 0.95rem;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.qr-display {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.qr-image {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  border-radius: 8px;
+}
+
+.qr-hint {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.qr-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-download {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-download:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
 /* ===========================================

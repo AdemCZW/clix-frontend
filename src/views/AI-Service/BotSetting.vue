@@ -277,7 +277,7 @@ const saveBotSettings = () => {
     small {
       display: block;
       margin-top: 6px;
-      color: #6b7280;
+      color: #374151;
       font-size: 0.85rem;
     }
   }

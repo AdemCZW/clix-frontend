@@ -262,7 +262,7 @@ const visibleFields = computed(() => fields.filter((f) => !f.isHidden));
     opacity: 0.7;
 
     .field-label-input {
-      color: #94a3b8;
+      color: #64748b;
     }
   }
 }
@@ -337,7 +337,7 @@ const visibleFields = computed(() => fields.filter((f) => !f.isHidden));
   }
 
   &:disabled {
-    color: #64748b;
+    color: #475569;
     cursor: not-allowed;
   }
 }
