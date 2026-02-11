@@ -22,6 +22,9 @@
           <span class="icon">📱</span>
           啟動掃描器
         </button>
+        <button class="btn-test-camera" @click="testCamera">
+          🔍 測試相機權限
+        </button>
       </div>
 
       <div v-else class="camera-view">
@@ -258,6 +261,27 @@ const closeResult = () => {
   }, 300);
 };
 
+const testCamera = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: "environment" } 
+    });
+    
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+    
+    stream.getTracks().forEach(track => track.stop());
+    
+    errorMessage.value = `✅ 相機權限正常！\n\n找到 ${videoDevices.length} 個相機設備\n\n${videoDevices.map((d, i) => `相機 ${i + 1}: ${d.label || '未命名'}`).join('\n')}\n\n請點擊「啟動掃描器」開始使用`;
+    resultType.value = "success";
+    showResult.value = true;
+  } catch (error) {
+    errorMessage.value = `❌ 相機測試失敗\n\n錯誤類型: ${error.name}\n錯誤訊息: ${error.message}\n\n請確認：\n1. 已允許相機權限\n2. 使用 Chrome 或 Safari\n3. 相機未被其他 App 占用`;
+    resultType.value = "error";
+    showResult.value = true;
+  }
+};
+
 onUnmounted(() => {
   stopScanning();
 });
@@ -370,6 +394,7 @@ onUnmounted(() => {
   gap: 12px;
   box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
   transition: all 0.3s ease;
+  margin-bottom: 12px;
 }
 
 .btn-start-scan:hover {
@@ -379,6 +404,24 @@ onUnmounted(() => {
 
 .btn-start-scan .icon {
   font-size: 1.5rem;
+}
+
+.btn-test-camera {
+  background: transparent;
+  color: #64748b;
+  border: 2px solid #e2e8f0;
+  padding: 12px 32px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-test-camera:hover {
+  border-color: #cbd5e1;
+  color: #475569;
+  background: rgba(148, 163, 184, 0.05);
 }
 
 /* 相機視圖 */
