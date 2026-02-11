@@ -119,7 +119,7 @@ const eventStats = ref({
 // 生成報到掃描連結
 const checkinUrl = computed(() => {
   const baseUrl = window.location.origin;
-  return `${baseUrl}/mobile/checkin`;
+  return `${baseUrl}/#/mobile/checkin`;
 });
 
 const copyLink = async () => {
