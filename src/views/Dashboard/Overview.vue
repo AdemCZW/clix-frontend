@@ -120,8 +120,10 @@ const eventStats = ref({
 
 // 生成報到掃描連結
 const checkinUrl = computed(() => {
+  // 使用當前頁面的完整路徑（包含 /check_system/）
   const baseUrl = window.location.origin;
-  return `${baseUrl}/#/mobile/checkin`;
+  const basePath = import.meta.env.BASE_URL;
+  return `${baseUrl}${basePath}#/mobile/checkin`;
 });
 
 const copyLink = async () => {
