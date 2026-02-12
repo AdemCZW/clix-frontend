@@ -123,11 +123,11 @@ const handleImport = (e) => {
           accept=".xlsx, .xls"
           @change="handleImport"
         />
-        <button class="btn-import" @click="triggerImport">📥 匯入名單</button>
-        <button class="btn-export" :disabled="isExporting" @click="handleExport">
-          📊 {{ isExporting ? "處理中..." : "匯出 Excel" }}
+        <button class="btn-secondary" @click="triggerImport">匯入名單</button>
+        <button class="btn-secondary" :disabled="isExporting" @click="handleExport">
+          {{ isExporting ? "處理中..." : "匯出 Excel" }}
         </button>
-        <button class="btn-primary">＋ 新增</button>
+        <button class="btn-primary">新增</button>
       </div>
     </div>
 
@@ -217,53 +217,66 @@ const handleImport = (e) => {
 
 .page-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 24px;
-  .title {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #1e293b;
-    margin: 0;
-  }
-  .subtitle {
-    color: #475569;
-    margin-top: 4px;
-    font-size: 0.9rem;
-  }
+  margin-bottom: 28px;
 }
 
 .header-actions {
   display: flex;
   gap: 12px;
+  align-items: center;
 }
 
-/* 按鈕樣式 */
-.btn-import {
-  background: white;
-  border: 1px solid #e2e8f0;
-  padding: 10px 18px;
+/* 按鈕樣式 - 統一設計風格 */
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 24px;
   border-radius: 12px;
-  cursor: pointer;
+  font-size: 0.95rem;
   font-weight: 600;
-}
-.btn-export {
-  background: #f0fdf4;
-  color: #16a34a;
-  border: 1px solid #bbf7d0;
-  padding: 10px 18px;
-  border-radius: 12px;
   cursor: pointer;
-  font-weight: 600;
-}
-.btn-primary {
-  background: #0ea5e9;
-  color: white;
+  transition: all 0.3s ease;
   border: none;
-  padding: 10px 24px;
-  border-radius: 12px;
-  cursor: pointer;
-  font-weight: 700;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+
+  &:hover {
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  }
+}
+
+.btn-secondary {
+  background: white;
+  color: #475569;
+  border: 2px solid #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  &:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+  }
 }
 
 /* 過濾器列設計 */

@@ -38,6 +38,12 @@ const router = createRouter({
                     component: () =>
                         import ('../views/Account/Permissions.vue')
                 },
+                {
+                    path: 'all-participants',
+                    name: 'AllParticipants',
+                    component: () =>
+                        import ('../views/AllParticipants/List.vue')
+                },
                 // ===== 第二層：活動管理功能 =====
                 {
                     path: 'registration-setting',

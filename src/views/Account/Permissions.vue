@@ -268,40 +268,16 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import { useAdminAccountsStore } from "@/stores/adminAccounts";
+import { storeToRefs } from "pinia";
+import { useToast } from "@/composables/useToast";
+
+const { success, error, warning } = useToast();
+
+const adminStore = useAdminAccountsStore();
+const { adminAccounts, staffAccounts } = storeToRefs(adminStore);
 
 const selectedAdminId = ref(null);
-
-const adminAccounts = ref([
-  { id: 1, email: "admin1@company.com", staffQuota: 10, createdAt: "2024-01-15" },
-  { id: 2, email: "admin2@company.com", staffQuota: 5, createdAt: "2024-01-20" },
-]);
-
-const staffAccounts = ref([
-  {
-    id: 1,
-    accountId: "ST12345",
-    managerId: 1,
-    managerEmail: "admin1@company.com",
-    createdAt: "2024-01-16",
-    status: "active",
-  },
-  {
-    id: 2,
-    accountId: "ST67890",
-    managerId: 1,
-    managerEmail: "admin1@company.com",
-    createdAt: "2024-01-17",
-    status: "active",
-  },
-  {
-    id: 3,
-    accountId: "ST24680",
-    managerId: 2,
-    managerEmail: "admin2@company.com",
-    createdAt: "2024-01-21",
-    status: "active",
-  },
-]);
 
 const showAddAdminModal = ref(false);
 const showAddStaffModal = ref(false);
@@ -322,16 +298,8 @@ const newStaff = ref({
 const editingAdmin = ref(null);
 const editQuotaValue = ref(0);
 
-const getStaffCountByAdmin = (adminId) => {
-  return staffAccounts.value.filter((staff) => staff.managerId === adminId).length;
-};
-
-const canAddStaff = (adminId) => {
-  const admin = adminAccounts.value.find((a) => a.id === adminId);
-  if (!admin) return false;
-  const currentStaffCount = getStaffCountByAdmin(adminId);
-  return currentStaffCount < admin.staffQuota;
-};
+const getStaffCountByAdmin = adminStore.getStaffCountByAdmin;
+const canAddStaff = adminStore.canAddStaff;
 
 const selectAdmin = (adminId) => {
   selectedAdminId.value = adminId;
@@ -346,88 +314,73 @@ const selectedAdminStaff = computed(() => {
   return staffAccounts.value.filter((staff) => staff.managerId === selectedAdminId.value);
 });
 
-const generateAccountId = () => {
-  const prefix = "ST";
-  const number = Math.floor(10000 + Math.random() * 90000);
-  return prefix + number;
-};
-
 const addAdmin = () => {
   if (!newAdmin.value.email || !newAdmin.value.password || !newAdmin.value.confirmPassword) {
-    alert("請填寫所有必填欄位");
+    warning("請填寫所有必填欄位");
     return;
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(newAdmin.value.email)) {
-    alert("請輸入有效的 Email 格式");
+    error("請輸入有效的 Email 格式");
     return;
   }
 
   if (adminAccounts.value.some((admin) => admin.email === newAdmin.value.email)) {
-    alert("此 Email 已被使用");
+    error("此 Email 已被使用");
     return;
   }
 
   if (newAdmin.value.password !== newAdmin.value.confirmPassword) {
-    alert("密碼與確認密碼不一致");
+    error("密碼與確認密碼不一致");
     return;
   }
 
   if (!newAdmin.value.staffQuota || newAdmin.value.staffQuota < 1) {
-    alert("請設定員工配額（至少 1 位）");
+    warning("請設定員工配額（至少 1 位）");
     return;
   }
 
-  adminAccounts.value.push({
-    id: adminAccounts.value.length + 1,
-    email: newAdmin.value.email,
-    staffQuota: newAdmin.value.staffQuota,
-    createdAt: new Date().toISOString().split("T")[0],
-  });
-
-  showAddAdminModal.value = false;
-  newAdmin.value = { email: "", password: "", confirmPassword: "", staffQuota: 5 };
-  alert("管理者帳戶已建立");
+  try {
+    adminStore.addAdmin(newAdmin.value.email, newAdmin.value.password, newAdmin.value.staffQuota);
+    showAddAdminModal.value = false;
+    newAdmin.value = { email: "", password: "", confirmPassword: "", staffQuota: 5 };
+    success("管理者帳戶已建立");
+  } catch (err) {
+    error(err.message);
+  }
 };
 
 const addStaff = () => {
   if (!selectedAdminId.value || !newStaff.value.password || !newStaff.value.confirmPassword) {
-    alert("請填寫所有必填欄位");
+    warning("請填寫所有必填欄位");
     return;
   }
 
   if (newStaff.value.password !== newStaff.value.confirmPassword) {
-    alert("密碼與確認密碼不一致");
+    error("密碼與確認密碼不一致");
     return;
   }
 
   const admin = adminAccounts.value.find((a) => a.id === selectedAdminId.value);
   if (!admin) {
-    alert("找不到指定的管理者");
+    error("找不到指定的管理者");
     return;
   }
 
   if (!canAddStaff(selectedAdminId.value)) {
-    alert("該管理者的員工額度已滿");
+    warning("該管理者的員工額度已滿");
     return;
   }
 
-  const accountId = generateAccountId();
-
-  staffAccounts.value.push({
-    id: staffAccounts.value.length + 1,
-    accountId: accountId,
-    managerId: selectedAdminId.value,
-    managerEmail: admin.email,
-    createdAt: new Date().toISOString().split("T")[0],
-    status: "active",
-  });
-
-  alert(`員工帳號已建立！\n帳號：${accountId}\n請妥善保管此帳號資訊`);
-
-  showAddStaffModal.value = false;
-  newStaff.value = { password: "", confirmPassword: "" };
+  try {
+    const newStaffAccount = adminStore.addStaff(selectedAdminId.value);
+    success(`員工帳號已建立！帳號：${newStaffAccount.accountId}`);
+    showAddStaffModal.value = false;
+    newStaff.value = { password: "", confirmPassword: "" };
+  } catch (err) {
+    error(err.message);
+  }
 };
 
 const deleteAdmin = (adminId) => {
@@ -438,14 +391,13 @@ const deleteAdmin = (adminId) => {
     if (!confirm(`刪除管理者 ${admin.email} 將同時刪除 ${staffCount} 位員工帳戶，確定要繼續嗎？`)) {
       return;
     }
-    staffAccounts.value = staffAccounts.value.filter((staff) => staff.managerId !== adminId);
   } else {
     if (!confirm(`確定要刪除管理者 ${admin.email} 嗎？`)) {
       return;
     }
   }
 
-  adminAccounts.value = adminAccounts.value.filter((a) => a.id !== adminId);
+  adminStore.deleteAdmin(adminId);
 
   if (selectedAdminId.value === adminId) {
     selectedAdminId.value = null;
@@ -457,9 +409,8 @@ const deleteStaff = (staffId) => {
   if (!confirm(`確定要刪除員工帳號 ${staff.accountId} 嗎？`)) {
     return;
   }
-  staffAccounts.value = staffAccounts.value.filter((s) => s.id !== staffId);
+  adminStore.deleteStaff(staffId);
 };
-
 const openEditQuotaModal = (admin) => {
   editingAdmin.value = admin;
   editQuotaValue.value = admin.staffQuota;
@@ -472,14 +423,11 @@ const saveQuota = () => {
   const currentUsage = getStaffCountByAdmin(editingAdmin.value.id);
 
   if (editQuotaValue.value < currentUsage) {
-    alert(`新配額不可低於目前使用數 (${currentUsage})`);
+    warning(`新配額不可低於目前使用數 (${currentUsage})`);
     return;
   }
 
-  const admin = adminAccounts.value.find((a) => a.id === editingAdmin.value.id);
-  if (admin) {
-    admin.staffQuota = editQuotaValue.value;
-  }
+  adminStore.updateAdminQuota(editingAdmin.value.id, editQuotaValue.value);
 
   showEditQuotaModal.value = false;
   editingAdmin.value = null;
@@ -487,7 +435,7 @@ const saveQuota = () => {
 
 const copyToClipboard = (text) => {
   navigator.clipboard.writeText(text).then(() => {
-    alert("帳號已複製到剪貼簿");
+    success("帳號已複製到剪貼簿");
   });
 };
 </script>

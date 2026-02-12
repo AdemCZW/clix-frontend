@@ -1,9 +1,19 @@
 <script setup>
-import { RouterView } from 'vue-router'
+import { RouterView } from "vue-router";
+import Toast from "./components/Toast.vue";
+import { useToast } from "./composables/useToast";
+
+const { toastState } = useToast();
 </script>
 
 <template>
   <RouterView />
+  <Toast
+    v-model="toastState.show"
+    :message="toastState.message"
+    :type="toastState.type"
+    :duration="toastState.duration"
+  />
 </template>
 
 <style>

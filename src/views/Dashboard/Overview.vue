@@ -1,37 +1,29 @@
 <template>
   <div class="dashboard-view">
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-info">
-          <div class="stat-label">活動總數</div>
-          <div class="stat-value">{{ eventStats.total }}</div>
-        </div>
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-label">活動總數</div>
+        <div class="stat-value">{{ eventStats.total }}</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-info">
-          <div class="stat-label">進行中</div>
-          <div class="stat-value">{{ eventStats.active }}</div>
-        </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-label">進行中</div>
+        <div class="stat-value">{{ eventStats.active }}</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-info">
-          <div class="stat-label">總參與人數</div>
-          <div class="stat-value">{{ eventStats.participants }}</div>
-        </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-label">總參與人數</div>
+        <div class="stat-value">{{ eventStats.participants }}</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-info">
-          <div class="stat-label">已報到</div>
-          <div class="stat-value">{{ eventStats.checkedIn }}</div>
-        </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-label">已報到</div>
+        <div class="stat-value">{{ eventStats.checkedIn }}</div>
       </div>
     </div>
 
     <div class="quick-action-section">
-      <button class="btn-qr-link" @click="showQRLinkModal = true">
-        <span class="icon">📱</span>
-        <span class="text">開啟報到掃描器</span>
-      </button>
+      <button class="btn-qr-link" @click="showQRLinkModal = true">開啟報到掃描器</button>
     </div>
 
     <div class="recent-events-section">
@@ -211,45 +203,54 @@ const selectEvent = (event) => {
   }
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 32px;
-}
-
-.stat-card {
+.stats-bar {
   background: white;
   border-radius: 16px;
-  padding: 24px;
+  padding: 28px 32px;
   border: 1px solid #e5e7eb;
-  transition: all 0.3s;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
   }
+}
 
-  .stat-info {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
+.stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
 
   .stat-label {
-    font-size: 0.9rem;
-    color: #475569;
+    font-size: 0.85rem;
+    color: #64748b;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 
   .stat-value {
-    font-size: 2.5rem;
+    font-size: 2.25rem;
     font-weight: 800;
-    color: #0f172a;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     line-height: 1;
   }
+}
+
+.stat-divider {
+  width: 1px;
+  height: 50px;
+  background: linear-gradient(to bottom, transparent, #e5e7eb 20%, #e5e7eb 80%, transparent);
 }
 
 .content-grid {
@@ -321,31 +322,43 @@ const selectEvent = (event) => {
 }
 
 .btn-qr-link {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 16px 32px;
-  border-radius: 12px;
-  font-size: 1rem;
+  padding: 18px 40px;
+  border-radius: 16px;
+  font-size: 1.05rem;
   font-weight: 700;
+  letter-spacing: 0.5px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-  transition: all 0.3s ease;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 
-  .icon {
-    font-size: 1.5rem;
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
   }
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
+
+    &::before {
+      left: 100%;
+    }
   }
 
   &:active {
-    transform: translateY(0);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
   }
 }
 

@@ -22,7 +22,8 @@ const onboardingMode = ref(userStore.isOnboarded ? "select" : "create");
 const mainMenuItems = [
   { id: 1, name: "主辦中心", path: "/admin/dashboard", icon: "🏠" },
   { id: 2, name: "活動列表", path: "/admin/events", icon: "📋" },
-  { id: 3, name: "帳戶權限", path: "/admin/account", icon: "👤" },
+  { id: 3, name: "總人員名單", path: "/admin/all-participants", icon: "👥" },
+  { id: 4, name: "帳戶權限", path: "/admin/account", icon: "👤" },
 ];
 
 const eventMenuItems = [

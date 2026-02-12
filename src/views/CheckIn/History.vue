@@ -60,10 +60,8 @@ const simulateQRScan = () => {
   <div class="checkin-view">
     <div class="page-header">
       <div class="header-actions">
-        <button class="btn-qr-simulate" @click="simulateQRScan">
-          <span class="icon">📱</span> 模擬 QR 掃描
-        </button>
-        <button class="btn-primary-rounded" @click="showModal = true">手動報到補錄</button>
+        <button class="btn-secondary" @click="simulateQRScan">模擬 QR 掃描</button>
+        <button class="btn-primary" @click="showModal = true">手動報到補錄</button>
       </div>
     </div>
 
@@ -177,41 +175,64 @@ const simulateQRScan = () => {
 }
 .page-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 24px;
-  .title-group {
-    .live-indicator {
-      font-size: 0.75rem;
-      color: #10b981;
-      font-weight: 700;
-      animation: blink 2s infinite;
-      margin-top: 4px;
-      display: block;
-    }
-  }
+  margin-bottom: 28px;
 }
 .header-actions {
   display: flex;
   gap: 12px;
+  align-items: center;
 }
 
-/* 按鈕樣式 */
-.btn-qr-simulate {
-  background: #1e293b;
-  color: white;
-  border: none;
-  padding: 10px 22px;
-  border-radius: 50px;
+/* 按鈕樣式 - 統一設計風格 */
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: 0.3s;
+  transition: all 0.3s ease;
+  border: none;
+
   &:hover {
-    background: #000;
     transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+
+  &:hover {
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  }
+}
+
+.btn-secondary {
+  background: white;
+  color: #475569;
+  border: 2px solid #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  &:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
   }
 }
 

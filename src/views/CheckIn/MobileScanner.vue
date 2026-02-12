@@ -22,19 +22,11 @@
           <span class="icon">📱</span>
           啟動掃描器
         </button>
-        <button class="btn-test-camera" @click="testCamera">
-          🔍 測試相機權限
-        </button>
+        <button class="btn-test-camera" @click="testCamera">🔍 測試相機權限</button>
       </div>
 
       <div v-else class="camera-view">
-        <video 
-          ref="videoElement" 
-          class="camera-preview" 
-          autoplay 
-          playsinline
-          muted
-        ></video>
+        <video ref="videoElement" class="camera-preview" autoplay playsinline muted></video>
         <div class="scan-overlay">
           <div class="scan-box"></div>
         </div>
@@ -117,7 +109,7 @@ const startScanning = async () => {
   try {
     // 檢查是否支援相機 API
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      throw new Error('您的瀏覽器不支援相機功能，請使用 Chrome 或 Safari 開啟');
+      throw new Error("您的瀏覽器不支援相機功能，請使用 Chrome 或 Safari 開啟");
     }
 
     // 請求相機權限並取得串流
@@ -125,23 +117,23 @@ const startScanning = async () => {
       video: {
         facingMode: { ideal: "environment" },
         width: { ideal: 1280 },
-        height: { ideal: 720 }
-      }
+        height: { ideal: 720 },
+      },
     });
 
     console.log("相機串流取得成功", stream);
-    
+
     // 先設定為 scanning 狀態以顯示 video 元素
     isScanning.value = true;
 
     // 等待下一個 tick 確保 DOM 已更新
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // 將串流綁定到 video 元素
     if (videoElement.value) {
       console.log("綁定串流到 video 元素", videoElement.value);
       videoElement.value.srcObject = stream;
-      
+
       // 等待 video 載入
       await new Promise((resolve) => {
         videoElement.value.onloadedmetadata = () => {
@@ -152,9 +144,9 @@ const startScanning = async () => {
       });
 
       // 建立 canvas 用於讀取影格
-      canvas = document.createElement('canvas');
-      canvasContext = canvas.getContext('2d');
-      
+      canvas = document.createElement("canvas");
+      canvasContext = canvas.getContext("2d");
+
       console.log("開始掃描");
       // 開始掃描
       tick();
@@ -162,30 +154,29 @@ const startScanning = async () => {
       console.error("videoElement.value 是 null");
       throw new Error("無法找到 video 元素");
     }
-
   } catch (error) {
     console.error("無法啟動相機:", error);
-    
+
     let errorMsg = "無法啟動相機";
     let helpText = "";
-    
-    if (error.name === 'NotAllowedError') {
+
+    if (error.name === "NotAllowedError") {
       errorMsg = "相機權限被拒絕";
       helpText = "請在手機設定中開啟瀏覽器的相機權限，或點擊網址列的鎖頭圖示允許相機存取";
-    } else if (error.name === 'NotFoundError') {
+    } else if (error.name === "NotFoundError") {
       errorMsg = "找不到相機設備";
       helpText = "請確認您的裝置有相機功能";
-    } else if (error.name === 'NotReadableError') {
+    } else if (error.name === "NotReadableError") {
       errorMsg = "相機正被其他應用程式使用";
       helpText = "請關閉其他使用相機的 App 後重試";
-    } else if (error.name === 'SecurityError') {
+    } else if (error.name === "SecurityError") {
       errorMsg = "安全性錯誤";
       helpText = "請確認使用 HTTPS 連線開啟此頁面";
     } else if (error.message) {
       errorMsg = error.message;
-      helpText = "建議使用 Chrome 或 Safari 瀏覽器開啟\n\n詳細錯誤：" + (error.toString());
+      helpText = "建議使用 Chrome 或 Safari 瀏覽器開啟\n\n詳細錯誤：" + error.toString();
     }
-    
+
     errorMessage.value = helpText ? `${errorMsg}\n\n${helpText}` : errorMsg;
     resultType.value = "error";
     showResult.value = true;
@@ -201,7 +192,7 @@ const tick = () => {
     canvas.width = videoElement.value.videoWidth;
     canvas.height = videoElement.value.videoHeight;
     canvasContext.drawImage(videoElement.value, 0, 0, canvas.width, canvas.height);
-    
+
     const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
       inversionAttempts: "dontInvert",
@@ -235,19 +226,19 @@ const onScanSuccess = (decodedText) => {
 
 const stopScanning = () => {
   isScanning.value = false;
-  
+
   // 停止動畫循環
   if (animationId) {
     cancelAnimationFrame(animationId);
     animationId = null;
   }
-  
+
   // 停止視訊串流
   if (stream) {
-    stream.getTracks().forEach(track => track.stop());
+    stream.getTracks().forEach((track) => track.stop());
     stream = null;
   }
-  
+
   // 清除 video 元素
   if (videoElement.value) {
     videoElement.value.srcObject = null;
@@ -299,16 +290,16 @@ const closeResult = () => {
 
 const testCamera = async () => {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ 
-      video: { facingMode: "environment" } 
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" },
     });
-    
+
     const devices = await navigator.mediaDevices.enumerateDevices();
-    const videoDevices = devices.filter(device => device.kind === 'videoinput');
-    
-    stream.getTracks().forEach(track => track.stop());
-    
-    errorMessage.value = `✅ 相機權限正常！\n\n找到 ${videoDevices.length} 個相機設備\n\n${videoDevices.map((d, i) => `相機 ${i + 1}: ${d.label || '未命名'}`).join('\n')}\n\n請點擊「啟動掃描器」開始使用`;
+    const videoDevices = devices.filter((device) => device.kind === "videoinput");
+
+    stream.getTracks().forEach((track) => track.stop());
+
+    errorMessage.value = `✅ 相機權限正常！\n\n找到 ${videoDevices.length} 個相機設備\n\n${videoDevices.map((d, i) => `相機 ${i + 1}: ${d.label || "未命名"}`).join("\n")}\n\n請點擊「啟動掃描器」開始使用`;
     resultType.value = "success";
     showResult.value = true;
   } catch (error) {
@@ -499,13 +490,18 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     border-color: #3b82f6;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 20px rgba(59, 130, 246, 0.5);
+    box-shadow:
+      0 0 0 9999px rgba(0, 0, 0, 0.5),
+      0 0 20px rgba(59, 130, 246, 0.5);
   }
   50% {
     border-color: #60a5fa;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5), 0 0 30px rgba(96, 165, 250, 0.8);
+    box-shadow:
+      0 0 0 9999px rgba(0, 0, 0, 0.5),
+      0 0 30px rgba(96, 165, 250, 0.8);
   }
 }
 

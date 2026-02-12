@@ -1,6 +1,6 @@
 <script setup>
-import { reactive, ref, computed, watch } from "vue";
-import draggable from "vuedraggable";
+import { reactive, ref, computed } from "vue";
+import vPrint from "vue3-print-nb";
 
 // 1. 賓客名單 (保留原邏輯)
 const allParticipants = reactive([
@@ -86,19 +86,20 @@ const selectElement = (el) => {
 // 4. 列印與全選邏輯
 const toggleAll = (e) =>
   (selectedIds.value = e.target.checked ? filteredParticipants.value.map((p) => p.id) : []);
-const handlePrint = () => {
-  if (selectedIds.value.length === 0) return alert("請先勾選人員！");
-  window.print();
-};
 </script>
 
 <template>
-  <div class="registration-view">
+  <div class="badge-printer-view">
     <div class="page-header no-print">
-      <button class="btn-preview-action" :disabled="selectedIds.length === 0" @click="handlePrint">
-        <span class="btn-inner"> 🖨️ 確認列印 ({{ selectedIds.length }}) </span>
-        <span class="pulse-ring"></span>
-      </button>
+      <div class="header-actions">
+        <button
+          class="btn-primary"
+          :disabled="selectedIds.length === 0"
+          v-print="{ id: 'printBadges', preview: false, popTitle: '識別證列印' }"
+        >
+          確認列印 ({{ selectedIds.length }})
+        </button>
+      </div>
     </div>
 
     <div class="main-layout">
@@ -187,7 +188,8 @@ const handlePrint = () => {
         </div>
       </div>
 
-      <div class="print-only-area">
+      <!-- 列印專用區域 -->
+      <div id="printBadges" class="print-only-area">
         <div v-for="p in selectedParticipants" :key="p.id" class="print-badge">
           <div
             v-for="el in templateElements"
@@ -210,128 +212,67 @@ const handlePrint = () => {
 </template>
 
 <style lang="scss" scoped>
-/* CSS Variables - 統一設計系統 */
-.registration-view {
-  padding: 12px;
-  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+.badge-printer-view {
+  padding: 30px;
+  background: #f8fafc;
   min-height: 100vh;
-  --primary-blue: #3b82f6;
-  --deep-dark: #0f172a;
-  --text-gray: #64748b;
-  --bg-soft: #f8fafc;
-  --border-light: #e2e8f0;
 }
 
 .page-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #f1f5f9;
-
-  .title-group {
-    .title {
-      font-size: 1.6rem;
-      font-weight: 800;
-      color: var(--deep-dark);
-      margin: 0 0 4px 0;
-      letter-spacing: -0.02em;
-    }
-
-    .subtitle {
-      font-size: 0.85rem;
-      color: var(--text-gray);
-      margin: 0;
-      font-weight: 600;
-    }
-  }
+  margin-bottom: 28px;
 }
 
-.btn-preview-action {
-  position: relative;
-  background: var(--deep-dark);
-  color: white;
-  border: none;
-  padding: 12px 26px;
-  border-radius: 50px;
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: 0.4s;
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
-
-  .btn-inner {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 700;
-  }
-
-  .pulse-ring {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    left: 0;
-    top: 0;
-    background: var(--primary-blue);
-    opacity: 0;
-    border-radius: 50px;
-    z-index: 1;
-  }
+  transition: all 0.3s ease;
+  border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 
   &:hover {
-    transform: translateY(-4px);
-    background: #000;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  }
 
-    .pulse-ring {
-      animation: pulse 1.5s infinite;
-      opacity: 0.3;
-    }
+  &:active {
+    transform: translateY(0);
   }
 
   &:disabled {
-    background: #cbd5e1;
+    opacity: 0.6;
     cursor: not-allowed;
     transform: none;
-
-    &:hover {
-      transform: none;
-
-      .pulse-ring {
-        animation: none;
-      }
-    }
-  }
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 0.3;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.15;
-  }
-  100% {
-    transform: scale(1.2);
-    opacity: 0;
   }
 }
 
 .main-layout {
   display: grid;
   grid-template-columns: 320px 1fr;
-  gap: 20px;
+  gap: 24px;
   align-items: start;
 }
 
 .tech-card {
   background: white;
   border-radius: 16px;
-  border: 1px solid var(--border-light);
-  padding: 20px;
+  border: 1px solid #e5e7eb;
+  padding: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: box-shadow 0.3s;
 
@@ -341,11 +282,11 @@ const handlePrint = () => {
 
   .card-subtitle {
     font-size: 1.1rem;
-    font-weight: 800;
-    color: var(--deep-dark);
-    margin: 0 0 16px 0;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #f1f5f9;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 20px 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f3f4f6;
   }
 }
 
@@ -363,12 +304,12 @@ const handlePrint = () => {
 
   .size-label {
     font-size: 0.75rem;
-    color: var(--text-gray);
+    color: #64748b;
     font-weight: 700;
-    background: var(--bg-soft);
+    background: #f8fafc;
     padding: 4px 10px;
     border-radius: 6px;
-    border: 1px solid var(--border-light);
+    border: 1px solid #e2e8f0;
   }
 }
 
@@ -387,15 +328,15 @@ const handlePrint = () => {
     justify-content: space-between;
     align-items: center;
     padding: 10px 14px;
-    background: var(--bg-soft);
+    background: #f8fafc;
     border-radius: 8px;
     margin-bottom: 12px;
-    border: 1px solid var(--border-light);
+    border: 1px solid #e2e8f0;
 
     .checkbox-label {
       font-size: 0.9rem;
       font-weight: 700;
-      color: var(--deep-dark);
+      color: #0f172a;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -405,7 +346,7 @@ const handlePrint = () => {
     .badge-count {
       font-size: 0.8rem;
       font-weight: 700;
-      color: var(--primary-blue);
+      color: #3b82f6;
       background: white;
       padding: 4px 10px;
       border-radius: 6px;
@@ -423,7 +364,7 @@ const handlePrint = () => {
     }
 
     &::-webkit-scrollbar-track {
-      background: var(--bg-soft);
+      background: #f8fafc;
       border-radius: 10px;
     }
 
@@ -445,12 +386,12 @@ const handlePrint = () => {
     border-radius: 12px;
     margin-bottom: 8px;
     border: 1px solid transparent;
-    background: var(--bg-soft);
+    background: #f8fafc;
     cursor: pointer;
     transition: all 0.3s;
 
     &:hover {
-      border-color: var(--primary-blue);
+      border-color: #3b82f6;
       background: white;
       transform: translateX(4px);
       box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
@@ -458,7 +399,7 @@ const handlePrint = () => {
 
     &.active {
       background: #eff6ff;
-      border-color: var(--primary-blue);
+      border-color: #3b82f6;
       box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
     }
 
@@ -470,13 +411,13 @@ const handlePrint = () => {
 
       .name {
         font-weight: 800;
-        color: var(--deep-dark);
+        color: #0f172a;
         font-size: 0.95rem;
       }
 
       .comp {
         font-size: 0.75rem;
-        color: var(--text-gray);
+        color: #64748b;
         font-weight: 600;
       }
     }
@@ -487,7 +428,7 @@ const handlePrint = () => {
   width: 100%;
   padding: 12px 16px;
   border-radius: 12px;
-  border: 1px solid var(--border-light);
+  border: 1px solid #e2e8f0;
   font-weight: 600;
   transition: 0.3s;
 
@@ -496,7 +437,7 @@ const handlePrint = () => {
   }
 
   &:focus {
-    border-color: var(--primary-blue);
+    border-color: #3b82f6;
     outline: none;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
   }
@@ -525,7 +466,7 @@ const handlePrint = () => {
     position: relative;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     border-radius: 12px;
-    border: 2px solid var(--border-light);
+    border: 2px solid #e2e8f0;
 
     .draggable-element {
       position: absolute;
@@ -542,7 +483,7 @@ const handlePrint = () => {
       }
 
       &.active {
-        border: 2px dashed var(--primary-blue);
+        border: 2px dashed #3b82f6;
         background: rgba(59, 130, 246, 0.1);
         box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 
@@ -552,7 +493,7 @@ const handlePrint = () => {
           right: -8px;
           width: 16px;
           height: 16px;
-          background: var(--primary-blue);
+          background: #3b82f6;
           border: 2px solid white;
           border-radius: 50%;
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
@@ -576,14 +517,14 @@ const handlePrint = () => {
       .control-label {
         font-size: 0.85rem;
         font-weight: 700;
-        color: var(--deep-dark);
+        color: #0f172a;
       }
 
       .range-input {
         width: 100%;
         height: 6px;
         border-radius: 10px;
-        background: var(--bg-soft);
+        background: #f8fafc;
         outline: none;
         cursor: pointer;
 
@@ -592,7 +533,7 @@ const handlePrint = () => {
           width: 16px;
           height: 16px;
           border-radius: 50%;
-          background: var(--primary-blue);
+          background: #3b82f6;
           cursor: pointer;
           box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
 
@@ -631,31 +572,53 @@ const handlePrint = () => {
   }
 }
 
-/* 列印樣式 */
+/* 列印專用區域 - 平時隱藏 */
 .print-only-area {
   display: none;
 }
 
 @media print {
-  .no-print {
+  .badge-printer-view {
+    padding: 0;
+    background: white;
+  }
+
+  .page-header,
+  .selection-panel,
+  .design-canvas-area,
+  .main-layout {
     display: none !important;
   }
 
   .print-only-area {
-    display: block;
+    display: block !important;
+    position: relative;
+    left: auto;
+    top: auto;
+  }
 
-    .print-badge {
-      width: 90mm;
-      height: 125mm;
-      position: relative;
-      page-break-after: always;
-      background: white;
-      border: 0.1mm solid #eee;
+  .print-badge {
+    width: 90mm;
+    height: 125mm;
+    position: relative;
+    page-break-after: always;
+    background: white;
+    border: 1px solid #e2e8f0;
+    margin: 0 auto 10mm;
 
-      .print-element {
-        position: absolute;
-      }
+    .print-element {
+      position: absolute;
     }
+
+    &:last-child {
+      page-break-after: auto;
+      margin-bottom: 0;
+    }
+  }
+
+  @page {
+    margin: 10mm;
+    size: A4;
   }
 }
 </style>
