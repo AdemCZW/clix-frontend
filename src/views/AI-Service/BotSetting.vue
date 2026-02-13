@@ -147,6 +147,9 @@
 
 <script setup>
 import { reactive } from "vue";
+import { useToast } from "@/composables/useToast";
+
+const { success } = useToast();
 
 const botSettings = reactive({
   name: "AI 助手",
@@ -174,7 +177,7 @@ const removeFaq = (index) => {
 const saveBotSettings = () => {
   console.log("保存 AI 客服設定:", botSettings);
   // 這裡可以添加 API 呼叫
-  alert("AI 客服設定已儲存！");
+  success("AI 客服設定已儲存！");
 };
 </script>
 

@@ -1,5 +1,8 @@
 <script setup>
 import { reactive, ref, computed } from "vue";
+import { useToast } from "@/composables/useToast";
+
+const { success, warning } = useToast();
 
 // 1. 數據狀態
 const stats = reactive({ total: 150, checkedIn: 88, pending: 62 });
@@ -46,11 +49,15 @@ const processCheckIn = (person, method) => {
   stats.pending--;
   showModal.value = false;
   searchName.value = "";
+  success(`${person.name} 報到成功！`);
 };
 
 const simulateQRScan = () => {
   const pendingOnes = participants.filter((p) => p.status === "pending");
-  if (pendingOnes.length === 0) return alert("名單已全部報到");
+  if (pendingOnes.length === 0) {
+    warning("名單已全部報到");
+    return;
+  }
   const luckyGuest = pendingOnes[Math.floor(Math.random() * pendingOnes.length)];
   processCheckIn(luckyGuest, "QR Scan");
 };

@@ -5,9 +5,27 @@ import { QuillEditor } from "@vueup/vue-quill";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
 // 引入貴賓 store
 import { useGuestsStore } from "@/stores/guests";
+import { useParticipantsStore } from "@/stores/participants";
 
 // 使用貴賓 store
 const guestsStore = useGuestsStore();
+const participantsStore = useParticipantsStore();
+
+// 合併兩個來源的特邀貴賓資料
+const allSelectedGuests = computed(() => {
+  // 從參與貴賓頁面選中的貴賓
+  const fromGuestsPage = guestsStore.selectedGuests;
+  // 從參與者資訊頁面選中的 VIP
+  const fromParticipantsPage = participantsStore.selectedVIPs;
+
+  // 合併並去重（根據 id）
+  const combined = [...fromGuestsPage, ...fromParticipantsPage];
+  const uniqueGuests = combined.filter(
+    (guest, index, self) => index === self.findIndex((g) => g.id === guest.id),
+  );
+
+  return uniqueGuests;
+});
 
 // 自動編號邏輯
 const generateAutoId = () => {
@@ -446,11 +464,11 @@ const copyLink = () => {
                     <div class="p-main-body-render" v-html="form.mainContent"></div>
 
                     <!-- 特邀貴賓區塊 -->
-                    <div v-if="guestsStore.selectedGuests.length > 0" class="p-guests-section">
+                    <div v-if="allSelectedGuests.length > 0" class="p-guests-section">
                       <h3 class="p-section-title">特邀貴賓</h3>
                       <div class="p-guests-grid">
                         <div
-                          v-for="guest in guestsStore.selectedGuests"
+                          v-for="guest in allSelectedGuests"
                           :key="guest.id"
                           class="p-guest-card"
                           @click="openGuestDetail(guest)"

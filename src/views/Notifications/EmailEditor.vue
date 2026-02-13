@@ -3,6 +3,9 @@ import { reactive, ref, onMounted, computed } from "vue";
 import { QuillEditor } from "@vueup/vue-quill";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
 import QRCode from "qrcode";
+import { useToast } from "@/composables/useToast";
+
+const { success, warning } = useToast();
 
 // 1. 通知信資料模型
 const mailSettings = reactive({
@@ -144,7 +147,7 @@ const saveSettings = () => {
   arr.unshift(newTemplate);
   localStorage.setItem("email_templates", JSON.stringify(arr));
   loadTemplates();
-  alert("通知信樣板已成功儲存！");
+  success("通知信樣板已成功儲存！");
 };
 
 const applyTemplate = (template) => {
@@ -156,7 +159,7 @@ const applyTemplate = (template) => {
 
 const sendTestEmail = () => {
   if (selectedParticipants.value.length === 0) {
-    alert("請先選擇要發送的收件人！");
+    warning("請先選擇要發送的收件人！");
     return;
   }
   const recipientList = selectedParticipants.value.map((p) => `${p.name} (${p.email})`).join("\n");
@@ -164,7 +167,7 @@ const sendTestEmail = () => {
     `確定要發送測試郵件嗎？\n\n主旨：${mailSettings.subject}\n收件人數：${selectedParticipants.value.length} 人\n\n列表：\n${recipientList}`,
   );
   if (confirmSend) {
-    alert("測試發送成功！");
+    success("測試發送成功！");
   }
 };
 
@@ -197,9 +200,9 @@ const generateQRCode = async (participant) => {
 
     qrCodeDataUrl.value = dataUrl;
     showQRPreview.value = true;
-  } catch (error) {
-    console.error("生成 QR Code 失敗:", error);
-    alert("生成 QR Code 失敗");
+  } catch (err) {
+    console.error("生成 QR Code 失敗:", err);
+    warning("生成 QR Code 失敗");
   }
 };
 

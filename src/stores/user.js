@@ -7,6 +7,56 @@ export const useUserStore = defineStore("user", () => {
     const events = ref([]);
     const currentSeries = ref(null);
     const currentEvent = ref(null);
+    const isAuthenticated = ref(false);
+    const user = ref(null);
+    const authToken = ref(null);
+
+    // 檢查是否已登入
+    const checkAuth = () => {
+        const token = localStorage.getItem("auth_token");
+        const userData = localStorage.getItem("user_data");
+        if (token && userData) {
+            authToken.value = token;
+            user.value = JSON.parse(userData);
+            isAuthenticated.value = true;
+            return true;
+        }
+        return false;
+    };
+
+    // 登入
+    const login = (email) => {
+        // TODO: 實際應該調用 API 驗證
+        // 目前使用模擬登入
+        const mockToken = `mock_token_${Date.now()}`;
+        const mockUser = {
+            email,
+            name: email.split('@')[0],
+            role: 'admin'
+        };
+
+        authToken.value = mockToken;
+        user.value = mockUser;
+        isAuthenticated.value = true;
+
+        localStorage.setItem("auth_token", mockToken);
+        localStorage.setItem("user_data", JSON.stringify(mockUser));
+
+        return { success: true, user: mockUser };
+    };
+
+    // 登出
+    const logout = () => {
+        authToken.value = null;
+        user.value = null;
+        isAuthenticated.value = false;
+        onboarded.value = false;
+        currentEvent.value = null;
+
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_data");
+        localStorage.removeItem("current_event");
+    };
 
     // 檢查是否已完成引導
     const isOnboarded = computed(() => {
@@ -118,8 +168,14 @@ export const useUserStore = defineStore("user", () => {
         events,
         currentSeries,
         currentEvent,
+        isAuthenticated,
+        user,
+        authToken,
         isOnboarded,
         currentEventDisplay,
+        checkAuth,
+        login,
+        logout,
         completeOnboarding,
         switchEvent,
         switchSeries,

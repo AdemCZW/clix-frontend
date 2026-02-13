@@ -2,12 +2,14 @@
 import { ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useUserStore } from "@/stores/user";
+import { useToast } from "@/composables/useToast";
 import OnboardingModal from "@/components/onboarding/OnboardingModal.vue";
 import EventSwitcher from "@/components/EventSwitcher.vue";
 
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
+const { success } = useToast();
 
 // 初始化用戶狀態
 userStore.initFromStorage();
@@ -20,24 +22,24 @@ const onboardingMode = ref(userStore.isOnboarded ? "select" : "create");
 
 // 依據功能邏輯重新整理的選單 (兩層架構)
 const mainMenuItems = [
-  { id: 1, name: "主辦中心", path: "/admin/dashboard", icon: "🏠" },
-  { id: 2, name: "活動列表", path: "/admin/events", icon: "📋" },
-  { id: 3, name: "總人員名單", path: "/admin/all-participants", icon: "👥" },
-  { id: 4, name: "帳戶權限", path: "/admin/account", icon: "👤" },
+  { id: 1, name: "主辦中心", path: "/admin/dashboard" },
+  { id: 2, name: "活動列表", path: "/admin/events" },
+  { id: 3, name: "總人員名單", path: "/admin/all-participants" },
+  { id: 4, name: "帳戶權限", path: "/admin/account" },
 ];
 
 const eventMenuItems = [
-  { id: 1, name: "報名頁面設定", path: "/admin/registration-setting", icon: "⚙️" },
-  { id: 2, name: "參與貴賓", path: "/admin/guests", icon: "⭐" },
-  { id: 3, name: "座次劃位管理", path: "/admin/seating-plan", icon: "🪑" },
-  { id: 4, name: "報名表欄位", path: "/admin/form-fields", icon: "📝" },
-  { id: 5, name: "通知信設定", path: "/admin/notifications", icon: "✉️" },
-  { id: 6, name: "參與者資訊", path: "/admin/participants", icon: "👥" },
-  { id: 7, name: "現場報到紀錄", path: "/admin/checkin-history", icon: "✅" },
-  { id: 8, name: "識別證列印", path: "/admin/badge-printing", icon: "🎫" },
-  { id: 9, name: "中獎名單管理", path: "/admin/lottery-winners", icon: "🎁" },
-  { id: 10, name: "主辦單位資訊", path: "/admin/organizer-info", icon: "🏢" },
-  { id: 11, name: "AI客服設定", path: "/admin/ai-service", icon: "🤖" },
+  { id: 1, name: "報名頁面設定", path: "/admin/registration-setting" },
+  { id: 6, name: "參與者資訊", path: "/admin/participants" },
+  // { id: 2, name: "參與貴賓", path: "/admin/guests" },
+  { id: 3, name: "座次劃位管理", path: "/admin/seating-plan" },
+  { id: 4, name: "報名表欄位", path: "/admin/form-fields" },
+  { id: 5, name: "通知信設定", path: "/admin/notifications" },
+  { id: 7, name: "現場報到紀錄", path: "/admin/checkin-history" },
+  { id: 8, name: "識別證列印", path: "/admin/badge-printing" },
+  { id: 9, name: "中獎名單管理", path: "/admin/lottery-winners" },
+  { id: 10, name: "主辦單位資訊", path: "/admin/organizer-info" },
+  { id: 11, name: "AI客服設定", path: "/admin/ai-service" },
 ];
 
 const navigateTo = (path) => {
@@ -60,6 +62,12 @@ const handleOnboardingClose = () => {
   // 可以選擇不允許關閉，或提供跳過選項
   // showOnboarding.value = false;
 };
+
+const handleLogout = () => {
+  userStore.logout();
+  success("已成功登出");
+  router.push("/login");
+};
 </script>
 
 <template>
@@ -81,7 +89,6 @@ const handleOnboardingClose = () => {
             :class="{ active: route.path === item.path }"
             @click="navigateTo(item.path)"
           >
-            <span class="icon-span">{{ item.icon }}</span>
             <span class="label">{{ item.name }}</span>
           </div>
         </div>
@@ -99,21 +106,20 @@ const handleOnboardingClose = () => {
             :class="{ active: route.path === item.path }"
             @click="navigateTo(item.path)"
           >
-            <span class="icon-span">{{ item.icon }}</span>
             <span class="label">{{ item.name }}</span>
           </div>
         </div>
       </nav>
 
       <div class="sidebar-footer">
-        <button class="logout-btn" @click="navigateTo('/login')">LOGOUT</button>
+        <button class="logout-btn" @click="handleLogout">LOGOUT</button>
       </div>
     </aside>
 
     <main class="content-area">
       <header class="content-header">
         <div class="header-actions">
-          <EventSwitcher />
+          <!-- <EventSwitcher /> -->
         </div>
       </header>
 
@@ -199,17 +205,19 @@ const handleOnboardingClose = () => {
       justify-content: space-between;
 
       .event-badge {
-        font-size: 0.7rem;
-        background: rgba(59, 130, 246, 0.1);
-        color: var(--accent-blue);
-        padding: 2px 8px;
-        border-radius: 10px;
+        font-size: 0.75rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 12px;
         text-transform: none;
-        font-weight: 600;
-        max-width: 120px;
+        font-weight: 700;
+        max-width: 140px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        letter-spacing: 0.5px;
       }
     }
   }

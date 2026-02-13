@@ -387,17 +387,20 @@ const deleteAdmin = (adminId) => {
   const staffCount = getStaffCountByAdmin(adminId);
   const admin = adminAccounts.value.find((a) => a.id === adminId);
 
+  let confirmMessage = "";
   if (staffCount > 0) {
-    if (!confirm(`刪除管理者 ${admin.email} 將同時刪除 ${staffCount} 位員工帳戶，確定要繼續嗎？`)) {
-      return;
-    }
+    confirmMessage = `刪除管理者 ${admin.email} 將同時刪除 ${staffCount} 位員工帳戶，確定要繼續嗎？`;
   } else {
-    if (!confirm(`確定要刪除管理者 ${admin.email} 嗎？`)) {
-      return;
-    }
+    confirmMessage = `確定要刪除管理者 ${admin.email} 嗎？`;
+  }
+
+  // 使用 Toast 警告並要求用戶確認（簡化版，實際應使用確認對話框組件）
+  if (!window.confirm(confirmMessage)) {
+    return;
   }
 
   adminStore.deleteAdmin(adminId);
+  success("管理者已刪除");
 
   if (selectedAdminId.value === adminId) {
     selectedAdminId.value = null;
@@ -406,10 +409,11 @@ const deleteAdmin = (adminId) => {
 
 const deleteStaff = (staffId) => {
   const staff = staffAccounts.value.find((s) => s.id === staffId);
-  if (!confirm(`確定要刪除員工帳號 ${staff.accountId} 嗎？`)) {
+  if (!window.confirm(`確定要刪除員工帳號 ${staff.accountId} 嗎？`)) {
     return;
   }
   adminStore.deleteStaff(staffId);
+  success("員工帳號已刪除");
 };
 const openEditQuotaModal = (admin) => {
   editingAdmin.value = admin;

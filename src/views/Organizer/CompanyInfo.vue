@@ -125,6 +125,9 @@
 
 <script setup>
 import { reactive } from "vue";
+import { useToast } from "@/composables/useToast";
+
+const { success } = useToast();
 
 const companyInfo = reactive({
   name: "",
@@ -143,7 +146,7 @@ const companyInfo = reactive({
 const saveCompanyInfo = () => {
   console.log("保存主辦單位資訊:", companyInfo);
   // 這裡可以添加 API 呼叫
-  alert("主辦單位資訊已儲存！");
+  success("主辦單位資訊已儲存！");
 };
 </script>
 

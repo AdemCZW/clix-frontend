@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 
 const router = createRouter({
     history: createWebHashHistory(
@@ -11,13 +12,15 @@ const router = createRouter({
             path: '/login',
             name: 'login',
             component: () =>
-                import ('../views/LoginView.vue')
+                import ('../views/LoginView.vue'),
+            meta: { requiresAuth: false }
         },
         {
             path: '/admin',
             component: () =>
                 import ('../components/layout/MainLayout.vue'),
             redirect: '/admin/dashboard',
+            meta: { requiresAuth: true },
             children: [
                 // ===== 第一層：主要功能 =====
                 {
@@ -118,9 +121,35 @@ const router = createRouter({
             path: '/mobile/checkin',
             name: 'MobileScanner',
             component: () =>
-                import ('../views/CheckIn/MobileScanner.vue')
+                import ('../views/CheckIn/MobileScanner.vue'),
+            meta: { requiresAuth: true }
         }
     ]
 })
+
+// 路由守衛
+router.beforeEach((to, from, next) => {
+    const userStore = useUserStore();
+
+    // 檢查是否需要身份驗證
+    if (to.meta.requiresAuth) {
+        // 檢查是否已登入
+        const isAuth = userStore.checkAuth();
+        if (!isAuth) {
+            // 未登入，重定向到登入頁
+            next('/login');
+        } else {
+            next();
+        }
+    } else {
+        // 不需要驗證的頁面（如登入頁）
+        if (to.path === '/login' && userStore.isAuthenticated) {
+            // 已登入用戶訪問登入頁，重定向到後台
+            next('/admin/dashboard');
+        } else {
+            next();
+        }
+    }
+});
 
 export default router
