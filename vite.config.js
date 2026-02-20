@@ -18,6 +18,17 @@ export default defineConfig(({ mode }) => {
                     import.meta.url))
             },
         },
+        server: {
+            proxy: {
+                // 開發環境將所有 /api/* 轉發到後端，避免 CORS 問題
+                // 若後端不在 localhost:8000，可建立 .env 並設定 VITE_API_BASE_URL
+                '/api': {
+                    target: 'http://localhost:8000',
+                    changeOrigin: true,
+                    secure: false,
+                },
+            },
+        },
         build: {
             outDir: 'docs', // 輸出到 docs 資料夾
             emptyOutDir: true, // 每次打包先清空舊檔

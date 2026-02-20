@@ -93,21 +93,33 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { useUserStore } from "@/stores/user";
+import { useParticipantsStore } from "@/stores/participants";
 
 const router = useRouter();
-const userStore = useUserStore();
+const participantsStore = useParticipantsStore();
 const showQRLinkModal = ref(false);
 const linkCopied = ref(false);
 const linkInput = ref(null);
 
 const eventStats = ref({
-  total: 12,
-  active: 3,
-  participants: 856,
-  checkedIn: 642,
+  total: 0,
+  active: 0,
+  participants: 0,
+  checkedIn: 0,
+});
+
+onMounted(async () => {
+  const stats = await participantsStore.fetchStatistics();
+  if (stats) {
+    eventStats.value = {
+      total: stats.total ?? 0,
+      active: 0,
+      participants: stats.total ?? 0,
+      checkedIn: stats.checked_in ?? 0,
+    };
+  }
 });
 
 // 生成報到掃描連結
@@ -125,7 +137,7 @@ const copyLink = async () => {
     setTimeout(() => {
       linkCopied.value = false;
     }, 2000);
-  } catch (err) {
+  } catch {
     // 備用方案
     linkInput.value?.select();
     document.execCommand("copy");
@@ -136,45 +148,9 @@ const copyLink = async () => {
   }
 };
 
-const recentEvents = ref([
-  {
-    id: 1,
-    name: "2026 科技創新論壇",
-    location: "台北國際會議中心",
-    participants: 320,
-    month: "FEB",
-    day: "15",
-    status: "active",
-    statusText: "進行中",
-  },
-  {
-    id: 2,
-    name: "企業數位轉型研討會",
-    location: "台中世貿中心",
-    participants: 180,
-    month: "FEB",
-    day: "20",
-    status: "upcoming",
-    statusText: "即將開始",
-  },
-  {
-    id: 3,
-    name: "AI 應用實務工作坊",
-    location: "高雄展覽館",
-    participants: 150,
-    month: "JAN",
-    day: "28",
-    status: "completed",
-    statusText: "已結束",
-  },
-]);
+const recentEvents = ref([]);
 
-const navigateTo = (path) => {
-  router.push(path);
-};
-
-const selectEvent = (event) => {
-  // 切換到該活動並導航到報名設定頁面
+const selectEvent = () => {
   router.push("/admin/registration-setting");
 };
 </script>

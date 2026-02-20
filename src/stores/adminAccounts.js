@@ -1,124 +1,154 @@
-import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { apiRequest } from '@/utils/api'
 
 export const useAdminAccountsStore = defineStore('adminAccounts', () => {
-    // 管理者帳戶
-    const adminAccounts = ref([
-        { id: 1, email: 'admin1@company.com', staffQuota: 10, createdAt: '2024-01-15' },
-        { id: 2, email: 'admin2@company.com', staffQuota: 5, createdAt: '2024-01-20' }
-    ]);
+    const adminAccounts = ref([])
+    const staffAccounts = ref([])
+    const loading = ref(false)
 
-    // 員工帳戶
-    const staffAccounts = ref([{
-            id: 1,
-            accountId: 'ST12345',
-            managerId: 1,
-            managerEmail: 'admin1@company.com',
-            createdAt: '2024-01-16',
-            status: 'active'
-        },
-        {
-            id: 2,
-            accountId: 'ST67890',
-            managerId: 1,
-            managerEmail: 'admin1@company.com',
-            createdAt: '2024-01-17',
-            status: 'active'
-        },
-        {
-            id: 3,
-            accountId: 'ST24680',
-            managerId: 2,
-            managerEmail: 'admin2@company.com',
-            createdAt: '2024-01-21',
-            status: 'active'
+    // ----- 資料格式轉換（API snake_case → 前端 camelCase）-----
+
+    const mapManager = (m) => ({
+        id: m.id,
+        email: m.email,
+        staffQuota: m.staff_quota != null ? m.staff_quota : 0,
+        staffCount: m.staff_count != null ? m.staff_count : 0,
+        isActive: m.is_active,
+        createdAt: m.date_joined ? m.date_joined.split('T')[0] : '',
+    })
+
+    const mapStaff = (s) => ({
+        id: s.id,
+        accountId: s.account_id,
+        managerId: s.manager,
+        managerEmail: s.manager_email,
+        isActive: s.is_active,
+        createdAt: s.date_joined ? s.date_joined.split('T')[0] : '',
+        status: s.is_active ? 'active' : 'inactive',
+    })
+
+    // ----- 讀取資料 -----
+
+    const fetchManagers = async () => {
+        loading.value = true
+        try {
+            const res = await apiRequest('/api/managers/')
+            if (!res.ok) throw new Error('無法取得管理者列表')
+            const data = await res.json()
+            // 支援分頁格式 { results: [...] } 和純陣列兩種回傳
+            const list = Array.isArray(data) ? data : (data.results || [])
+            adminAccounts.value = list.map(mapManager)
+        } finally {
+            loading.value = false
         }
-    ]);
+    }
 
-    // 計算每個管理者的員工數量
+    const fetchStaff = async () => {
+        loading.value = true
+        try {
+            const res = await apiRequest('/api/staff/')
+            if (!res.ok) throw new Error('無法取得員工列表')
+            const data = await res.json()
+            // 支援分頁格式 { results: [...] } 和純陣列兩種回傳
+            const list = Array.isArray(data) ? data : (data.results || [])
+            staffAccounts.value = list.map(mapStaff)
+        } finally {
+            loading.value = false
+        }
+    }
+
+    // ----- 計算工具 -----
+
     const getStaffCountByAdmin = (adminId) => {
-        return staffAccounts.value.filter(s => s.managerId === adminId).length;
-    };
+        return staffAccounts.value.filter((s) => s.managerId === adminId).length
+    }
 
-    // 檢查是否可以新增員工
     const canAddStaff = (adminId) => {
-        const admin = adminAccounts.value.find(a => a.id === adminId);
-        if (!admin) return false;
-        const currentCount = getStaffCountByAdmin(adminId);
-        return currentCount < admin.staffQuota;
-    };
+        const admin = adminAccounts.value.find((a) => a.id === adminId)
+        if (!admin) return false
+        return getStaffCountByAdmin(adminId) < admin.staffQuota
+    }
 
-    // 新增管理者
-    const addAdmin = (email, password, staffQuota) => {
-        const newId = Math.max(...adminAccounts.value.map(a => a.id), 0) + 1;
-        const newAdmin = {
-            id: newId,
-            email,
-            staffQuota,
-            createdAt: new Date().toISOString().split('T')[0]
-        };
-        adminAccounts.value.push(newAdmin);
-        return newAdmin;
-    };
+    // ----- 管理者 CRUD -----
 
-    // 刪除管理者
-    const deleteAdmin = (adminId) => {
-        // 同時刪除該管理者的所有員工
-        staffAccounts.value = staffAccounts.value.filter(s => s.managerId !== adminId);
-        adminAccounts.value = adminAccounts.value.filter(a => a.id !== adminId);
-    };
-
-    // 更新管理者額度
-    const updateAdminQuota = (adminId, newQuota) => {
-        const admin = adminAccounts.value.find(a => a.id === adminId);
-        if (admin) {
-            admin.staffQuota = newQuota;
+    const createManager = async (email, password, staffQuota) => {
+        const res = await apiRequest('/api/managers/', {
+            method: 'POST',
+            body: JSON.stringify({ email, password, staff_quota: staffQuota }),
+        })
+        if (!res.ok) {
+            const err = await res.json()
+            const msg = (err.email && err.email[0]) || err.detail || '新增管理者失敗'
+            throw new Error(msg)
         }
-    };
+        const data = await res.json()
+        adminAccounts.value.push(mapManager(data))
+        return data
+    }
 
-    // 新增員工
-    const addStaff = (managerId) => {
+    const deleteAdmin = async (adminId) => {
+        const res = await apiRequest('/api/managers/' + adminId + '/', { method: 'DELETE' })
+        if (!res.ok) throw new Error('刪除管理者失敗')
+        staffAccounts.value = staffAccounts.value.filter((s) => s.managerId !== adminId)
+        adminAccounts.value = adminAccounts.value.filter((a) => a.id !== adminId)
+    }
+
+    const updateAdminQuota = async (adminId, newQuota) => {
+        const res = await apiRequest('/api/managers/' + adminId + '/', {
+            method: 'PATCH',
+            body: JSON.stringify({ staff_quota: newQuota }),
+        })
+        if (!res.ok) throw new Error('更新配額失敗')
+        const data = await res.json()
+        const admin = adminAccounts.value.find((a) => a.id === adminId)
+        if (admin) admin.staffQuota = data.staff_quota
+    }
+
+    // ----- 員工 CRUD -----
+
+    const addStaff = async (managerId, password) => {
         if (!canAddStaff(managerId)) {
-            throw new Error('已達員工額度上限');
+            throw new Error('已達員工額度上限')
         }
+        const res = await apiRequest('/api/staff/', {
+            method: 'POST',
+            body: JSON.stringify({ manager: managerId, password }),
+        })
+        if (!res.ok) {
+            const err = await res.json()
+            const msg = err.detail || (err.password && err.password[0]) || '新增員工失敗'
+            throw new Error(msg)
+        }
+        const data = await res.json()
+        const newStaff = mapStaff(data)
+        staffAccounts.value.push(newStaff)
+        return newStaff
+    }
 
-        const manager = adminAccounts.value.find(a => a.id === managerId);
-        const newId = Math.max(...staffAccounts.value.map(s => s.id), 0) + 1;
-        const accountId = 'ST' + String(10000 + newId).substring(1);
+    const deleteStaff = async (staffId) => {
+        const res = await apiRequest('/api/staff/' + staffId + '/', { method: 'DELETE' })
+        if (!res.ok) throw new Error('刪除員工失敗')
+        staffAccounts.value = staffAccounts.value.filter((s) => s.id !== staffId)
+    }
 
-        const newStaff = {
-            id: newId,
-            accountId,
-            managerId,
-            managerEmail: manager.email,
-            createdAt: new Date().toISOString().split('T')[0],
-            status: 'active'
-        };
-
-        staffAccounts.value.push(newStaff);
-        return newStaff;
-    };
-
-    // 刪除員工
-    const deleteStaff = (staffId) => {
-        staffAccounts.value = staffAccounts.value.filter(s => s.id !== staffId);
-    };
-
-    // 根據管理者ID獲取員工列表
     const getStaffByManager = (managerId) => {
-        return staffAccounts.value.filter(s => s.managerId === managerId);
-    };
+        return staffAccounts.value.filter((s) => s.managerId === managerId)
+    }
 
     return {
         adminAccounts,
         staffAccounts,
+        loading,
         getStaffCountByAdmin,
         canAddStaff,
-        addAdmin,
+        fetchManagers,
+        fetchStaff,
+        createManager,
         deleteAdmin,
         updateAdminQuota,
         addStaff,
         deleteStaff,
-        getStaffByManager
-    };
-});
+        getStaffByManager,
+    }
+})

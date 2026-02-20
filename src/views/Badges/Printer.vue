@@ -1,52 +1,22 @@
 <script setup>
-import { reactive, ref, computed } from "vue";
+import { ref, computed } from "vue";
 import vPrint from "vue3-print-nb";
+import { useParticipantsStore } from "@/stores/participants";
 
-// 1. 賓客名單 (保留原邏輯)
-const allParticipants = reactive([
-  {
-    id: "P01",
-    name: "王小明",
-    company: "文靜科技股份有限公司",
-    title: "技術總監",
-    type: "VIP",
-    code: "EV-001",
-  },
-  {
-    id: "P02",
-    name: "李大華",
-    company: "創新數位設計",
-    title: "資深設計師",
-    type: "Attendee",
-    code: "EV-002",
-  },
-  {
-    id: "P03",
-    name: "張美麗",
-    company: "全球物流系統",
-    title: "行銷經理",
-    type: "Staff",
-    code: "EV-003",
-  },
-  {
-    id: "P04",
-    name: "林志玲",
-    company: "時尚媒體公司",
-    title: "創意總監",
-    type: "VIP",
-    code: "EV-004",
-  },
-]);
+const participantsStore = useParticipantsStore();
+
+// 使用 store 的參與者數據
+const allParticipants = computed(() => participantsStore.participants);
 
 const searchQuery = ref("");
 const selectedIds = ref([]);
 const filteredParticipants = computed(() =>
-  allParticipants.filter(
+  allParticipants.value.filter(
     (p) => p.name.includes(searchQuery.value) || p.company.includes(searchQuery.value),
   ),
 );
 const selectedParticipants = computed(() =>
-  allParticipants.filter((p) => selectedIds.value.includes(p.id)),
+  allParticipants.value.filter((p) => selectedIds.value.includes(p.id)),
 );
 
 // 2. 隨意拖曳範本設定 (核心升級)
@@ -83,9 +53,29 @@ const selectElement = (el) => {
   activeElement.value = el;
 };
 
-// 4. 列印與全選邏輯
-const toggleAll = (e) =>
-  (selectedIds.value = e.target.checked ? filteredParticipants.value.map((p) => p.id) : []);
+// 4. 切換選取邏輯
+const toggleSelection = (id) => {
+  const index = selectedIds.value.indexOf(id);
+  if (index > -1) {
+    selectedIds.value.splice(index, 1);
+  } else {
+    selectedIds.value.push(id);
+  }
+};
+
+const toggleAll = () => {
+  if (selectedIds.value.length === filteredParticipants.value.length) {
+    selectedIds.value = [];
+  } else {
+    selectedIds.value = filteredParticipants.value.map((p) => p.id);
+  }
+};
+
+const isAllSelected = computed(
+  () =>
+    filteredParticipants.value.length > 0 &&
+    selectedIds.value.length === filteredParticipants.value.length,
+);
 </script>
 
 <template>
@@ -111,7 +101,10 @@ const toggleAll = (e) =>
           placeholder="搜尋姓名或單位..."
         />
         <div class="list-header">
-          <label class="checkbox-label"> <input type="checkbox" @change="toggleAll" /> 全選 </label>
+          <button class="btn-toggle-all" :class="{ active: isAllSelected }" @click="toggleAll">
+            <span class="toggle-icon">{{ isAllSelected ? "✓" : "○" }}</span>
+            全選
+          </button>
           <span class="badge-count">已選 {{ selectedIds.length }} 位</span>
         </div>
         <div class="participant-selector">
@@ -119,12 +112,15 @@ const toggleAll = (e) =>
             v-for="p in filteredParticipants"
             :key="p.id"
             class="p-item"
-            :class="{ active: selectedIds.includes(p.id) }"
+            :class="{ selected: selectedIds.includes(p.id) }"
+            @click="toggleSelection(p.id)"
           >
-            <input type="checkbox" v-model="selectedIds" :value="p.id" />
             <div class="p-info">
               <span class="name">{{ p.name }}</span>
               <span class="comp">{{ p.company }}</span>
+            </div>
+            <div class="check-indicator">
+              <span v-if="selectedIds.includes(p.id)" class="check-mark">✓</span>
             </div>
           </div>
         </div>
@@ -333,7 +329,7 @@ const toggleAll = (e) =>
     margin-bottom: 12px;
     border: 1px solid #e2e8f0;
 
-    .checkbox-label {
+    .btn-toggle-all {
       font-size: 0.9rem;
       font-weight: 700;
       color: #0f172a;
@@ -341,6 +337,36 @@ const toggleAll = (e) =>
       display: flex;
       align-items: center;
       gap: 8px;
+      background: transparent;
+      border: none;
+      padding: 0;
+      transition: all 0.2s;
+
+      .toggle-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        border: 2px solid #cbd5e1;
+        font-size: 12px;
+        transition: all 0.2s;
+      }
+
+      &.active .toggle-icon {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: #667eea;
+        color: white;
+      }
+
+      &:hover {
+        color: #667eea;
+      }
+
+      &:hover .toggle-icon {
+        border-color: #667eea;
+      }
     }
 
     .badge-count {
@@ -381,26 +407,37 @@ const toggleAll = (e) =>
   .p-item {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 12px;
-    padding: 12px 14px;
+    padding: 14px 16px;
     border-radius: 12px;
     margin-bottom: 8px;
-    border: 1px solid transparent;
+    border: 2px solid transparent;
     background: #f8fafc;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 
     &:hover {
-      border-color: #3b82f6;
-      background: white;
+      border-color: #a5b4fc;
+      background: #f5f3ff;
       transform: translateX(4px);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.12);
     }
 
-    &.active {
-      background: #eff6ff;
-      border-color: #3b82f6;
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    &.selected {
+      background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
+      border-color: #667eea;
+      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);
+
+      &:hover {
+        border-color: #667eea;
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      .p-info .name {
+        color: #667eea;
+      }
     }
 
     .p-info {
@@ -410,16 +447,53 @@ const toggleAll = (e) =>
       gap: 4px;
 
       .name {
-        font-weight: 800;
+        font-weight: 700;
         color: #0f172a;
         font-size: 0.95rem;
+        transition: color 0.2s;
       }
 
       .comp {
         font-size: 0.75rem;
         color: #64748b;
-        font-weight: 600;
+        font-weight: 500;
       }
+    }
+
+    .check-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+
+      .check-mark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-size: 14px;
+        font-weight: bold;
+        animation: checkPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      }
+    }
+  }
+
+  @keyframes checkPop {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
     }
   }
 }

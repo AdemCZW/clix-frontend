@@ -1,0 +1,1 @@
+import{G as a,a as d,i}from"./index-D-fpA3Rw.js";const G=a("guests",()=>{const e=d([]),u=s=>{const t=e.value.findIndex(n=>n.id===s.id);t>-1?e.value.splice(t,1):e.value.push(s)},o=s=>e.value.some(t=>t.id===s),c=()=>{e.value=[]},l=i(()=>e.value);return{selectedGuests:e,toggleGuest:u,isGuestSelected:o,clearSelectedGuests:c,getSelectedGuests:l}});export{G as u};

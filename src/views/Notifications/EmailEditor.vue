@@ -22,50 +22,13 @@ const showQRPreview = ref(false);
 const qrCodeDataUrl = ref("");
 const previewParticipant = ref(null);
 
-// 參與者資料
-const participants = ref([
-  {
-    id: 1,
-    name: "張小明",
-    company: "文靜科技",
-    title: "CTO",
-    activity: "2025 技術峰會",
-    email: "zhang@example.com",
-    createdAt: "2025-12-29 14:00",
-  },
-  {
-    id: 2,
-    name: "李小華",
-    company: "創新有限公司",
-    title: "PM",
-    activity: "2025 技術峰會",
-    email: "li@example.com",
-    createdAt: "2025-12-29 15:30",
-  },
-  {
-    id: 3,
-    name: "王小美",
-    company: "設計工作室",
-    title: "UI Designer",
-    activity: "AI 產業論壇",
-    email: "wang@example.com",
-    createdAt: "2025-12-29 16:00",
-  },
-  {
-    id: 4,
-    name: "陳大華",
-    company: "數據分析公司",
-    title: "Data Scientist",
-    activity: "2025 技術峰會",
-    email: "chen@example.com",
-    createdAt: "2025-12-29 17:15",
-  },
-]);
+// 參與者資料（從 API 載入）
+const participants = ref([]);
 
 const selectedParticipants = ref([]);
 const searchQuery = ref("");
 const selectedActivity = ref("所有活動");
-const activityOptions = ref(["所有活動", "2025 技術峰會", "AI 產業論壇"]);
+const activityOptions = ref(["所有活動"]);
 
 // 修正後的過濾邏輯
 const getFilteredParticipants = computed(() => {

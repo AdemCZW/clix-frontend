@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { useToast } from "@/composables/useToast";
@@ -21,12 +21,12 @@ const showOnboarding = ref(!userStore.isOnboarded || !userStore.currentEvent);
 const onboardingMode = ref(userStore.isOnboarded ? "select" : "create");
 
 // 依據功能邏輯重新整理的選單 (兩層架構)
-const mainMenuItems = [
+const mainMenuItems = computed(() => [
   { id: 1, name: "主辦中心", path: "/admin/dashboard" },
   { id: 2, name: "活動列表", path: "/admin/events" },
   { id: 3, name: "總人員名單", path: "/admin/all-participants" },
-  { id: 4, name: "帳戶權限", path: "/admin/account" },
-];
+  ...(userStore.isSuperAdmin ? [{ id: 4, name: "帳戶權限", path: "/admin/account" }] : []),
+]);
 
 const eventMenuItems = [
   { id: 1, name: "報名頁面設定", path: "/admin/registration-setting" },

@@ -110,38 +110,8 @@ const filterTabs = [
   { label: "已結束", value: "completed" },
 ];
 
-const events = ref([
-  {
-    id: 1,
-    name: "2026 科技創新論壇",
-    date: "2026-02-15",
-    location: "台北國際會議中心",
-    participants: 320,
-    status: "active",
-    statusText: "進行中",
-    banner: "https://via.placeholder.com/400x200?text=Event+1",
-  },
-  {
-    id: 2,
-    name: "企業數位轉型研討會",
-    date: "2026-02-20",
-    location: "台中世貿中心",
-    participants: 180,
-    status: "upcoming",
-    statusText: "即將開始",
-    banner: "https://via.placeholder.com/400x200?text=Event+2",
-  },
-  {
-    id: 3,
-    name: "AI 應用實務工作坊",
-    date: "2026-01-28",
-    location: "高雄展覽館",
-    participants: 150,
-    status: "completed",
-    statusText: "已結束",
-    banner: "https://via.placeholder.com/400x200?text=Event+3",
-  },
-]);
+// 活動列表（從 API 載入）
+const events = ref([]);
 
 const newEvent = ref({
   name: "",

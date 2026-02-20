@@ -1,5 +1,10 @@
 <template>
-  <div class="account-view">
+  <div v-if="isSuperAdmin" class="account-view">
+    <!-- 載入中遮罩 -->
+    <div v-if="loading" class="loading-overlay">
+      <div class="loading-spinner">載入中...</div>
+    </div>
+
     <div class="two-panel-layout">
       <!-- 左側：管理者列表 -->
       <div class="left-panel">
@@ -159,7 +164,7 @@
             </div>
             <div class="modal-footer">
               <button class="btn-secondary" @click="showAddAdminModal = false">取消</button>
-              <button class="btn-primary" @click="addAdmin">確認新增</button>
+              <button class="btn-primary" @click="submitAddAdmin">確認新增</button>
             </div>
           </div>
         </div>
@@ -264,18 +269,33 @@
       </Transition>
     </Teleport>
   </div>
+  <div v-else class="no-permission">
+    <p>您沒有權限檢視此頁面</p>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useAdminAccountsStore } from "@/stores/adminAccounts";
+import { useUserStore } from "@/stores/user";
 import { storeToRefs } from "pinia";
 import { useToast } from "@/composables/useToast";
 
 const { success, error, warning } = useToast();
 
+const userStore = useUserStore();
+const { isSuperAdmin } = storeToRefs(userStore);
+
 const adminStore = useAdminAccountsStore();
-const { adminAccounts, staffAccounts } = storeToRefs(adminStore);
+const { adminAccounts, staffAccounts, loading } = storeToRefs(adminStore);
+
+onMounted(async () => {
+  try {
+    await Promise.all([adminStore.fetchManagers(), adminStore.fetchStaff()]);
+  } catch (err) {
+    error(err.message || "載入資料失敗");
+  }
+});
 
 const selectedAdminId = ref(null);
 
@@ -314,7 +334,7 @@ const selectedAdminStaff = computed(() => {
   return staffAccounts.value.filter((staff) => staff.managerId === selectedAdminId.value);
 });
 
-const addAdmin = () => {
+const submitAddAdmin = async () => {
   if (!newAdmin.value.email || !newAdmin.value.password || !newAdmin.value.confirmPassword) {
     warning("請填寫所有必填欄位");
     return;
@@ -342,7 +362,11 @@ const addAdmin = () => {
   }
 
   try {
-    adminStore.addAdmin(newAdmin.value.email, newAdmin.value.password, newAdmin.value.staffQuota);
+    await adminStore.createManager(
+      newAdmin.value.email,
+      newAdmin.value.password,
+      newAdmin.value.staffQuota,
+    );
     showAddAdminModal.value = false;
     newAdmin.value = { email: "", password: "", confirmPassword: "", staffQuota: 5 };
     success("管理者帳戶已建立");
@@ -351,7 +375,7 @@ const addAdmin = () => {
   }
 };
 
-const addStaff = () => {
+const addStaff = async () => {
   if (!selectedAdminId.value || !newStaff.value.password || !newStaff.value.confirmPassword) {
     warning("請填寫所有必填欄位");
     return;
@@ -359,6 +383,11 @@ const addStaff = () => {
 
   if (newStaff.value.password !== newStaff.value.confirmPassword) {
     error("密碼與確認密碼不一致");
+    return;
+  }
+
+  if (newStaff.value.password.length < 8) {
+    error("密碼至少需要 8 個字元");
     return;
   }
 
@@ -374,7 +403,10 @@ const addStaff = () => {
   }
 
   try {
-    const newStaffAccount = adminStore.addStaff(selectedAdminId.value);
+    const newStaffAccount = await adminStore.addStaff(
+      selectedAdminId.value,
+      newStaff.value.password,
+    );
     success(`員工帳號已建立！帳號：${newStaffAccount.accountId}`);
     showAddStaffModal.value = false;
     newStaff.value = { password: "", confirmPassword: "" };
@@ -383,7 +415,7 @@ const addStaff = () => {
   }
 };
 
-const deleteAdmin = (adminId) => {
+const deleteAdmin = async (adminId) => {
   const staffCount = getStaffCountByAdmin(adminId);
   const admin = adminAccounts.value.find((a) => a.id === adminId);
 
@@ -394,26 +426,27 @@ const deleteAdmin = (adminId) => {
     confirmMessage = `確定要刪除管理者 ${admin.email} 嗎？`;
   }
 
-  // 使用 Toast 警告並要求用戶確認（簡化版，實際應使用確認對話框組件）
-  if (!window.confirm(confirmMessage)) {
-    return;
-  }
+  if (!window.confirm(confirmMessage)) return;
 
-  adminStore.deleteAdmin(adminId);
-  success("管理者已刪除");
-
-  if (selectedAdminId.value === adminId) {
-    selectedAdminId.value = null;
+  try {
+    await adminStore.deleteAdmin(adminId);
+    success("管理者已刪除");
+    if (selectedAdminId.value === adminId) selectedAdminId.value = null;
+  } catch (err) {
+    error(err.message);
   }
 };
 
-const deleteStaff = (staffId) => {
+const deleteStaff = async (staffId) => {
   const staff = staffAccounts.value.find((s) => s.id === staffId);
-  if (!window.confirm(`確定要刪除員工帳號 ${staff.accountId} 嗎？`)) {
-    return;
+  if (!window.confirm(`確定要刪除員工帳號 ${staff.accountId} 嗎？`)) return;
+
+  try {
+    await adminStore.deleteStaff(staffId);
+    success("員工帳號已刪除");
+  } catch (err) {
+    error(err.message);
   }
-  adminStore.deleteStaff(staffId);
-  success("員工帳號已刪除");
 };
 const openEditQuotaModal = (admin) => {
   editingAdmin.value = admin;
@@ -421,7 +454,7 @@ const openEditQuotaModal = (admin) => {
   showEditQuotaModal.value = true;
 };
 
-const saveQuota = () => {
+const saveQuota = async () => {
   if (!editingAdmin.value) return;
 
   const currentUsage = getStaffCountByAdmin(editingAdmin.value.id);
@@ -431,10 +464,14 @@ const saveQuota = () => {
     return;
   }
 
-  adminStore.updateAdminQuota(editingAdmin.value.id, editQuotaValue.value);
-
-  showEditQuotaModal.value = false;
-  editingAdmin.value = null;
+  try {
+    await adminStore.updateAdminQuota(editingAdmin.value.id, editQuotaValue.value);
+    success("配額已更新");
+    showEditQuotaModal.value = false;
+    editingAdmin.value = null;
+  } catch (err) {
+    error(err.message);
+  }
 };
 
 const copyToClipboard = (text) => {
@@ -1005,5 +1042,24 @@ const copyToClipboard = (text) => {
 .modal-fade-leave-to {
   opacity: 0;
   transform: scale(0.9);
+}
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+
+  .loading-spinner {
+    background: white;
+    padding: 16px 32px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    font-weight: 600;
+    color: #374151;
+  }
 }
 </style>

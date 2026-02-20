@@ -9,14 +9,14 @@ const userStore = useUserStore();
 const { success, error } = useToast();
 
 const loginForm = reactive({
-  email: "",
+  username: "",
   password: "",
 });
 
 const loading = ref(false);
 
 const handleLogin = async () => {
-  if (!loginForm.email || !loginForm.password) {
+  if (!loginForm.username || !loginForm.password) {
     error("請填寫完整的登入資訊");
     return;
   }
@@ -24,19 +24,15 @@ const handleLogin = async () => {
   loading.value = true;
 
   try {
-    // 模擬 API 延遲
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const result = userStore.login(loginForm.email, loginForm.password);
+    const result = await userStore.login(loginForm.username, loginForm.password);
 
     if (result.success) {
       success("登入成功！");
-      // 清除當前選擇的活動，強制用戶重新選擇
       localStorage.removeItem("current_event");
       router.push("/admin/dashboard");
     }
-  } catch {
-    error("登入失敗，請檢查您的帳號密碼");
+  } catch (err) {
+    error(err.message || "登入失敗，請檢查您的帳號密碼");
   } finally {
     loading.value = false;
   }
@@ -81,10 +77,10 @@ const handleLogin = async () => {
         <form @submit.prevent="handleLogin">
           <div class="form-group">
             <input
-              v-model="loginForm.email"
-              type="email"
+              v-model="loginForm.username"
+              type="text"
               class="form-input"
-              placeholder="請輸入您的電子信箱"
+              placeholder="請輸入帳號（Email / ST帳號 / 使用者名稱）"
               required
               :disabled="loading"
             />

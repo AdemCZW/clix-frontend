@@ -7,13 +7,8 @@ const currentProject = ref("2026 數位轉型高峰會");
 const currentActivity = ref("高峰論壇");
 const currentActivityId = ref("act_01");
 
-// 賓客名單
-const allParticipants = [
-  { id: "P01", name: "王小明", company: "文靜科技", serial: "V001", type: "VIP" },
-  { id: "P02", name: "李大華", company: "創新設計", serial: "A052", type: "Attendee" },
-  { id: "P03", name: "張美麗", company: "全球物流", serial: "S003", type: "Staff" },
-  { id: "P04", name: "陳小美", company: "文靜科技", serial: "V004", type: "VIP" },
-];
+// 賓客名單（從 API 或其他來源載入）
+const allParticipants = [];
 
 // 設定初始行列數 (Row 為排，Col 為每排幾人)
 const layout = reactive({ rows: 3, cols: 5 });

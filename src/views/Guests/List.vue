@@ -5,49 +5,13 @@ import { useGuestsStore } from "@/stores/guests";
 // 貴賓 store
 const guestsStore = useGuestsStore();
 
-const activityOptions = ref(["所有活動", "2025 技術峰會", "AI 產業論壇"]);
+const activityOptions = ref(["所有活動"]);
 const selectedActivity = ref("所有活動");
 const sortBy = ref("newest");
 const editingGuest = ref(null);
 
-const guests = reactive([
-  {
-    id: 1,
-    name: "張小明",
-    company: "文靜科技",
-    title: "CTO",
-    activity: "2025 技術峰會",
-    email: "zhang@example.com",
-    phone: "0912-345-678",
-    bio: "資深技術專家，專注於雲端架構與系統設計",
-    avatar: null,
-    createdAt: "2025-12-29 14:00",
-  },
-  {
-    id: 2,
-    name: "李美麗",
-    company: "創新科技",
-    title: "CEO",
-    activity: "AI 產業論壇",
-    email: "li@example.com",
-    phone: "0923-456-789",
-    bio: "企業創新領導者，致力於推動數位轉型",
-    avatar: null,
-    createdAt: "2025-12-28 10:30",
-  },
-  {
-    id: 3,
-    name: "王大明",
-    company: "智能系統",
-    title: "CTO",
-    activity: "2025 技術峰會",
-    email: "wang@example.com",
-    phone: "0934-567-890",
-    bio: "AI 與機器學習專家，擁有豐富的產業經驗",
-    avatar: null,
-    createdAt: "2025-12-27 15:20",
-  },
-]);
+// 貴賓列表（從 API 載入）
+const guests = reactive([]);
 
 const formatDate = (dateStr) => dateStr || "--";
 

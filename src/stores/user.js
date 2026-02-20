@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { apiRequest, API_BASE_URL } from "@/utils/api";
 
 export const useUserStore = defineStore("user", () => {
     const onboarded = ref(false);
@@ -10,10 +11,11 @@ export const useUserStore = defineStore("user", () => {
     const isAuthenticated = ref(false);
     const user = ref(null);
     const authToken = ref(null);
+    const isSuperAdmin = computed(() => !!(user.value && user.value.is_superuser));
 
     // 檢查是否已登入
     const checkAuth = () => {
-        const token = localStorage.getItem("auth_token");
+        const token = localStorage.getItem("access_token");
         const userData = localStorage.getItem("user_data");
         if (token && userData) {
             authToken.value = token;
@@ -24,38 +26,56 @@ export const useUserStore = defineStore("user", () => {
         return false;
     };
 
-    // 登入
-    const login = (email) => {
-        // TODO: 實際應該調用 API 驗證
-        // 目前使用模擬登入
-        const mockToken = `mock_token_${Date.now()}`;
-        const mockUser = {
-            email,
-            name: email.split('@')[0],
-            role: 'admin'
-        };
+    // 登入 (呼叫 POST /api/auth/login/)
+    const login = async(username, password) => {
+        const res = await fetch(`${API_BASE_URL}/api/auth/login/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+        });
 
-        authToken.value = mockToken;
-        user.value = mockUser;
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || (err.non_field_errors && err.non_field_errors[0]) || '帳號或密碼錯誤');
+        }
+
+        const data = await res.json();
+
+        localStorage.setItem('access_token', data.access);
+        localStorage.setItem('refresh_token', data.refresh);
+        localStorage.setItem('user_data', JSON.stringify(data.user));
+
+        authToken.value = data.access;
+        user.value = data.user;
         isAuthenticated.value = true;
 
-        localStorage.setItem("auth_token", mockToken);
-        localStorage.setItem("user_data", JSON.stringify(mockUser));
-
-        return { success: true, user: mockUser };
+        return { success: true, user: data.user };
     };
 
-    // 登出
-    const logout = () => {
+    // 登出 (呼叫 POST /api/auth/logout/)
+    const logout = async() => {
+        try {
+            const refresh = localStorage.getItem('refresh_token');
+            if (refresh) {
+                await apiRequest('/api/auth/logout/', {
+                    method: 'POST',
+                    body: JSON.stringify({ refresh }),
+                });
+            }
+        } catch {
+            // 忽略登出 API 失敗，仍清除本地憑證
+        }
+
         authToken.value = null;
         user.value = null;
         isAuthenticated.value = false;
         onboarded.value = false;
         currentEvent.value = null;
 
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("user_data");
-        localStorage.removeItem("current_event");
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user_data');
+        localStorage.removeItem('current_event');
     };
 
     // 檢查是否已完成引導
@@ -171,6 +191,7 @@ export const useUserStore = defineStore("user", () => {
         isAuthenticated,
         user,
         authToken,
+        isSuperAdmin,
         isOnboarded,
         currentEventDisplay,
         checkAuth,

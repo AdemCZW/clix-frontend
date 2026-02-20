@@ -1,11 +1,35 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import * as XLSX from "xlsx";
 import { useToast } from "@/composables/useToast";
 import { useParticipantsStore } from "@/stores/participants";
 
-const { success, warning } = useToast();
+const { success, warning, error: showError } = useToast();
 const participantsStore = useParticipantsStore();
+
+// 頁面載入時獲取資料
+onMounted(async () => {
+  try {
+    await participantsStore.fetchParticipants();
+  } catch (err) {
+    showError("無法載入參與者資料");
+  }
+
+  // 監聽點擊外部關閉選單
+  document.addEventListener("click", handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
+
+// 點擊外部關閉匯出選單
+const handleClickOutside = (event) => {
+  const exportDropdown = event.target.closest(".export-dropdown");
+  if (!exportDropdown && showExportMenu.value) {
+    showExportMenu.value = false;
+  }
+};
 
 // 搜尋與過濾狀態
 const searchQuery = ref("");
@@ -13,11 +37,21 @@ const activeTab = ref("VIP"); // 標籤切換：VIP 或 一般民眾
 const filterStatus = ref("All"); // 狀態過濾
 
 // 【動態產生選項】自動從資料中抓取不重複的值
-const allStatuses = computed(() => ["All", ...new Set(participantsStore.participants.map((p) => p.status))]);
+const allStatuses = computed(() => [
+  "All",
+  ...new Set(participantsStore.participants.map((p) => p.status)),
+]);
 
 // 統計數量
-const vipCount = computed(() => participantsStore.participants.filter((p) => p.type === "VIP").length);
-const generalCount = computed(() => participantsStore.participants.filter((p) => p.type === "一般民眾").length);
+const vipCount = computed(
+  () => participantsStore.participants.filter((p) => p.type === "VIP").length,
+);
+const generalCount = computed(
+  () => participantsStore.participants.filter((p) => p.type === "一般民眾").length,
+);
+
+// 編輯面板狀態
+const editingParticipant = ref(null);
 
 // 【核心過濾邏輯】依據標籤 + 搜尋 + 狀態
 const filteredList = computed(() => {
@@ -33,14 +67,54 @@ const filteredList = computed(() => {
 
 // 匯出 Excel 邏輯
 const isExporting = ref(false);
-const handleExport = () => {
-  if (filteredList.value.length === 0) {
+const showExportMenu = ref(false);
+
+// 匯出指定範圍的資料
+const exportData = (exportType) => {
+  let dataToExport = [];
+  let fileName = "";
+
+  switch (exportType) {
+    case "current":
+      // 匯出當前篩選的資料
+      dataToExport = filteredList.value;
+      fileName = `參與者名單_當前篩選_${new Date().getTime()}.xlsx`;
+      break;
+    case "all":
+      // 匯出全部資料
+      dataToExport = participantsStore.participants;
+      fileName = `參與者名單_全部_${new Date().getTime()}.xlsx`;
+      break;
+    case "vip":
+      // 只匯出 VIP
+      dataToExport = participantsStore.participants.filter((p) => p.type === "VIP");
+      fileName = `參與者名單_VIP_${new Date().getTime()}.xlsx`;
+      break;
+    case "general":
+      // 只匯出一般民眾
+      dataToExport = participantsStore.participants.filter((p) => p.type === "一般民眾");
+      fileName = `參與者名單_一般民眾_${new Date().getTime()}.xlsx`;
+      break;
+    case "checked":
+      // 只匯出已報到
+      dataToExport = participantsStore.participants.filter((p) => p.status === "已報到");
+      fileName = `參與者名單_已報到_${new Date().getTime()}.xlsx`;
+      break;
+    case "unchecked":
+      // 只匯出未報到
+      dataToExport = participantsStore.participants.filter((p) => p.status === "未報到");
+      fileName = `參與者名單_未報到_${new Date().getTime()}.xlsx`;
+      break;
+  }
+
+  if (dataToExport.length === 0) {
     warning("目前沒有資料可匯出");
     return;
   }
+
   isExporting.value = true;
 
-  const exportData = filteredList.value.map((p) => ({
+  const exportList = dataToExport.map((p) => ({
     編號: p.id,
     姓名: p.name,
     單位: p.company,
@@ -51,64 +125,141 @@ const handleExport = () => {
     報到狀態: p.status,
   }));
 
-  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  const worksheet = XLSX.utils.json_to_sheet(exportList);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Participants");
-  XLSX.writeFile(workbook, `參與者名單_${new Date().getTime()}.xlsx`);
+  XLSX.utils.book_append_sheet(workbook, worksheet, "參與者");
+  XLSX.writeFile(workbook, fileName);
+
   isExporting.value = false;
-  success("資料匯出成功！");
+  showExportMenu.value = false;
+  success(`成功匯出 ${dataToExport.length} 筆資料！`);
+};
+
+// 舊的匯出函數（向後相容）
+const handleExport = () => {
+  showExportMenu.value = !showExportMenu.value;
 };
 
 // 匯入 Excel 邏輯
 const fileInput = ref(null);
 const triggerImport = () => fileInput.value.click();
-const handleImport = (e) => {
+const handleImport = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = (event) => {
+  reader.onload = async (event) => {
     const data = new Uint8Array(event.target.result);
     const workbook = XLSX.read(data, { type: "array" });
     const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
-    const sanitizedData = rawData.map((item, index) => ({
-      id: `IMP-${Date.now()}-${index}`,
-      name: item["姓名"] || item["Name"] || "未知姓名",
-      company: item["單位"] || item["公司"] || "-",
-      title: item["職稱"] || "-",
-      phone: item["電話"] || "-",
-      email: item["Email"] || "-",
+    const sanitizedData = rawData.map((item) => ({
+      name: item["姓名"] || item["Name"] || "", // 空字串讓後端驗證
+      company: item["單位"] || item["公司"] || "",
+      title: item["職稱"] || "",
+      phone: item["電話"] || "",
+      email: item["Email"] || "",
       type: item["身分"] || "一般民眾",
       status: item["報到狀態"] || "未報到",
     }));
 
-    participantsStore.importParticipants(sanitizedData);
-    e.target.value = "";
+    try {
+      const result = await participantsStore.importParticipants(sanitizedData);
+
+      // 根據匯入模式顯示不同訊息
+      if (result.mode === "bulk") {
+        // 全部成功
+        success(`✅ ${result.message || `批量匯入成功！共 ${result.success} 筆`}`);
+      } else if (result.mode === "partial") {
+        // 部分成功
+        if (result.success > 0) {
+          warning(
+            `⚠️ ${result.message || `部分匯入成功：成功 ${result.success} 筆，失敗 ${result.failed} 筆`}`,
+          );
+
+          // 顯示錯誤詳情
+          if (result.errors && result.errors.length > 0) {
+            console.error("匯入錯誤詳情:", result.errors);
+
+            // 格式化錯誤訊息
+            const errorDetails = result.errors
+              .slice(0, 5)
+              .map((err) => {
+                const errorMsg = Object.entries(err.errors)
+                  .map(([field, messages]) => `${field}: ${messages.join(", ")}`)
+                  .join("; ");
+                return `第 ${err.index} 筆 - ${errorMsg}`;
+              })
+              .join("\n");
+
+            console.warn("錯誤詳情（前 5 筆）：\n" + errorDetails);
+
+            // 顯示彈窗（可選）
+            if (
+              confirm(
+                `發現 ${result.errors.length} 筆錯誤。\n\n${errorDetails}\n\n是否查看完整錯誤？`,
+              )
+            ) {
+              console.table(result.errors);
+            }
+          }
+        } else {
+          showError(`❌ 匯入失敗：全部 ${result.failed} 筆都有錯誤，請檢查資料格式`);
+        }
+      } else {
+        success(`成功匯入 ${result.success} 筆，失敗 ${result.failed} 筆`);
+      }
+    } catch (err) {
+      console.error("匯入異常:", err);
+      showError("匯入失敗：" + (err.message || "請檢查檔案格式或網路連線"));
+    } finally {
+      e.target.value = "";
+    }
   };
   reader.readAsArrayBuffer(file);
 };
 
-// 編輯面板邏輯
-const editingParticipant = ref(null);
 const openEditPanel = (participant) => {
-  editingParticipant.value = participant;
+  editingParticipant.value = { ...participant };
 };
+
 const closeEditPanel = () => {
   editingParticipant.value = null;
 };
-const deleteParticipant = (participant) => {
-  participantsStore.deleteParticipant(participant);
-  if (editingParticipant.value === participant) {
-    editingParticipant.value = null;
+const deleteParticipant = async (participant) => {
+  if (!confirm("確定要刪除這位參與者嗎？")) return;
+
+  try {
+    await participantsStore.deleteParticipant(participant);
+    success("刪除成功");
+    if (editingParticipant.value?.id === participant.id) {
+      editingParticipant.value = null;
+    }
+  } catch (err) {
+    showError("刪除失敗");
+  }
+};
+
+// 儲存編輯
+const saveParticipant = async () => {
+  if (!editingParticipant.value) return;
+
+  try {
+    await participantsStore.updateParticipant(
+      editingParticipant.value.id,
+      editingParticipant.value,
+    );
+    success("更新成功");
+    closeEditPanel();
+  } catch (err) {
+    showError("更新失敗");
   }
 };
 
 // 新增參與者
-const addParticipant = () => {
+const addParticipant = async () => {
   const newParticipant = {
-    id: `NEW-${Date.now()}`,
-    name: "",
+    name: "新參與者",
     company: "",
     title: "",
     phone: "",
@@ -116,13 +267,25 @@ const addParticipant = () => {
     type: "一般民眾",
     status: "未報到",
   };
-  participantsStore.addParticipant(newParticipant);
-  editingParticipant.value = newParticipant;
+
+  try {
+    const created = await participantsStore.addParticipant(newParticipant);
+    editingParticipant.value = { ...created };
+    success("新增成功，請編輯詳細資料");
+  } catch (err) {
+    showError("新增失敗: " + (err.message || "未知錯誤"));
+  }
 };
 </script>
 
 <template>
   <div class="participants-view">
+    <!-- 加載遮罩 -->
+    <div v-if="participantsStore.isLoading" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <p>載入中...</p>
+    </div>
+
     <div class="page-header">
       <div class="header-left">
         <div class="search-wrapper">
@@ -149,9 +312,51 @@ const addParticipant = () => {
           @change="handleImport"
         />
         <button class="btn-secondary" @click="triggerImport">匯入名單</button>
-        <button class="btn-secondary" :disabled="isExporting" @click="handleExport">
-          {{ isExporting ? "處理中..." : "匯出 Excel" }}
-        </button>
+
+        <!-- 匯出選單 -->
+        <div class="export-dropdown">
+          <button class="btn-secondary" :disabled="isExporting" @click="handleExport">
+            {{ isExporting ? "處理中..." : "匯出 Excel" }}
+          </button>
+
+          <Transition name="dropdown-fade">
+            <div v-if="showExportMenu" class="export-menu">
+              <button @click="exportData('all')" class="export-option">
+                📊 匯出全部 ({{ participantsStore.participants.length }} 筆)
+              </button>
+              <button @click="exportData('current')" class="export-option">
+                🔍 匯出當前篩選 ({{ filteredList.length }} 筆)
+              </button>
+              <div class="menu-divider"></div>
+              <button @click="exportData('vip')" class="export-option">
+                ⭐ 只匯出 VIP ({{
+                  participantsStore.participants.filter((p) => p.type === "VIP").length
+                }}
+                筆)
+              </button>
+              <button @click="exportData('general')" class="export-option">
+                👥 只匯出一般民眾 ({{
+                  participantsStore.participants.filter((p) => p.type === "一般民眾").length
+                }}
+                筆)
+              </button>
+              <div class="menu-divider"></div>
+              <button @click="exportData('checked')" class="export-option">
+                ✅ 只匯出已報到 ({{
+                  participantsStore.participants.filter((p) => p.status === "已報到").length
+                }}
+                筆)
+              </button>
+              <button @click="exportData('unchecked')" class="export-option">
+                ⏳ 只匯出未報到 ({{
+                  participantsStore.participants.filter((p) => p.status === "未報到").length
+                }}
+                筆)
+              </button>
+            </div>
+          </Transition>
+        </div>
+
         <button class="btn-primary" @click="addParticipant">新增</button>
       </div>
     </div>
@@ -330,6 +535,7 @@ const addParticipant = () => {
                 </div>
 
                 <div class="form-field">
+                  saveParticipant
                   <label>聯絡電話</label>
                   <input
                     v-model="editingParticipant.phone"
@@ -357,7 +563,7 @@ const addParticipant = () => {
               <button class="btn-delete-participant" @click="deleteParticipant(editingParticipant)">
                 刪除參與者
               </button>
-              <button class="btn-save" @click="closeEditPanel">儲存</button>
+              <button class="btn-save" @click="saveParticipant">儲存</button>
             </div>
           </div>
         </div>
@@ -498,6 +704,71 @@ const addParticipant = () => {
     border-color: #cbd5e1;
     background: #f8fafc;
   }
+}
+
+/* 匯出下拉選單 */
+.export-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.export-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  min-width: 280px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.export-option {
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  background: white;
+  color: #475569;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.menu-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 4px 0;
+}
+
+/* 下拉選單動畫 */
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+  transition: all 0.2s ease;
+}
+
+.dropdown-fade-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.dropdown-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
 /* 標籤導航 - 資料夾標籤頁樣式 */
@@ -1077,5 +1348,42 @@ const addParticipant = () => {
 .panel-slide-enter-active .edit-panel,
 .panel-slide-leave-active .edit-panel {
   transition: transform 0.3s ease;
+}
+
+/* 加載狀態 */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+
+  p {
+    margin-top: 16px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #475569;
+  }
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
