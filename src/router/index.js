@@ -123,6 +123,14 @@ const router = createRouter({
             component: () =>
                 import ('../views/CheckIn/MobileScanner.vue'),
             meta: { requiresAuth: true }
+        },
+        // ===== 公開報名頁面（不需登入）=====
+        {
+            path: '/r/:shortLink',
+            name: 'PublicRegister',
+            component: () =>
+                import ('../views/Registration/PublicPage.vue'),
+            meta: { requiresAuth: false }
         }
     ]
 })

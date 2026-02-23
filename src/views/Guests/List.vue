@@ -1,17 +1,32 @@
 <script setup>
-import { reactive, ref, computed } from "vue";
+import { reactive, ref, computed, onMounted } from "vue";
 import { useGuestsStore } from "@/stores/guests";
+import { useEventsStore } from "@/stores/events";
+import { useToast } from "@/composables/useToast";
 
-// 貴賓 store
 const guestsStore = useGuestsStore();
+const eventsStore = useEventsStore();
+const { success, error } = useToast();
 
 const activityOptions = ref(["所有活動"]);
 const selectedActivity = ref("所有活動");
 const sortBy = ref("newest");
 const editingGuest = ref(null);
 
-// 貴賓列表（從 API 載入）
-const guests = reactive([]);
+// 直接使用 store 的 reactive guests 陣列
+const guests = guestsStore.guests;
+
+// 進入頁面時載入當前活動的貴賓
+onMounted(async () => {
+  const event = eventsStore.currentEvent;
+  if (event && event.id) {
+    try {
+      await guestsStore.fetchGuests(event.id);
+    } catch (err) {
+      error(err.message || "載入貴賓列表失敗");
+    }
+  }
+});
 
 const formatDate = (dateStr) => dateStr || "--";
 
@@ -20,47 +35,70 @@ const filteredGuests = computed(() => {
   if (selectedActivity.value !== "所有活動")
     result = result.filter((g) => g.activity === selectedActivity.value);
   if (sortBy.value === "name") result.sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
-  else result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  else result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   return result;
 });
 
-const addGuest = () => {
-  const now = new Date();
-  const newGuest = {
-    id: Date.now(),
-    name: "新增貴賓",
-    company: "",
-    title: "",
-    email: "",
-    phone: "",
-    bio: "",
-    avatar: null,
-    activity:
-      selectedActivity.value === "所有活動" ? activityOptions.value[1] : selectedActivity.value,
-    createdAt: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
-  };
-  guests.push(newGuest);
-  editingGuest.value = newGuest;
+const addGuest = async () => {
+  const event = eventsStore.currentEvent;
+  if (!event || !event.id) {
+    error("請先選擇一個活動");
+    return;
+  }
+  try {
+    const newGuest = await guestsStore.createGuest({
+      name: "新增貴賓",
+      title: "",
+      company: "",
+      email: "",
+      phone: "",
+      bio: "",
+      event: event.id,
+    });
+    editingGuest.value = newGuest;
+    success("貴賓已建立，請填寫詳細資料");
+  } catch (err) {
+    error(err.message || "新增貴賓失敗");
+  }
 };
 
-const deleteGuest = (guest) => {
-  const index = guests.indexOf(guest);
-  if (index > -1) {
-    guests.splice(index, 1);
-    if (editingGuest.value === guest) {
+const deleteGuest = async (guest) => {
+  if (!window.confirm(`確定要刪除貴賓 ${guest.name} 嗎？`)) return;
+  try {
+    await guestsStore.deleteGuest(guest.id);
+    if (editingGuest.value && editingGuest.value.id === guest.id) {
       editingGuest.value = null;
     }
+    success("貴賓已刪除");
+  } catch (err) {
+    error(err.message || "刪除貴賓失敗");
   }
 };
 
 const openEditPanel = (guest) => {
-  console.log("Opening edit panel for:", guest);
   editingGuest.value = guest;
-  console.log("editingGuest.value:", editingGuest.value);
 };
 
 const closeEditPanel = () => {
   editingGuest.value = null;
+};
+
+// 儲存貴賓編輯（自動觸發）
+const saveGuest = async (guest) => {
+  if (!guest || !guest.id) return;
+  try {
+    await guestsStore.updateGuest(guest.id, {
+      name: guest.name,
+      title: guest.title,
+      company: guest.company,
+      email: guest.email,
+      phone: guest.phone,
+      bio: guest.bio,
+    });
+    success("貴賓資料已儲存");
+  } catch (err) {
+    error(err.message || "儲存失敗");
+  }
 };
 
 const onAvatarChange = (e, guest) => {

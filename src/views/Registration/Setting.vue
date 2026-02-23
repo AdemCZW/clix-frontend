@@ -3,69 +3,64 @@ import { reactive, ref, onMounted, computed } from "vue";
 // 引入 Quill 編輯器元件與樣式
 import { QuillEditor } from "@vueup/vue-quill";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
-// 引入貴賓 store
+// 引入 stores
 import { useGuestsStore } from "@/stores/guests";
 import { useParticipantsStore } from "@/stores/participants";
+import { useEventsStore } from "@/stores/events";
+import { useRegistrationPagesStore } from "@/stores/registrationPages";
+import { useUserStore } from "@/stores/user";
+import { useToast } from "@/composables/useToast";
+import { useRouter } from "vue-router";
 
-// 使用貴賓 store
+// 使用 stores
 const guestsStore = useGuestsStore();
 const participantsStore = useParticipantsStore();
+const eventsStore = useEventsStore();
+const pagesStore = useRegistrationPagesStore();
+const userStore = useUserStore();
+const router = useRouter();
+const { success: toastSuccess, error: toastError } = useToast();
+
+// 目前報名頁的 ID，以及儲存/載入狀態
+const pageId = ref(null);
+const saving = ref(false);
+const loading = ref(false);
 
 // 合併兩個來源的特邀貴賓資料
 const allSelectedGuests = computed(() => {
-  // 從參與貴賓頁面選中的貴賓
   const fromGuestsPage = guestsStore.selectedGuests;
-  // 從參與者資訊頁面選中的 VIP
   const fromParticipantsPage = participantsStore.selectedVIPs;
-
-  // 合併並去重（根據 id）
   const combined = [...fromGuestsPage, ...fromParticipantsPage];
-  const uniqueGuests = combined.filter(
+  return combined.filter(
     (guest, index, self) => index === self.findIndex((g) => g.id === guest.id),
   );
-
-  return uniqueGuests;
 });
 
-// 自動編號邏輯
-const generateAutoId = () => {
-  const now = new Date();
-  const dateStr =
-    now.getFullYear() +
-    String(now.getMonth() + 1).padStart(2, "0") +
-    String(now.getDate()).padStart(2, "0") +
-    String(now.getHours()).padStart(2, "0") +
-    String(now.getMinutes()).padStart(2, "0");
-  const randomId = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `EVT-${randomId}-${dateStr}`;
-};
-
+// 表單資料（對應報名頁設定欄位）
 const form = reactive({
-  bannerPreview: null,
-  date: "2026-01-23",
-  endDate: "2026-01-23",
-  time: "14:00",
-  location: "台北國際會議中心 (TICC)",
-  address: "",
-  shortLink: "",
-  // 修改：改為儲存 HTML 格式
-  mainContent:
-    "<h2>親愛的貴賓您好：</h2><p>感謝您對本次活動的關注。我們準備了豐富的議程與專業講師分享。</p><p><strong>【活動重點】</strong></p><ul><li>專家技術深度解析</li><li>產業創新案例分享</li></ul><p>期待您的蒞臨！</p>",
-  // 郵件通知設定
-  emailSubject: "【報名成功通知】感謝您參與本次活動",
-  emailSenderName: "活動主辦單位",
-  emailContent:
-    "<h2>親愛的 {name} 您好：</h2><p>感謝您報名參加 <strong>{event_name}</strong>。</p><p>您的專屬報名序號為：<strong>{order_id}</strong></p><p>期待您的蒞臨！</p>",
+  bannerFile: null,       // File 物件（上傳用）
+  bannerPreview: null,    // 預覽 URL（base64 或後端 URL）
+  mainContent: "",
+  emailSubject: "",
+  emailSenderName: "",
+  emailContent: "",
   enableAutoSend: true,
 });
+
+// 活動基本資訊（唯讀顯示，來自 eventsStore.currentEvent）
+const currentEvent = computed(() => eventsStore.currentEvent);
+
+// 短連結與發布狀態
+const shortLink = ref("");
+const isPublished = ref(false);
 
 const isPreviewOpen = ref(false);
 const previewMode = ref("desktop");
 const showToast = ref(false);
 const showRegenerateConfirm = ref(false);
-const viewingGuest = ref(null); // 當前查看的貴賓詳細資訊
-const myQuill = ref(null); // 綁定活動內容編輯器實例
-const emailQuill = ref(null); // 綁定郵件編輯器實例
+const viewingGuest = ref(null);
+const myQuill = ref(null);
+const emailQuill = ref(null);
 
 // 編輯器工具列配置
 const editorOptions = {
@@ -82,7 +77,6 @@ const editorOptions = {
   theme: "snow",
 };
 
-// 郵件編輯器配置
 const emailEditorOptions = {
   modules: {
     toolbar: [
@@ -97,7 +91,7 @@ const emailEditorOptions = {
   theme: "snow",
 };
 
-// 插入動態標籤函式
+// 插入動態標籤
 const insertTag = (tag) => {
   const quill = myQuill.value.getQuill();
   const range = quill.getSelection(true);
@@ -107,7 +101,6 @@ const insertTag = (tag) => {
   }
 };
 
-// 郵件編輯器插入標籤
 const insertEmailTag = (tag) => {
   const quill = emailQuill.value.getQuill();
   const range = quill.getSelection(true);
@@ -120,71 +113,177 @@ const insertEmailTag = (tag) => {
   }
 };
 
-onMounted(() => {
-  form.shortLink = generateAutoId();
+// ── 初始化 ────────────────────────────────────────────────────────────────
+onMounted(async () => {
+  userStore.checkAuth();
+  const event = eventsStore.currentEvent;
+
+  // 沒有選擇活動 → 回到活動列表
+  if (!event || !event.id) {
+    router.push("/admin/events");
+    return;
+  }
+
+  loading.value = true;
+  try {
+    // 嘗試取得該活動的報名頁設定
+    let page = await pagesStore.fetchByEvent(event.id);
+
+    // 尚未建立 → 自動建立
+    if (!page) {
+      page = await pagesStore.createPage(event.id);
+    }
+
+    // 用後端資料初始化表單
+    pageId.value = page.id;
+    shortLink.value = page.shortLink;
+    isPublished.value = page.isPublished;
+    form.mainContent      = page.mainContent;
+    form.emailSubject     = page.emailSubject;
+    form.emailSenderName  = page.emailSenderName;
+    form.emailContent     = page.emailContent;
+    form.enableAutoSend   = page.enableAutoSend;
+    form.bannerPreview    = page.banner || null;
+  } catch (err) {
+    toastError(err.message || "載入報名頁設定失敗");
+  } finally {
+    loading.value = false;
+  }
 });
 
+// ── Banner 選擇 ────────────────────────────────────────────────────────────
 const onFileChange = (e, type) => {
   const file = e.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (type === "banner") form.bannerPreview = event.target.result;
-    };
-    reader.readAsDataURL(file);
+  if (!file) return;
+  if (type === "banner") form.bannerFile = file;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    if (type === "banner") form.bannerPreview = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+// ── 儲存草稿 ──────────────────────────────────────────────────────────────
+const saveDraft = async () => {
+  if (!pageId.value) {
+    toastError("請先從活動列表選擇一個活動");
+    return;
+  }
+  saving.value = true;
+  try {
+    const saved = await pagesStore.saveDraft(pageId.value, {
+      mainContent:     form.mainContent,
+      emailSubject:    form.emailSubject,
+      emailSenderName: form.emailSenderName,
+      emailContent:    form.emailContent,
+      enableAutoSend:  form.enableAutoSend,
+      bannerFile:      form.bannerFile,
+    });
+    form.bannerFile = null; // 上傳後清除，避免重複送出
+    // 更新 preview 為後端回傳的正式 URL（確保顯示 server 上的圖片）
+    if (saved && saved.banner) {
+      form.bannerPreview = saved.banner;
+    }
+    toastSuccess("活動設定已儲存");
+  } catch (err) {
+    toastError(err.message || "儲存失敗");
+  } finally {
+    saving.value = false;
   }
 };
 
-const saveDraft = () => {
-  // 儲存草稿邏輯
-  showToast.value = true;
-  setTimeout(() => {
-    showToast.value = false;
-  }, 2000);
+// ── 發布 ──────────────────────────────────────────────────────────────────
+const confirmPublish = async () => {
+  if (!pageId.value) {
+    toastError("請先從活動列表選擇一個活動");
+    return;
+  }
+  saving.value = true;
+  try {
+    // 先儲存最新內容，再發布
+    await pagesStore.saveDraft(pageId.value, {
+      mainContent:     form.mainContent,
+      emailSubject:    form.emailSubject,
+      emailSenderName: form.emailSenderName,
+      emailContent:    form.emailContent,
+      enableAutoSend:  form.enableAutoSend,
+      bannerFile:      form.bannerFile,
+    });
+    form.bannerFile = null;
+    const page = await pagesStore.publish(pageId.value);
+    isPublished.value = page.isPublished;
+    toastSuccess("活動報名頁已發布！");
+    showToast.value = true;
+    setTimeout(() => { showToast.value = false; }, 2500);
+  } catch (err) {
+    toastError(err.message || "發布失敗");
+  } finally {
+    saving.value = false;
+  }
 };
 
-const confirmPublish = () => {
-  // 發布邏輯
-  showToast.value = true;
-  setTimeout(() => {
-    showToast.value = false;
-  }, 2500);
+// ── 取消發布 ──────────────────────────────────────────────────────────────
+const handleUnpublish = async () => {
+  if (!pageId.value) return;
+  saving.value = true;
+  try {
+    const page = await pagesStore.unpublish(pageId.value);
+    isPublished.value = page.isPublished;
+    toastSuccess("已取消發布，存為草稿");
+  } catch (err) {
+    toastError(err.message || "取消發布失敗");
+  } finally {
+    saving.value = false;
+  }
 };
 
+// ── 短連結 ────────────────────────────────────────────────────────────────
 const confirmRegenerate = () => {
   showRegenerateConfirm.value = true;
 };
 
-const executeRegenerate = () => {
-  form.shortLink = generateAutoId();
+const executeRegenerate = async () => {
+  if (!pageId.value) return;
   showRegenerateConfirm.value = false;
-  showToast.value = true;
-  setTimeout(() => {
-    showToast.value = false;
-  }, 2000);
+  try {
+    const newLink = await pagesStore.regenerateLink(pageId.value);
+    shortLink.value = newLink;
+    toastSuccess("短連結已重新產生");
+  } catch (err) {
+    toastError(err.message || "重新產生短連結失敗");
+  }
 };
 
 const cancelRegenerate = () => {
   showRegenerateConfirm.value = false;
 };
 
-// 貴賓詳細資訊
+// 產生完整的報名頁 URL（對應 /r/:shortLink 路由）
+const fullRegistrationUrl = computed(() => {
+  if (!shortLink.value) return ''
+  // 若後端已回傳完整 URL（http 開頭）直接使用
+  if (shortLink.value.startsWith('http')) return shortLink.value
+  // 否則拼接當前 origin（dev / prod 都適用）
+  const base = import.meta.env.VITE_API_BASE_URL || window.location.origin
+  return `${base}/#/r/${shortLink.value}`
+});
+
+const copyLink = () => {
+  const urlToCopy = fullRegistrationUrl.value || shortLink.value;
+  navigator.clipboard.writeText(urlToCopy).then(() => {
+    toastSuccess('連結已複製到剪貼簿');
+  }).catch(() => {
+    toastError('複製失敗，請手動選取連結複製');
+  });
+};
+
+// ── 貴賓詳細資訊 ──────────────────────────────────────────────────────────
 const openGuestDetail = (guest) => {
   viewingGuest.value = guest;
 };
 
 const closeGuestDetail = () => {
   viewingGuest.value = null;
-};
-
-const copyLink = () => {
-  const fullLink = `reg.event/${form.shortLink}`;
-  navigator.clipboard.writeText(fullLink).then(() => {
-    showToast.value = true;
-    setTimeout(() => {
-      showToast.value = false;
-    }, 2000);
-  });
 };
 </script>
 
@@ -217,46 +316,40 @@ const copyLink = () => {
 
       <div class="tech-card data-card">
         <h3 class="card-subtitle">活動基本資訊</h3>
-        <div class="row-flex">
-          <div class="field">
-            <label>開始日期</label>
-            <input v-model="form.date" type="date" class="input-styled" />
+        <div class="event-info-display">
+          <div class="info-row">
+            <span class="info-label">活動名稱</span>
+            <span class="info-value">{{ currentEvent?.name || '—' }}</span>
           </div>
-          <div class="field">
-            <label>結束日期</label>
-            <input v-model="form.endDate" type="date" class="input-styled" />
+          <div class="info-row">
+            <span class="info-label">日期</span>
+            <span class="info-value">{{ currentEvent?.date || '—' }} {{ currentEvent?.endDate && currentEvent.endDate !== currentEvent.date ? '→ ' + currentEvent.endDate : '' }}</span>
           </div>
-          <div class="field">
-            <label>時間</label>
-            <input v-model="form.time" type="time" class="input-styled" />
+          <div class="info-row">
+            <span class="info-label">時間</span>
+            <span class="info-value">{{ currentEvent?.time || '—' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">地點</span>
+            <span class="info-value">{{ currentEvent?.location || '—' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">地址</span>
+            <span class="info-value">{{ currentEvent?.address || '—' }}</span>
           </div>
         </div>
-        <div class="field mt-16">
-          <label>地點</label>
-          <input
-            v-model="form.location"
-            type="text"
-            placeholder="輸入活動場地名稱"
-            class="input-styled"
-          />
-        </div>
-        <div class="field mt-16">
-          <label>詳細地址</label>
-          <input
-            v-model="form.address"
-            type="text"
-            placeholder="輸入詳細地址"
-            class="input-styled"
-          />
-        </div>
+        <div class="info-hint">如需修改活動基本資訊，請至<a @click.prevent="$router.push('/admin/events')" href="#" class="link-go">活動列表</a>編輯。</div>
       </div>
 
       <div class="tech-card link-card accent-blue">
         <h3 class="card-subtitle">產出報名連結</h3>
+        <div class="publish-status" :class="{ published: isPublished }">
+          <span class="status-dot"></span>
+          <span>{{ isPublished ? '已發布' : '草稿' }}</span>
+        </div>
         <div class="link-container">
-          <div class="link-input-group">
-            <span class="url-prefix">reg.event/</span>
-            <input v-model="form.shortLink" class="url-input" />
+          <div class="link-input-group full-url">
+            <input :value="fullRegistrationUrl || shortLink" readonly class="url-input" title="點擊右方按鈕複製" />
           </div>
           <div class="button-row">
             <button class="btn-copy" @click="copyLink">複製</button>
@@ -278,8 +371,15 @@ const copyLink = () => {
           </button>
         </div>
         <div class="action-buttons">
-          <button class="btn-save" @click="saveDraft">儲存</button>
-          <button class="btn-publish" @click="confirmPublish">發布</button>
+          <button class="btn-save" :disabled="saving" @click="saveDraft">
+            {{ saving ? '儲存中...' : '儲存草稿' }}
+          </button>
+          <button v-if="!isPublished" class="btn-publish" :disabled="saving" @click="confirmPublish">
+            {{ saving ? '處理中...' : '發布' }}
+          </button>
+          <button v-else class="btn-unpublish" :disabled="saving" @click="handleUnpublish">
+            {{ saving ? '處理中...' : '取消發布' }}
+          </button>
         </div>
       </div>
     </div>
@@ -457,8 +557,8 @@ const copyLink = () => {
                     <span class="p-tag">UPCOMING EVENT</span>
                     <h1 class="p-title">您的活動名稱顯示區</h1>
                     <div class="p-badges">
-                      <span>📅 {{ form.date }}</span>
-                      <span>📍 {{ form.location }}</span>
+                      <span>📅 {{ currentEvent?.date }}</span>
+                      <span>📍 {{ currentEvent?.location }}</span>
                     </div>
 
                     <div class="p-main-body-render" v-html="form.mainContent"></div>
@@ -493,7 +593,7 @@ const copyLink = () => {
                   <div class="footer-flex">
                     <div class="footer-info">
                       <span class="f-title">立即報名參加</span>
-                      <span class="f-date">{{ form.date }}｜{{ form.location }}</span>
+                      <span class="f-date">{{ currentEvent?.date }}｜{{ currentEvent?.location }}</span>
                     </div>
                     <button class="btn-apply-blue"><span>立即報名</span></button>
                   </div>
@@ -565,10 +665,96 @@ const copyLink = () => {
   padding: 20px;
   --primary-blue: #3b82f6;
   --deep-dark: #0f172a;
-  --text-gray: #475569; /* WCAG AA: 白底對比度 5.8:1 */
-  --text-gray-light: #64748b; /* 用於非關鍵資訊 */
+  --text-gray: #475569;
+  --text-gray-light: #64748b;
   --bg-soft: #f8fafc;
   --border-light: #e2e8f0;
+}
+
+/* 活動基本資訊唯讀區 */
+.event-info-display {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.info-row {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  .info-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-gray);
+    min-width: 64px;
+    flex-shrink: 0;
+  }
+  .info-value {
+    font-size: 0.9rem;
+    color: var(--deep-dark);
+    font-weight: 500;
+  }
+}
+.info-hint {
+  font-size: 0.78rem;
+  color: var(--text-gray-light);
+  margin-top: 4px;
+  .link-go {
+    color: var(--primary-blue);
+    cursor: pointer;
+    text-decoration: underline;
+    margin: 0 2px;
+  }
+}
+
+/* 發布狀態標籤 */
+.publish-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 10px;
+  padding: 4px 10px;
+  background: #f1f5f9;
+  border-radius: 20px;
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #94a3b8;
+  }
+  &.published {
+    color: #059669;
+    background: #d1fae5;
+    .status-dot { background: #10b981; }
+  }
+}
+
+/* 取消發布按鈕 */
+.btn-unpublish {
+  flex: 1;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  border: none;
+  padding: 14px 20px;
+  border-radius: 0;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  &:hover {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
 .page-header {
   display: flex;
@@ -917,7 +1103,7 @@ const copyLink = () => {
   }
 }
 
-/* 彈窗與預覽邏輯保持不動 */
+/* 彩窗與預覽邏輯保持不動 */
 .row-flex {
   display: flex;
   gap: 8px;
@@ -960,6 +1146,16 @@ label {
     color: var(--deep-dark);
     outline: none;
     padding: 12px 16px 12px 4px;
+  }
+  &.full-url {
+    .url-input {
+      padding: 12px 16px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--accent-blue);
+      letter-spacing: 0.2px;
+      cursor: text;
+    }
   }
 }
 

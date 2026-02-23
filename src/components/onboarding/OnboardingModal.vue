@@ -18,56 +18,89 @@
 
           <!-- 步驟內容 -->
           <div class="step-content">
-            <!-- 選擇模式：選擇現有系列和活動 -->
+            <!-- 選擇模式：選擇現有活動 或 建立新活動 -->
             <div v-if="mode === 'select'" class="step-section select-mode">
-              <div class="step-header">
-                <h2>選擇要管理的活動</h2>
-                <p>請選擇您要管理的系列和活動</p>
-              </div>
 
-              <div class="form-group">
-                <label>選擇系列</label>
-                <div class="series-list">
-                  <div
-                    v-for="series in userStore.series"
-                    :key="series.id"
-                    class="series-item"
-                    :class="{ selected: selectedSeries?.id === series.id }"
-                    @click="
-                      selectedSeries = series;
-                      selectedEvent = null;
-                    "
-                  >
-                    <div class="series-name">{{ series.name }}</div>
-                    <div v-if="series.description" class="series-desc">
-                      {{ series.description }}
+              <!-- 選擇既有活動 -->
+              <template v-if="!showCreateForm">
+                <div class="step-header">
+                  <h2>選擇要管理的活動</h2>
+                  <p>請選擇您要管理的活動，或建立一個新活動</p>
+                </div>
+
+                <div class="form-group">
+                  <label>現有活動</label>
+                  <div v-if="eventsStore.isLoading" class="no-events">
+                    <p>載入中...</p>
+                  </div>
+                  <div v-else-if="eventsStore.events.length === 0" class="no-events">
+                    <p>尚無活動，請點擊下方「建立新活動」按鈕建立第一個活動</p>
+                  </div>
+                  <div v-else class="event-list">
+                    <div
+                      v-for="event in eventsStore.events"
+                      :key="event.id"
+                      class="event-item"
+                      :class="{ selected: selectedEvent && selectedEvent.id === event.id }"
+                      @click="selectedEvent = event"
+                    >
+                      <div class="event-name">{{ event.name }}</div>
+                      <div class="event-details">
+                        <span>&#x1F4C5; {{ event.date }}</span>
+                        <span v-if="event.location">&#x1F4CD; {{ event.location }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div v-if="selectedSeries && currentSeriesEvents.length > 0" class="form-group">
-                <label>選擇活動</label>
-                <div class="event-list">
-                  <div
-                    v-for="event in currentSeriesEvents"
-                    :key="event.id"
-                    class="event-item"
-                    :class="{ selected: selectedEvent?.id === event.id }"
-                    @click="selectedEvent = event"
-                  >
-                    <div class="event-name">{{ event.name }}</div>
-                    <div class="event-details">
-                      <span>📅 {{ event.date }} {{ event.time }}</span>
-                      <span>📍 {{ event.location }}</span>
-                    </div>
+                <button class="btn-create-new" @click="showCreateForm = true">
+                  ➕ 建立新活動
+                </button>
+              </template>
+
+              <!-- 建立新活動的表單 -->
+              <template v-else>
+                <div class="step-header">
+                  <h2>建立新活動</h2>
+                  <p>填寫基本資訊，儲存後可在報名頁面設定中繼續編輯</p>
+                </div>
+
+                <div class="form-group">
+                  <label>活動名稱 *</label>
+                  <input
+                    v-model="createForm.name"
+                    type="text"
+                    placeholder="例如：2026 新春團拜"
+                    class="input-field"
+                  />
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>開始日期 *</label>
+                    <input v-model="createForm.date" type="date" class="input-field" />
+                  </div>
+                  <div class="form-group">
+                    <label>結束日期</label>
+                    <input v-model="createForm.endDate" type="date" class="input-field" />
                   </div>
                 </div>
-              </div>
 
-              <div v-if="selectedSeries && currentSeriesEvents.length === 0" class="no-events">
-                <p>此系列尚無活動</p>
-              </div>
+                <div class="form-group">
+                  <label>活動時間 *</label>
+                  <input v-model="createForm.time" type="time" class="input-field" />
+                </div>
+
+                <div class="form-group">
+                  <label>地點</label>
+                  <input
+                    v-model="createForm.location"
+                    type="text"
+                    placeholder="活動舉辦地點（選填）"
+                    class="input-field"
+                  />
+                </div>
+              </template>
             </div>
 
             <!-- 建立模式：原有的步驟 -->
@@ -189,14 +222,30 @@
               開始使用系統
             </button>
 
-            <button
-              v-if="mode === 'select'"
-              class="btn-primary"
-              :disabled="!canProceed"
-              @click="complete"
-            >
-              確認選擇
-            </button>
+            <!-- select 模式：顯示現有活動列表時 -->
+            <template v-if="mode === 'select' && !showCreateForm">
+              <button
+                class="btn-primary"
+                :disabled="!canProceed"
+                @click="complete"
+              >
+                確認選擇
+              </button>
+            </template>
+
+            <!-- select 模式：建立新活動表單時 -->
+            <template v-if="mode === 'select' && showCreateForm">
+              <button class="btn-secondary" @click="showCreateForm = false">
+                ← 返回列表
+              </button>
+              <button
+                class="btn-primary"
+                :disabled="!canCreate || isCreating"
+                @click="createAndSelect"
+              >
+                {{ isCreating ? '建立中...' : '建立並進入' }}
+              </button>
+            </template>
           </div>
         </div>
       </div>
@@ -205,8 +254,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, reactive, computed, watch } from "vue";
 import { useUserStore } from "@/stores/user";
+import { useEventsStore } from "@/stores/events";
 
 const props = defineProps({
   show: {
@@ -222,6 +272,7 @@ const props = defineProps({
 const emit = defineEmits(["close", "complete"]);
 
 const userStore = useUserStore();
+const eventsStore = useEventsStore();
 
 const currentStep = ref(1);
 const steps = [
@@ -243,14 +294,33 @@ const eventForm = ref({
 });
 
 // 選擇模式的狀態
-const selectedSeries = ref(null);
 const selectedEvent = ref(null);
 
-// 當前系列的活動列表
-const currentSeriesEvents = computed(() => {
-  if (!selectedSeries.value) return [];
-  return userStore.events.filter((e) => e.seriesId === selectedSeries.value.id);
-});
+// 建立新活動子表單
+const showCreateForm = ref(false);
+const isCreating = ref(false);
+const createForm = reactive({ name: '', date: '', endDate: '', time: '', location: '' });
+
+const canCreate = computed(() => createForm.name.trim().length > 0 && !!createForm.date && !!createForm.time);
+
+const createAndSelect = async () => {
+  if (!canCreate.value) return;
+  isCreating.value = true;
+  try {
+    const created = await eventsStore.createEvent({
+      name:      createForm.name,
+      date:      createForm.date,
+      end_date:  createForm.endDate || createForm.date,
+      time:      createForm.time + ':00',
+      location:  createForm.location,
+    });
+    emit('complete', { event: created });
+  } catch (err) {
+    alert(err.message || '建立活動失敗');
+  } finally {
+    isCreating.value = false;
+  }
+};
 
 const canProceed = computed(() => {
   if (props.mode === "select") {
@@ -287,7 +357,6 @@ const complete = () => {
   if (props.mode === "select") {
     // 選擇模式：直接切換到選中的活動
     emit("complete", {
-      series: selectedSeries.value,
       event: selectedEvent.value,
     });
   } else {
@@ -314,16 +383,17 @@ watch(
       currentStep.value = 1;
       seriesForm.value = { name: "", description: "" };
       eventForm.value = { name: "", date: "", time: "", location: "" };
-      selectedSeries.value = null;
       selectedEvent.value = null;
+      showCreateForm.value = false;
+      createForm.name = '';
+      createForm.date = '';
+      createForm.endDate = '';
+      createForm.time = '';
+      createForm.location = '';
     } else if (props.mode === "select") {
-      // 選擇模式時，預設選擇第一個系列
-      if (userStore.series.length > 0) {
-        selectedSeries.value = userStore.series[0];
-        const events = userStore.events.filter((e) => e.seriesId === selectedSeries.value.id);
-        if (events.length > 0) {
-          selectedEvent.value = events[0];
-        }
+      // 自動選取第一個活動
+      if (eventsStore.events.length > 0) {
+        selectedEvent.value = eventsStore.events[0];
       }
     }
   },
@@ -476,6 +546,24 @@ watch(
     padding: 40px 20px;
     color: #9ca3af;
     font-size: 0.9rem;
+  }
+
+  .btn-create-new {
+    width: 100%;
+    margin-top: 8px;
+    padding: 12px;
+    border: 2px dashed #3b82f6;
+    border-radius: 12px;
+    background: transparent;
+    color: #3b82f6;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #eff6ff;
+    }
   }
 }
 

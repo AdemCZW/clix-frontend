@@ -1,9 +1,25 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import vPrint from "vue3-print-nb";
 import { useParticipantsStore } from "@/stores/participants";
+import { useEventsStore } from "@/stores/events";
+import QRCodeLib from "qrcode";
 
 const participantsStore = useParticipantsStore();
+const eventsStore = useEventsStore();
+
+const logoUrl = ref("");
+const logoFile = ref(null);
+function handleLogoUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  logoFile.value = file;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    logoUrl.value = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
 
 // 使用 store 的參與者數據
 const allParticipants = computed(() => participantsStore.participants);
@@ -12,7 +28,9 @@ const searchQuery = ref("");
 const selectedIds = ref([]);
 const filteredParticipants = computed(() =>
   allParticipants.value.filter(
-    (p) => p.name.includes(searchQuery.value) || p.company.includes(searchQuery.value),
+    (p) =>
+      (p.name || "").includes(searchQuery.value) ||
+      (p.company || "").includes(searchQuery.value),
   ),
 );
 const selectedParticipants = computed(() =>
@@ -20,6 +38,26 @@ const selectedParticipants = computed(() =>
 );
 
 // 2. 隨意拖曳範本設定 (核心升級)
+const dragging = ref(false);
+const dragOffset = ref({ x: 0, y: 0 });
+
+function startDrag(el, evt) {
+  activeElement.value = el;
+  dragging.value = true;
+  dragOffset.value = {
+    x: evt.clientX - el.x,
+    y: evt.clientY - el.y,
+  };
+}
+function onDrag(evt) {
+  if (!dragging.value || !activeElement.value) return;
+  activeElement.value.x = evt.clientX - dragOffset.value.x;
+  activeElement.value.y = evt.clientY - dragOffset.value.y;
+}
+function stopDrag() {
+  dragging.value = false;
+}
+
 const activeElement = ref(null); // 當前正在編輯的元件
 const templateElements = ref([
   {
@@ -48,10 +86,30 @@ const templateElements = ref([
   },
 ]);
 
+onMounted(() => {
+  window.addEventListener("mousemove", onDrag);
+  window.addEventListener("mouseup", stopDrag);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("mousemove", onDrag);
+  window.removeEventListener("mouseup", stopDrag);
+});
+
+watch(
+  () => eventsStore.currentEvent,
+  async (newEvent) => {
+    if (newEvent?.id) {
+      await participantsStore.fetchParticipants({ event: newEvent.id });
+    } else {
+      participantsStore.clear();
+    }
+  },
+  { immediate: true }
+);
+
 // 3. 處理拖曳位置 (簡單實現：透過點擊選中並編輯)
-const selectElement = (el) => {
-  activeElement.value = el;
-};
+// 移除 selectElement
 
 // 4. 切換選取邏輯
 const toggleSelection = (id) => {
@@ -71,6 +129,18 @@ const toggleAll = () => {
   }
 };
 
+// QR Code 圖片生成
+const qrDataUrls = ref({});
+async function ensureQr(token) {
+  if (!token || qrDataUrls.value[token]) return;
+  qrDataUrls.value[token] = await QRCodeLib.toDataURL(token, { width: 80, margin: 1 });
+}
+watch(
+  selectedParticipants,
+  (participants) => participants.forEach((p) => ensureQr(p.checkInToken)),
+  { immediate: true }
+);
+
 const isAllSelected = computed(
   () =>
     filteredParticipants.value.length > 0 &&
@@ -79,7 +149,7 @@ const isAllSelected = computed(
 </script>
 
 <template>
-  <div class="badge-printer-view">
+  <div class="badge-printer-view" @mousemove="onDrag" @mouseup="stopDrag">
     <div class="page-header no-print">
       <div class="header-actions">
         <button
@@ -89,6 +159,13 @@ const isAllSelected = computed(
         >
           確認列印 ({{ selectedIds.length }})
         </button>
+        <label class="logo-upload">
+          <span>上傳 LOGO</span>
+          <input type="file" accept="image/*" @change="handleLogoUpload" style="display:none" />
+        </label>
+        <span v-if="logoUrl" class="logo-preview">
+          <img :src="logoUrl" alt="Logo" style="height:40px;max-width:120px;border-radius:8px;" />
+        </span>
       </div>
     </div>
 
@@ -133,6 +210,7 @@ const isAllSelected = computed(
             <span class="size-label">實際尺寸 1:1</span>
           </div>
           <div class="canvas-box">
+            <img v-if="logoUrl" :src="logoUrl" class="canvas-logo" style="position:absolute;left:20px;top:20px;height:40px;max-width:120px;z-index:2;" />
             <div
               v-for="el in templateElements"
               :key="el.id"
@@ -145,9 +223,20 @@ const isAllSelected = computed(
                 fontWeight: el.style.fontWeight,
                 color: el.style.color,
               }"
-              @mousedown="selectElement(el)"
+              @mousedown="(evt) => startDrag(el, evt)"
             >
-              {{ el.label === "QR編碼" ? "QR CODE" : `[${el.label}]` }}
+              <template v-if="el.label === 'QR編碼'">
+                <img
+                  v-if="qrDataUrls[selectedParticipants[0]?.checkInToken]"
+                  :src="qrDataUrls[selectedParticipants[0]?.checkInToken]"
+                  width="80"
+                  height="80"
+                />
+                <div v-else style="width:80px;height:80px;background:#f1f5f9;border-radius:4px;"></div>
+              </template>
+              <template v-else>
+                [{{ el.label }}]
+              </template>
               <div class="drag-handle" v-if="activeElement?.id === el.id"></div>
             </div>
           </div>
@@ -187,6 +276,7 @@ const isAllSelected = computed(
       <!-- 列印專用區域 -->
       <div id="printBadges" class="print-only-area">
         <div v-for="p in selectedParticipants" :key="p.id" class="print-badge">
+          <img v-if="logoUrl" :src="logoUrl" class="print-logo" style="position:absolute;left:20px;top:20px;height:40px;max-width:120px;z-index:2;" />
           <div
             v-for="el in templateElements"
             :key="el.id"
@@ -199,7 +289,16 @@ const isAllSelected = computed(
               color: el.style.color,
             }"
           >
-            {{ el.key === "name" ? p.name : el.key === "company" ? p.company : p.code }}
+            <template v-if="el.key === 'name'">{{ p.name }}</template>
+            <template v-else-if="el.key === 'company'">{{ p.company }}</template>
+            <template v-else-if="el.key === 'code'">
+              <img
+                v-if="qrDataUrls[p.checkInToken]"
+                :src="qrDataUrls[p.checkInToken]"
+                width="80"
+                height="80"
+              />
+            </template>
           </div>
         </div>
       </div>

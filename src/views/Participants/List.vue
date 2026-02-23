@@ -1,16 +1,19 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import * as XLSX from "xlsx";
 import { useToast } from "@/composables/useToast";
 import { useParticipantsStore } from "@/stores/participants";
+import { useEventsStore } from "@/stores/events";
 
 const { success, warning, error: showError } = useToast();
 const participantsStore = useParticipantsStore();
+const eventsStore = useEventsStore();
 
 // 頁面載入時獲取資料
 onMounted(async () => {
+  const eventId = eventsStore.currentEvent?.id;
   try {
-    await participantsStore.fetchParticipants();
+    await participantsStore.fetchParticipants(eventId ? { event: eventId } : {});
   } catch (err) {
     showError("無法載入參與者資料");
   }
@@ -22,6 +25,22 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener("click", handleClickOutside);
 });
+
+// 切換活動時自動重新載入參與者
+watch(
+  () => eventsStore.currentEvent,
+  async (newEvent) => {
+    if (newEvent?.id) {
+      try {
+        await participantsStore.fetchParticipants({ event: newEvent.id });
+      } catch {
+        showError("無法載入參與者資料");
+      }
+    } else {
+      participantsStore.clear();
+    }
+  }
+);
 
 // 點擊外部關閉匯出選單
 const handleClickOutside = (event) => {
@@ -230,7 +249,7 @@ const deleteParticipant = async (participant) => {
   if (!confirm("確定要刪除這位參與者嗎？")) return;
 
   try {
-    await participantsStore.deleteParticipant(participant);
+    await participantsStore.deleteParticipant(participant.id);
     success("刪除成功");
     if (editingParticipant.value?.id === participant.id) {
       editingParticipant.value = null;
@@ -243,14 +262,14 @@ const deleteParticipant = async (participant) => {
 // 儲存編輯
 const saveParticipant = async () => {
   if (!editingParticipant.value) return;
-
+  const { id, name, company, title, phone, email, type, status } = editingParticipant.value;
   try {
-    await participantsStore.updateParticipant(
-      editingParticipant.value.id,
-      editingParticipant.value,
-    );
+    const updated = await participantsStore.updateParticipant(id, {
+      name, company, title, phone, email, type, status,
+    });
+    // 更新 editingParticipant 以反映後端最新資料（含 qrCodeUrl）
+    editingParticipant.value = { ...editingParticipant.value, ...updated };
     success("更新成功");
-    closeEditPanel();
   } catch (err) {
     showError("更新失敗");
   }
@@ -258,6 +277,8 @@ const saveParticipant = async () => {
 
 // 新增參與者
 const addParticipant = async () => {
+  const eventId = eventsStore.currentEvent?.id;
+  if (!eventId) { showError("請先選擇活動"); return; }
   const newParticipant = {
     name: "新參與者",
     company: "",
@@ -266,22 +287,35 @@ const addParticipant = async () => {
     email: "",
     type: "一般民眾",
     status: "未報到",
+    event: eventId,
   };
-
   try {
-    const created = await participantsStore.addParticipant(newParticipant);
+    const created = await participantsStore.createParticipant(newParticipant);
     editingParticipant.value = { ...created };
     success("新增成功，請編輯詳細資料");
   } catch (err) {
     showError("新增失敗: " + (err.message || "未知錯誤"));
   }
 };
+
+// VIP 勾選管理（本地狀態）
+const selectedVIPIds = ref(new Set());
+const isVIPSelected = (id) => selectedVIPIds.value.has(id);
+const toggleVIP = (participant) => {
+  const s = new Set(selectedVIPIds.value);
+  if (s.has(participant.id)) {
+    s.delete(participant.id);
+  } else {
+    s.add(participant.id);
+  }
+  selectedVIPIds.value = s;
+};
 </script>
 
 <template>
   <div class="participants-view">
     <!-- 加載遮罩 -->
-    <div v-if="participantsStore.isLoading" class="loading-overlay">
+    <div v-if="participantsStore.loading" class="loading-overlay">
       <div class="loading-spinner"></div>
       <p>載入中...</p>
     </div>
@@ -395,14 +429,14 @@ const addParticipant = async () => {
           <tr
             v-for="p in filteredList"
             :key="p.id"
-            :class="{ selected: activeTab === 'VIP' && participantsStore.isVIPSelected(p.id) }"
+            :class="{ selected: activeTab === 'VIP' && isVIPSelected(p.id) }"
           >
             <td v-if="activeTab === 'VIP'" style="text-align: center">
               <label class="checkbox-wrapper" @click.stop>
                 <input
                   type="checkbox"
-                  :checked="participantsStore.isVIPSelected(p.id)"
-                  @change="participantsStore.toggleVIP(p)"
+                  :checked="isVIPSelected(p.id)"
+                  @change="toggleVIP(p)"
                 />
                 <span class="checkmark"></span>
               </label>
@@ -535,7 +569,6 @@ const addParticipant = async () => {
                 </div>
 
                 <div class="form-field">
-                  saveParticipant
                   <label>聯絡電話</label>
                   <input
                     v-model="editingParticipant.phone"
@@ -555,6 +588,18 @@ const addParticipant = async () => {
                     <option value="已報到">已報到</option>
                     <option value="未報到">未報到</option>
                   </select>
+                </div>
+              </div>
+
+              <!-- QR Code 區塊 -->
+              <div class="form-section" v-if="editingParticipant.qrCodeUrl">
+                <h4 class="section-title">專屬報到 QR Code</h4>
+                <div class="qr-display">
+                  <img :src="editingParticipant.qrCodeUrl" alt="QR Code" class="qr-image" />
+                  <p class="qr-token">{{ editingParticipant.checkInToken }}</p>
+                  <a :href="editingParticipant.qrCodeUrl" download="qrcode.png" class="btn-download-qr">
+                    ⬇ 下載 QR Code
+                  </a>
                 </div>
               </div>
             </div>
@@ -1278,6 +1323,44 @@ const addParticipant = async () => {
 
   .select-styled {
     cursor: pointer;
+  }
+}
+
+.qr-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 0;
+
+  .qr-image {
+    width: 180px;
+    height: 180px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 8px;
+    background: #fff;
+  }
+
+  .qr-token {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-family: monospace;
+    letter-spacing: 1px;
+    margin: 0;
+  }
+
+  .btn-download-qr {
+    font-size: 0.82rem;
+    color: #3b82f6;
+    text-decoration: none;
+    border: 1px solid #3b82f6;
+    padding: 6px 16px;
+    border-radius: 8px;
+
+    &:hover {
+      background: rgba(59, 130, 246, 0.08);
+    }
   }
 }
 

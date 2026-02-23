@@ -30,13 +30,13 @@ export const useAdminAccountsStore = defineStore('adminAccounts', () => {
 
     // ----- 讀取資料 -----
 
-    const fetchManagers = async () => {
+    const fetchManagers = async() => {
         loading.value = true
         try {
             const res = await apiRequest('/api/managers/')
             if (!res.ok) throw new Error('無法取得管理者列表')
             const data = await res.json()
-            // 支援分頁格式 { results: [...] } 和純陣列兩種回傳
+                // 支援分頁格式 { results: [...] } 和純陣列兩種回傳
             const list = Array.isArray(data) ? data : (data.results || [])
             adminAccounts.value = list.map(mapManager)
         } finally {
@@ -44,13 +44,13 @@ export const useAdminAccountsStore = defineStore('adminAccounts', () => {
         }
     }
 
-    const fetchStaff = async () => {
+    const fetchStaff = async() => {
         loading.value = true
         try {
             const res = await apiRequest('/api/staff/')
             if (!res.ok) throw new Error('無法取得員工列表')
             const data = await res.json()
-            // 支援分頁格式 { results: [...] } 和純陣列兩種回傳
+                // 支援分頁格式 { results: [...] } 和純陣列兩種回傳
             const list = Array.isArray(data) ? data : (data.results || [])
             staffAccounts.value = list.map(mapStaff)
         } finally {
@@ -72,7 +72,7 @@ export const useAdminAccountsStore = defineStore('adminAccounts', () => {
 
     // ----- 管理者 CRUD -----
 
-    const createManager = async (email, password, staffQuota) => {
+    const addAdmin = async(email, password, staffQuota) => {
         const res = await apiRequest('/api/managers/', {
             method: 'POST',
             body: JSON.stringify({ email, password, staff_quota: staffQuota }),
@@ -87,14 +87,14 @@ export const useAdminAccountsStore = defineStore('adminAccounts', () => {
         return data
     }
 
-    const deleteAdmin = async (adminId) => {
+    const deleteAdmin = async(adminId) => {
         const res = await apiRequest('/api/managers/' + adminId + '/', { method: 'DELETE' })
         if (!res.ok) throw new Error('刪除管理者失敗')
         staffAccounts.value = staffAccounts.value.filter((s) => s.managerId !== adminId)
         adminAccounts.value = adminAccounts.value.filter((a) => a.id !== adminId)
     }
 
-    const updateAdminQuota = async (adminId, newQuota) => {
+    const updateAdminQuota = async(adminId, newQuota) => {
         const res = await apiRequest('/api/managers/' + adminId + '/', {
             method: 'PATCH',
             body: JSON.stringify({ staff_quota: newQuota }),
@@ -107,7 +107,7 @@ export const useAdminAccountsStore = defineStore('adminAccounts', () => {
 
     // ----- 員工 CRUD -----
 
-    const addStaff = async (managerId, password) => {
+    const addStaff = async(managerId, password) => {
         if (!canAddStaff(managerId)) {
             throw new Error('已達員工額度上限')
         }
@@ -126,7 +126,7 @@ export const useAdminAccountsStore = defineStore('adminAccounts', () => {
         return newStaff
     }
 
-    const deleteStaff = async (staffId) => {
+    const deleteStaff = async(staffId) => {
         const res = await apiRequest('/api/staff/' + staffId + '/', { method: 'DELETE' })
         if (!res.ok) throw new Error('刪除員工失敗')
         staffAccounts.value = staffAccounts.value.filter((s) => s.id !== staffId)
@@ -144,7 +144,7 @@ export const useAdminAccountsStore = defineStore('adminAccounts', () => {
         canAddStaff,
         fetchManagers,
         fetchStaff,
-        createManager,
+        addAdmin,
         deleteAdmin,
         updateAdminQuota,
         addStaff,

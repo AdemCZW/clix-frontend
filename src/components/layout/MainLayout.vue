@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useUserStore } from "@/stores/user";
+import { useEventsStore } from "@/stores/events";
 import { useToast } from "@/composables/useToast";
 import OnboardingModal from "@/components/onboarding/OnboardingModal.vue";
 import EventSwitcher from "@/components/EventSwitcher.vue";
@@ -9,16 +10,26 @@ import EventSwitcher from "@/components/EventSwitcher.vue";
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
+const eventsStore = useEventsStore();
 const { success } = useToast();
 
-// 初始化用戶狀態
-userStore.initFromStorage();
+// 初始化用戶狀態與上次選擇的活動
+userStore.checkAuth();
+eventsStore.initFromStorage(userStore.user?.id);
 
-// 如果有系列/活動資料，但未選擇當前活動，則顯示選擇視窗
-const showOnboarding = ref(!userStore.isOnboarded || !userStore.currentEvent);
+// 進入時載入後端活動列表
+onMounted(async () => {
+  try {
+    await eventsStore.fetchEvents({
+      userId: userStore.user?.id,
+      isSuperAdmin: userStore.isSuperAdmin,
+    });
+  } catch { /* silent */ }
+});
 
-// 決定模態視窗的模式：如果已經有資料就用選擇模式，否則用建立模式
-const onboardingMode = ref(userStore.isOnboarded ? "select" : "create");
+// 沒有選擇活動時顯示選擇彈窗
+const showOnboarding = ref(!eventsStore.currentEvent);
+const onboardingMode = ref("select");
 
 // 依據功能邏輯重新整理的選單 (兩層架構)
 const mainMenuItems = computed(() => [
@@ -43,18 +54,15 @@ const eventMenuItems = [
 ];
 
 const navigateTo = (path) => {
-  router.push(path);
+  if (path === "/admin/form-fields" && eventsStore.currentEvent?.id) {
+    router.push({ path, query: { eventId: eventsStore.currentEvent.id } });
+  } else {
+    router.push(path);
+  }
 };
 
 const handleOnboardingComplete = (data) => {
-  if (onboardingMode.value === "select") {
-    // 選擇模式：切換到選中的活動
-    userStore.switchEvent(data.event);
-    userStore.switchSeries(data.series);
-  } else {
-    // 建立模式：完成引導並保存新資料
-    userStore.completeOnboarding(data);
-  }
+  eventsStore.setCurrentEvent(data.event, userStore.user?.id);
   showOnboarding.value = false;
 };
 
@@ -94,10 +102,10 @@ const handleLogout = () => {
         </div>
 
         <!-- 活動管理選單 -->
-        <div class="menu-section" v-if="userStore.currentEvent">
+        <div class="menu-section" v-if="eventsStore.currentEvent">
           <div class="section-label">
             活動管理
-            <span class="event-badge">{{ userStore.currentEvent.name }}</span>
+            <span class="event-badge">{{ eventsStore.currentEvent.name }}</span>
           </div>
           <div
             v-for="item in eventMenuItems"
@@ -120,15 +128,16 @@ const handleLogout = () => {
       <header class="content-header">
         <div class="header-actions">
           <!-- <EventSwitcher /> -->
+          <div class="current-user" v-if="userStore.user">
+            <span class="user-avatar">{{ (userStore.user.username || userStore.user.email || '?')[0].toUpperCase() }}</span>
+            <span class="user-name">{{ userStore.user.username || userStore.user.email }}</span>
+            <span v-if="userStore.isSuperAdmin" class="user-role-badge">Super Admin</span>
+          </div>
         </div>
       </header>
 
       <section class="view-port">
-        <router-view v-slot="{ Component }">
-          <transition name="page-fade" mode="out-in">
-            <component :is="Component" />
-          </transition>
-        </router-view>
+        <router-view :key="route.fullPath" />
       </section>
     </main>
 
@@ -307,6 +316,38 @@ const handleLogout = () => {
   .header-actions {
     display: flex;
     align-items: center;
+  }
+  .current-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-weight: 700;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .user-name {
+      color: var(--text-main);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    .user-role-badge {
+      font-size: 0.7rem;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-blue);
+      border: 1px solid var(--accent-blue);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
   }
 }
 

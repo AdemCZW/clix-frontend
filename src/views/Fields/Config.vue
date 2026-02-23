@@ -1,53 +1,115 @@
 <script setup>
-import { reactive, ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import draggable from "vuedraggable";
+import { useRegistrationFormFieldsStore } from "@/stores/registrationFormFields";
+import { useRegistrationPagesStore } from "@/stores/registrationPages";
+import { useEventsStore } from "@/stores/events";
+import { useToast } from "@/composables/useToast";
 
-// --- 資料與邏輯 ---
-const fields = reactive([
-  { id: 1, label: "姓名", type: "text", required: true, isFixed: true, isHidden: false },
-  {
-    id: 3,
-    label: "接送車次",
-    type: "select",
-    required: false,
-    isFixed: false,
-    isHidden: false,
-    options: [
-      { id: 101, text: "第一車 08:00" },
-      { id: 102, text: "第二車 09:00" },
-    ],
-  },
-]);
+const route = useRoute();
+const router = useRouter();
+const fieldsStore = useRegistrationFormFieldsStore();
+const pagesStore = useRegistrationPagesStore();
+const eventsStore = useEventsStore();
+const { success: toastSuccess, error: toastError } = useToast();
 
 const newFieldLabel = ref("");
 const newFieldType = ref("text");
+const pageId = ref(null);
+const isInitializing = ref(false);
 
+// 使用本地 ref 作為 draggable 資料來源，載入完成後明確賦值以確保 Vue 正確更新
+const fields = ref([]);
+
+// --- 取得頁面 ID 並載入欄位 ---
+async function loadForEvent(event) {
+  // #region agent log
+  fetch('http://127.0.0.1:7609/ingest/596a70c9-8187-4c67-9e17-fadd7ea35fcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9b3802'},body:JSON.stringify({sessionId:'9b3802',location:'Config.vue:loadForEvent:entry',message:'loadForEvent called',data:{eventId:event?.id,eventName:event?.name},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+  // #endregion
+  if (!event?.id) return;
+  isInitializing.value = true;
+  pageId.value = null;
+  fields.value = [];
+  try {
+    let page = await pagesStore.fetchByEvent(event.id);
+    if (!page) page = await pagesStore.createPage(event.id);
+    await fieldsStore.fetchFields(page.id);
+    pageId.value = page.id;
+    const storeFields = fieldsStore.fields?.value ?? fieldsStore.fields ?? [];
+    fields.value = Array.isArray(storeFields) ? storeFields.map((f) => ({
+      ...f,
+      options: Array.isArray(f.options) ? f.options.map((o) => ({ ...o })) : [],
+    })) : [];
+    // #region agent log
+    fetch('http://127.0.0.1:7609/ingest/596a70c9-8187-4c67-9e17-fadd7ea35fcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9b3802'},body:JSON.stringify({sessionId:'9b3802',location:'Config.vue:loadForEvent:afterFetch',message:'loadForEvent success',data:{pageId:page.id,fieldsLength:fields.value.length},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+    // #endregion
+  } catch (err) {
+    // #region agent log
+    fetch('http://127.0.0.1:7609/ingest/596a70c9-8187-4c67-9e17-fadd7ea35fcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9b3802'},body:JSON.stringify({sessionId:'9b3802',location:'Config.vue:loadForEvent:catch',message:'loadForEvent failed',data:{error:String(err?.message||err)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+    // #endregion
+    toastError("載入欄位設定失敗");
+  } finally {
+    isInitializing.value = false;
+  }
+}
+
+// 載入欄位：watch + immediate 作為唯一觸發點（router-view :key 確保每次進入皆重新掛載）
+watch(
+  () => [route.name, route.query.eventId, eventsStore.currentEvent?.id],
+  async ([name, queryEventId, storeEventId]) => {
+    if (name !== "FormFields") return;
+    const eventId = Number(queryEventId) || storeEventId;
+    if (!eventId) {
+      router.push("/admin/events");
+      return;
+    }
+    await loadForEvent({ id: eventId });
+  },
+  { immediate: true }
+);
+
+// --- 儲存（bulk_save）---
+const saveFields = async () => {
+  if (!pageId.value) { toastError("請先選擇一個活動"); return; }
+  try {
+    await fieldsStore.bulkSave(pageId.value, [...fields.value]);
+    toastSuccess("欄位設定已儲存");
+  } catch (err) {
+    toastError(err.message || "儲存失敗");
+  }
+};
+
+// --- 欄位操作 ---
 const addField = () => {
   if (!newFieldLabel.value) return;
-  fields.push({
-    id: Date.now(),
+  const needsOptions = newFieldType.value === "select" || newFieldType.value === "radio";
+  fields.value.push({
+    id: null,
     label: newFieldLabel.value,
-    type: newFieldType.value,
-    required: false,
-    isFixed: false,
-    isHidden: false,
-    options: newFieldType.value === "select" ? [{ id: Date.now() + 1, text: "新選項 1" }] : [],
+    field_type: newFieldType.value,
+    is_required: false,
+    is_fixed: false,
+    is_hidden: false,
+    options: needsOptions ? [{ text: "", order: 0 }] : [],
   });
   newFieldLabel.value = "";
 };
 
-const removeField = (index) => fields.splice(index, 1);
-const addOption = (field) =>
-  field.options.push({ id: Date.now(), text: `新選項 ${field.options.length + 1}` });
+const removeField = (index) => fields.value.splice(index, 1);
+const addOption = (field) => field.options.push({ text: "", order: field.options.length });
 const removeOption = (field, optIndex) => field.options.splice(optIndex, 1);
-const visibleFields = computed(() => fields.filter((f) => !f.isHidden));
+const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 </script>
 
 <template>
   <div class="fields-config">
     <div class="page-header">
       <div class="header-actions">
-        <span class="status-tag">自動儲存中</span>
+        <span v-if="isInitializing || fieldsStore.loading" class="status-tag">載入中...</span>
+        <button v-else class="btn-save-fields" :disabled="fieldsStore.saving || !pageId" @click="saveFields">
+          {{ fieldsStore.saving ? "儲存中..." : "儲存欄位設定" }}
+        </button>
       </div>
     </div>
 
@@ -55,52 +117,53 @@ const visibleFields = computed(() => fields.filter((f) => !f.isHidden));
       <div class="edit-panel">
         <div class="section-title">自定義欄位 (可拖拽排序)</div>
 
-        <draggable
-          :list="fields"
-          item-key="id"
-          handle=".drag-icon-main"
-          ghost-class="ghost-card"
-          chosen-class="chosen-card"
-          animation="200"
-          class="field-list"
-        >
-          <template #item="{ element: field, index }">
-            <div class="field-card-container" :class="{ 'is-hidden-field': field.isHidden }">
+        <!-- 診斷：確認載入狀態 -->
+        <div class="debug-status" style="font-size:11px;color:#64748b;margin-bottom:8px;">
+          pageId={{ pageId }}, fields.length={{ fields.length }}, isInit={{ isInitializing }}
+        </div>
+
+        <div v-show="!pageId" class="loading-placeholder">載入欄位設定中...</div>
+        <div v-show="pageId" class="field-list">
+          <div
+            v-for="(field, index) in fields"
+            :key="field.id ?? `new-${index}`"
+            class="field-card-container"
+            :class="{ 'is-hidden-field': field.is_hidden }"
+          >
               <div class="field-card-main">
                 <div class="field-info">
                   <span class="drag-icon-main"></span>
                   <input
                     v-model="field.label"
-                    :disabled="field.isFixed"
+                    :disabled="field.is_fixed"
                     class="field-label-input"
-                    placeholder="欄位名稱"
                   />
-                  <span class="type-badge">{{ field.type }}</span>
-                  <span v-if="field.isHidden" class="hidden-badge">隱藏中</span>
+                  <span class="type-badge">{{ field.field_type }}</span>
+                  <span v-if="field.is_hidden" class="hidden-badge">隱藏中</span>
                 </div>
 
                 <div class="field-ctrl">
-                  <label class="toggle-btn" :class="{ 'is-active': field.isHidden }">
-                    <input type="checkbox" v-model="field.isHidden" />
-                    <span>{{ field.isHidden ? "隱藏" : "顯示" }}</span>
+                  <label class="toggle-btn" :class="{ 'is-active': field.is_hidden }">
+                    <input type="checkbox" v-model="field.is_hidden" />
+                    <span>{{ field.is_hidden ? "隱藏" : "顯示" }}</span>
                   </label>
 
-                  <label v-if="!field.isHidden" class="req-toggle">
-                    <input type="checkbox" v-model="field.required" />
+                  <label v-if="!field.is_hidden" class="req-toggle">
+                    <input type="checkbox" v-model="field.is_required" />
                     <span>必填</span>
                   </label>
 
-                  <button v-if="!field.isFixed" @click="removeField(index)" class="delete-btn">
+                  <button v-if="!field.is_fixed" @click="removeField(index)" class="delete-btn">
                     ✕
                   </button>
                 </div>
               </div>
 
-              <div v-if="field.type === 'select'" class="options-editor">
+              <div v-if="field.field_type === 'select' || field.field_type === 'radio'" class="options-editor">
                 <div class="options-header">選項內容設定</div>
                 <draggable
                   :list="field.options"
-                  item-key="id"
+                  item-key="order"
                   handle=".drag-handle"
                   ghost-class="ghost-option"
                   animation="150"
@@ -109,7 +172,7 @@ const visibleFields = computed(() => fields.filter((f) => !f.isHidden));
                   <template #item="{ element: opt, index: optIdx }">
                     <div class="opt-item">
                       <span class="drag-handle"></span>
-                      <input v-model="opt.text" placeholder="選項名稱" class="opt-input" />
+                      <input v-model="opt.text" class="opt-input" />
                       <button @click="removeOption(field, optIdx)" class="opt-del">✕</button>
                     </div>
                   </template>
@@ -117,20 +180,22 @@ const visibleFields = computed(() => fields.filter((f) => !f.isHidden));
                 <button @click="addOption(field)" class="btn-add-opt">+ 新增選項</button>
               </div>
             </div>
-          </template>
-        </draggable>
+        </div>
 
         <div class="add-control">
           <input
             v-model="newFieldLabel"
             @keyup.enter="addField"
-            placeholder="新增欄位..."
+            placeholder="新增欄位名稱"
             class="add-input"
           />
           <select v-model="newFieldType" class="add-select">
             <option value="text">純文字</option>
             <option value="tel">電話號碼</option>
+            <option value="email">電子郵件</option>
             <option value="select">下拉選單</option>
+            <option value="radio">單選選項</option>
+            <option value="textarea">多行文字</option>
           </select>
           <button @click="addField" class="btn-add-field">+</button>
         </div>
@@ -141,14 +206,15 @@ const visibleFields = computed(() => fields.filter((f) => !f.isHidden));
           <div class="phone-screen">
             <div class="phone-header">活動報名表</div>
             <div class="phone-content">
-              <div v-for="field in visibleFields" :key="field.id" class="preview-item">
+              <div v-for="field in visibleFields" :key="field.id ?? field.label" class="preview-item">
                 <label class="preview-label">
                   {{ field.label }}
-                  <span v-if="field.required" class="star">*</span>
+                  <span v-if="field.is_required" class="star">*</span>
                 </label>
-                <select v-if="field.type === 'select'" class="dummy-select">
-                  <option v-for="opt in field.options" :key="opt.id">{{ opt.text }}</option>
+                <select v-if="field.field_type === 'select' || field.field_type === 'radio'" class="dummy-select">
+                  <option v-for="opt in field.options" :key="opt.order">{{ opt.text }}</option>
                 </select>
+                <div v-else-if="field.field_type === 'textarea'" class="dummy-input" style="height:60px;"></div>
                 <div v-else class="dummy-input"></div>
               </div>
               <div v-if="visibleFields.length === 0" class="empty-hint">尚未設定顯示欄位</div>
@@ -195,12 +261,34 @@ const visibleFields = computed(() => fields.filter((f) => !f.isHidden));
 
   .status-tag {
     font-size: 0.75rem;
-    color: #10b981;
+    color: #64748b;
     font-weight: 700;
     padding: 6px 14px;
-    background: #d1fae5;
+    background: #f1f5f9;
     border-radius: 20px;
-    animation: pulse 2s infinite;
+  }
+
+  .btn-save-fields {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: white;
+    padding: 8px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   }
 }
 
@@ -723,6 +811,14 @@ const visibleFields = computed(() => fields.filter((f) => !f.isHidden));
   margin-top: 12px;
   font-size: 0.95rem;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.loading-placeholder {
+  text-align: center;
+  color: var(--text-gray);
+  padding: 40px 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .empty-hint {

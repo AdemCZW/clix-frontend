@@ -49,9 +49,21 @@ const refreshAccessToken = async() => {
 export const apiRequest = async(path, options = {}) => {
     const url = `${BASE_URL}${path}`;
 
+    // 若 body 是 FormData，讓瀏覽器自動設定 Content-Type（含 boundary）
+    // 否則統一帶 application/json
+    const isFormData = options.body instanceof FormData;
+    const makeHeaders = () => {
+        const token = localStorage.getItem('access_token');
+        const auth = token ? { Authorization: `Bearer ${token}` } : {};
+        if (isFormData) {
+            return {...auth, ...options.headers };
+        }
+        return {...getHeaders(), ...options.headers };
+    };
+
     let response = await fetch(url, {
         ...options,
-        headers: {...getHeaders(), ...options.headers },
+        headers: makeHeaders(),
     });
 
     // 若 401，嘗試刷新 token 後重試一次
@@ -60,7 +72,7 @@ export const apiRequest = async(path, options = {}) => {
             await refreshAccessToken();
             response = await fetch(url, {
                 ...options,
-                headers: {...getHeaders(), ...options.headers },
+                headers: makeHeaders(),
             });
         } catch {
             // refresh 失敗，清除憑證並跳轉登入

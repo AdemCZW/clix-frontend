@@ -46,12 +46,15 @@
             </div>
             <div class="meta-item">
               <span class="meta-icon">👥</span>
-              <span class="meta-text">{{ event.participants }} 人報名</span>
+              <span class="meta-text">{{ event.participantsCount }} 人報名</span>
             </div>
           </div>
           <div class="card-actions">
-            <button class="btn-action" @click.stop="editEvent(event)">編輯</button>
-            <button class="btn-action secondary" @click.stop="viewDetails(event)">查看詳情</button>
+            <span class="reg-page-badge" :class="{ has: event.hasRegistrationPage }">
+              {{ event.hasRegistrationPage ? '已建立報名頁' : '尚無報名頁' }}
+            </span>
+            <button class="btn-action" @click.stop="selectEvent(event)">設定報名頁面</button>
+            <button class="btn-action" @click.stop="selectEventForFormFields(event)">報名表欄位</button>
           </div>
         </div>
       </div>
@@ -68,16 +71,30 @@
             </div>
             <div class="modal-body">
               <div class="form-group">
-                <label>活動名稱</label>
+                <label>活動名稱 *</label>
                 <input type="text" v-model="newEvent.name" placeholder="請輸入活動名稱" />
               </div>
-              <div class="form-group">
-                <label>活動日期</label>
-                <input type="date" v-model="newEvent.date" />
+              <div class="form-row">
+                <div class="form-group">
+                  <label>開始日期 *</label>
+                  <input type="date" v-model="newEvent.date" />
+                </div>
+                <div class="form-group">
+                  <label>結束日期</label>
+                  <input type="date" v-model="newEvent.endDate" />
+                </div>
               </div>
               <div class="form-group">
-                <label>活動地點</label>
+                <label>活動時間 *</label>
+                <input type="time" v-model="newEvent.time" />
+              </div>
+              <div class="form-group">
+                <label>活動地點 *</label>
                 <input type="text" v-model="newEvent.location" placeholder="請輸入活動地點" />
+              </div>
+              <div class="form-group">
+                <label>詳細地址</label>
+                <input type="text" v-model="newEvent.address" placeholder="請輸入詳細地址（選填）" />
               </div>
             </div>
             <div class="modal-footer">
@@ -92,12 +109,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
+import { useEventsStore } from "@/stores/events";
+import { useToast } from "@/composables/useToast";
 
 const router = useRouter();
 const userStore = useUserStore();
+const eventsStore = useEventsStore();
+const { success, error } = useToast();
 
 const searchQuery = ref("");
 const activeFilter = ref("all");
@@ -110,26 +131,25 @@ const filterTabs = [
   { label: "已結束", value: "completed" },
 ];
 
-// 活動列表（從 API 載入）
-const events = ref([]);
-
 const newEvent = ref({
   name: "",
   date: "",
+  endDate: "",
+  time: "",
   location: "",
+  address: "",
 });
 
+// 從 store 取得活動列表
 const filteredEvents = computed(() => {
-  let result = events.value;
+  let result = eventsStore.events;
 
-  // 搜尋過濾
   if (searchQuery.value) {
     result = result.filter((event) =>
       event.name.toLowerCase().includes(searchQuery.value.toLowerCase()),
     );
   }
 
-  // 狀態過濾
   if (activeFilter.value !== "all") {
     result = result.filter((event) => event.status === activeFilter.value);
   }
@@ -137,35 +157,61 @@ const filteredEvents = computed(() => {
   return result;
 });
 
+// 進入頁面時載入活動列表
+onMounted(async () => {
+  try {
+    await eventsStore.fetchEvents({
+      userId: userStore.user?.id,
+      isSuperAdmin: userStore.isSuperAdmin,
+    });
+  } catch (err) {
+    error(err.message || "載入活動列表失敗");
+  }
+});
+
 const selectEvent = (event) => {
-  // 切換到該活動
-  userStore.switchEvent(event);
+  eventsStore.setCurrentEvent(event, userStore.user?.id);
   router.push("/admin/registration-setting");
 };
 
+const selectEventForFormFields = (event) => {
+  eventsStore.setCurrentEvent(event, userStore.user?.id);
+  router.push({ path: "/admin/form-fields", query: { eventId: event.id } });
+};
+
 const editEvent = (event) => {
-  userStore.switchEvent(event);
+  eventsStore.setCurrentEvent(event, userStore.user?.id);
   router.push("/admin/registration-setting");
 };
 
 const viewDetails = (event) => {
-  userStore.switchEvent(event);
+  eventsStore.setCurrentEvent(event, userStore.user?.id);
   router.push("/admin/registration-setting");
 };
 
-const createEvent = () => {
-  // 建立新活動邏輯
-  const event = {
-    id: events.value.length + 1,
-    ...newEvent.value,
-    participants: 0,
-    status: "upcoming",
-    statusText: "即將開始",
-    banner: "https://via.placeholder.com/400x200?text=New+Event",
-  };
-  events.value.unshift(event);
-  showCreateModal.value = false;
-  newEvent.value = { name: "", date: "", location: "" };
+const createEvent = async () => {
+  if (!newEvent.value.name || !newEvent.value.date || !newEvent.value.time || !newEvent.value.location) {
+    error("請填寫活動名稱、日期、時間與地點");
+    return;
+  }
+  try {
+    const created = await eventsStore.createEvent({
+      name:      newEvent.value.name,
+      date:      newEvent.value.date,
+      end_date:  newEvent.value.endDate || newEvent.value.date,
+      time:      newEvent.value.time + ':00',
+      location:  newEvent.value.location,
+      address:   newEvent.value.address || "",
+    });
+    success("活動已建立");
+    showCreateModal.value = false;
+    newEvent.value = { name: "", date: "", endDate: "", time: "", location: "", address: "" };
+    // 切換到新活動並前往設定頁
+    eventsStore.setCurrentEvent(created, userStore.user?.id);
+    router.push("/admin/registration-setting");
+  } catch (err) {
+    error(err.message || "建立活動失敗");
+  }
 };
 </script>
 
@@ -397,6 +443,21 @@ const createEvent = () => {
       gap: 8px;
       padding-top: 16px;
       border-top: 1px solid #f1f5f9;
+      align-items: center;
+
+      .reg-page-badge {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+        background: #f1f5f9;
+        color: #94a3b8;
+        flex-shrink: 0;
+        &.has {
+          background: #d1fae5;
+          color: #059669;
+        }
+      }
 
       .btn-action {
         flex: 1;
@@ -481,6 +542,15 @@ const createEvent = () => {
 
 .modal-body {
   padding: 28px;
+
+  .form-row {
+    display: flex;
+    gap: 12px;
+
+    .form-group {
+      flex: 1;
+    }
+  }
 
   .form-group {
     margin-bottom: 20px;

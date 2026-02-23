@@ -1,291 +1,294 @@
-import { ref, computed, reactive } from 'vue'
 import { defineStore } from 'pinia'
-import { apiRequest } from '@/utils/api'
+import { ref } from 'vue'
+import { apiRequest, API_BASE_URL } from '@/utils/api'
+
+function mapParticipant(p) {
+    return {
+        id: p.id,
+        name: p.name,
+        company: p.company,
+        title: p.title,
+        phone: p.phone,
+        email: p.email,
+        type: p.type,
+        status: p.status,
+        eventId: p.event,
+        eventName: p.event_name,
+        managerId: p.manager,
+        managerEmail: p.manager_email,
+        checkInToken: p.check_in_token,
+        qrCodeUrl: p.qr_code_url,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
+    }
+}
 
 export const useParticipantsStore = defineStore('participants', () => {
-    // 參與者數據列表
-    const participants = reactive([])
-
-    // 選中的特邀貴賓列表（用於報名頁面預覽）
+    const participants = ref([])
+    const loading = ref(false)
+    const error = ref(null)
     const selectedVIPs = ref([])
 
-    // 報到紀錄
-    const checkInLogs = reactive([])
-
-    // 加載狀態
-    const isLoading = ref(false)
-    const error = ref(null)
-
-    // ========== API 方法 ==========
-
-    // 獲取所有參與者
-    const fetchParticipants = async() => {
-        isLoading.value = true
+    async function fetchParticipants(params = {}) {
+        loading.value = true
         error.value = null
         try {
-            const response = await apiRequest('/api/participants/')
-            if (!response.ok) throw new Error('獲取參與者資料失敗')
-            const data = await response.json()
-
-            // 清空並重新填充 participants
-            participants.splice(0, participants.length)
-            participants.push(...(data.results || data))
-        } catch (err) {
-            error.value = err.message
-            console.error('Error fetching participants:', err)
-        } finally {
-            isLoading.value = false
-        }
-    }
-
-    // 新增參與者（API）
-    const addParticipant = async(participant) => {
-        isLoading.value = true
-        error.value = null
-        try {
-            const response = await apiRequest('/api/participants/', {
-                method: 'POST',
-                body: JSON.stringify(participant)
-            })
-            if (!response.ok) {
-                const errorData = await response.json()
-                console.error('Backend error:', errorData)
-                throw new Error(JSON.stringify(errorData))
-            }
-            const newParticipant = await response.json()
-            participants.push(newParticipant)
-            return newParticipant
+            const query = new URLSearchParams(params).toString()
+            const url = query ? `/api/participants/?${query}` : '/api/participants/'
+            const res = await apiRequest(url)
+            if (!res.ok) throw new Error(`取得參與者列表失敗 (${res.status})`)
+            const data = await res.json()
+            participants.value = (data.results || data).map(mapParticipant)
+            return participants.value
         } catch (err) {
             error.value = err.message
             throw err
         } finally {
-            isLoading.value = false
+            loading.value = false
         }
     }
 
-    // 更新參與者（API）
-    const updateParticipant = async(participantId, updates) => {
-        isLoading.value = true
+    async function createParticipant(data) {
+        loading.value = true
         error.value = null
         try {
-            const response = await apiRequest(`/api/participants/${participantId}/`, {
+            const res = await apiRequest('/api/participants/', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            })
+            if (!res.ok) {
+                let msg = `新增失敗 (${res.status})`
+                try { const e = await res.json();
+                    msg = e.detail || JSON.stringify(e) } catch { /* ignore */ }
+                throw new Error(msg)
+            }
+            const p = mapParticipant(await res.json())
+            participants.value.unshift(p)
+            return p
+        } catch (err) {
+            error.value = err.message
+            throw err
+        } finally {
+            loading.value = false
+        }
+    }
+
+    async function updateParticipant(id, data) {
+        loading.value = true
+        error.value = null
+        try {
+            const res = await apiRequest(`/api/participants/${id}/`, {
                 method: 'PATCH',
-                body: JSON.stringify(updates)
+                body: JSON.stringify(data),
             })
-            if (!response.ok) throw new Error('更新參與者失敗')
-            const updatedParticipant = await response.json()
-
-            // 更新本地數據
-            const index = participants.findIndex(p => p.id === participantId)
-            if (index > -1) {
-                Object.assign(participants[index], updatedParticipant)
+            if (!res.ok) {
+                let msg = `更新失敗 (${res.status})`
+                try { const e = await res.json();
+                    msg = e.detail || JSON.stringify(e) } catch { /* ignore */ }
+                throw new Error(msg)
             }
-            return updatedParticipant
+            const updated = mapParticipant(await res.json())
+            const idx = participants.value.findIndex(p => p.id === id)
+            if (idx !== -1) participants.value[idx] = updated
+            return updated
         } catch (err) {
             error.value = err.message
-            console.error('Error updating participant:', err)
             throw err
         } finally {
-            isLoading.value = false
+            loading.value = false
         }
     }
 
-    // 刪除參與者（API）
-    const deleteParticipant = async(participant) => {
-        isLoading.value = true
+    async function deleteParticipant(id) {
+        loading.value = true
         error.value = null
         try {
-            const response = await apiRequest(`/api/participants/${participant.id}/`, {
-                method: 'DELETE'
-            })
-            if (!response.ok) throw new Error('刪除參與者失敗')
-
-            // 從本地數據中移除
-            const index = participants.indexOf(participant)
-            if (index > -1) {
-                participants.splice(index, 1)
-            }
-
-            // 如果在選中列表中，也要移除
-            const selectedIndex = selectedVIPs.value.findIndex(p => p.id === participant.id)
-            if (selectedIndex > -1) {
-                selectedVIPs.value.splice(selectedIndex, 1)
-            }
+            const res = await apiRequest(`/api/participants/${id}/`, { method: 'DELETE' })
+            if (!res.ok && res.status !== 204) throw new Error(`刪除失敗 (${res.status})`)
+            participants.value = participants.value.filter(p => p.id !== id)
         } catch (err) {
             error.value = err.message
-            console.error('Error deleting participant:', err)
             throw err
         } finally {
-            isLoading.value = false
+            loading.value = false
         }
     }
 
-    // 匯入參與者（批量新增 - 使用後端批量 API）
-    const importParticipants = async(newParticipants) => {
-        isLoading.value = true
+    async function checkinByToken(token) {
+        loading.value = true
         error.value = null
-
         try {
-            const response = await apiRequest('/api/participants/bulk_import_hybrid/', {
+            const res = await apiRequest('/api/participants/checkin_by_token/', {
                 method: 'POST',
-                body: JSON.stringify({ participants: newParticipants })
+                body: JSON.stringify({ token }),
             })
-
-            const result = await response.json()
-
-            // 根據不同模式處理結果
-            if (result.mode === 'bulk') {
-                // 批量模式：全部成功
-                if (result.data) {
-                    participants.push(...result.data)
-                }
-                return {
-                    success: result.count,
-                    failed: 0,
-                    mode: 'bulk',
-                    message: result.message
-                }
-            } else if (result.mode === 'partial') {
-                // 部分模式：有成功有失敗
-                if (result.data) {
-                    participants.push(...result.data)
-                }
-                return {
-                    success: result.success_count,
-                    failed: result.error_count,
-                    mode: 'partial',
-                    errors: result.errors,
-                    message: `成功 ${result.success_count} 筆，失敗 ${result.error_count} 筆`
-                }
+            if (!res.ok) {
+                let msg = `報到失敗 (${res.status})`
+                try { const e = await res.json();
+                    msg = e.detail || e.message || JSON.stringify(e) } catch { /* ignore */ }
+                throw new Error(msg)
             }
-
-            return { success: 0, failed: newParticipants.length }
+            const data = await res.json()
+            const updated = mapParticipant(data.participant)
+            const idx = participants.value.findIndex(p => p.id === updated.id)
+            if (idx !== -1) participants.value[idx] = updated
+            return { message: data.message, participant: updated }
         } catch (err) {
             error.value = err.message
-            console.error('Error importing participants:', err)
             throw err
         } finally {
-            isLoading.value = false
+            loading.value = false
         }
     }
 
-    // 切換選中狀態
-    const toggleVIP = (participant) => {
-        const index = selectedVIPs.value.findIndex(p => p.id === participant.id)
-        if (index > -1) {
-            selectedVIPs.value.splice(index, 1)
-        } else {
-            selectedVIPs.value.push(participant)
-        }
+    async function checkIn(id) {
+        const res = await apiRequest(`/api/participants/${id}/check_in/`, {
+            method: 'POST',
+            body: JSON.stringify({}),
+        })
+        if (!res.ok) throw new Error(`報到失敗 (${res.status})`)
+        const updated = mapParticipant(await res.json())
+        const idx = participants.value.findIndex(p => p.id === id)
+        if (idx !== -1) participants.value[idx] = updated
+        return updated
     }
 
-    // 檢查是否已選中
-    const isVIPSelected = (participantId) => {
-        return selectedVIPs.value.some(p => p.id === participantId)
+    async function checkOut(id) {
+        const res = await apiRequest(`/api/participants/${id}/check_out/`, {
+            method: 'POST',
+            body: JSON.stringify({}),
+        })
+        if (!res.ok) throw new Error(`取消報到失敗 (${res.status})`)
+        const updated = mapParticipant(await res.json())
+        const idx = participants.value.findIndex(p => p.id === id)
+        if (idx !== -1) participants.value[idx] = updated
+        return updated
     }
 
-    // 報到（呼叫 POST /api/participants/{id}/check_in/）
-    const checkIn = async(participantId) => {
-        try {
-            const response = await apiRequest(`/api/participants/${participantId}/check_in/`, {
-                method: 'POST'
-            })
-            if (!response.ok) throw new Error('報到操作失敗')
-            const updatedParticipant = await response.json()
-
-            // 同步本地狀態
-            const index = participants.findIndex(p => p.id === participantId)
-            if (index > -1) {
-                Object.assign(participants[index], updatedParticipant)
-            }
-
-            // 新增報到紀錄
-            const p = participants[index] || updatedParticipant
-            const now = new Date()
-            checkInLogs.unshift({
-                id: Date.now(),
-                name: p.name,
-                time: now.toLocaleTimeString(),
-                method: 'manual',
-                seat: p.seat || '現場安排',
-                type: p.type || '一般民眾',
-            })
-            return true
-        } catch (err) {
-            error.value = err.message
-            throw err
-        }
+    async function regenerateQr(id) {
+        const res = await apiRequest(`/api/participants/${id}/regenerate_qr/`, {
+            method: 'POST',
+            body: JSON.stringify({}),
+        })
+        if (!res.ok) throw new Error(`重新產生 QR Code 失敗 (${res.status})`)
+        const data = await res.json()
+        const newUrl = data.qr_code_url
+        const idx = participants.value.findIndex(p => p.id === id)
+        if (idx !== -1) participants.value[idx].qrCodeUrl = newUrl
+        return newUrl
     }
 
-    // 取消報到（呼叫 POST /api/participants/{id}/check_out/）
-    const checkOut = async(participantId) => {
-        try {
-            const response = await apiRequest(`/api/participants/${participantId}/check_out/`, {
-                method: 'POST'
-            })
-            if (!response.ok) throw new Error('取消報到失敗')
-            const updatedParticipant = await response.json()
-
-            const index = participants.findIndex(p => p.id === participantId)
-            if (index > -1) {
-                Object.assign(participants[index], updatedParticipant)
-            }
-            return true
-        } catch (err) {
-            error.value = err.message
-            throw err
-        }
+    async function fetchStatistics(eventId) {
+        const url = eventId ?
+            `/api/participants/statistics/?event=${eventId}` :
+            '/api/participants/statistics/'
+        const res = await apiRequest(url)
+        if (!res.ok) throw new Error('取得統計資料失敗')
+        return res.json()
     }
 
-    // 取得統計資料（呼叫 GET /api/participants/statistics/）
-    const fetchStatistics = async() => {
-        try {
-            const response = await apiRequest('/api/participants/statistics/')
-            if (!response.ok) throw new Error('取得統計資料失敗')
-            return await response.json()
-                // 回傳: { total, vip_count, general_count, checked_in, not_checked_in }
-        } catch (err) {
-            console.error('Error fetching statistics:', err)
-            return null
-        }
-    }
+    function clearError() { error.value = null }
 
-    // 統計數據（本地計算，作為備用）
-    const stats = computed(() => {
-        const total = participants.length
-        const checkedIn = participants.filter(p => p.status === '已報到').length
-        const pending = total - checkedIn
-        return { total, checkedIn, pending }
-    })
-
-    // 清空選中的貴賓
-    const clearSelectedVIPs = () => {
-        selectedVIPs.value = []
-    }
-
-    // 取得選中的貴賓
-    const getSelectedVIPs = () => {
-        return selectedVIPs.value
-    }
+    function clear() { participants.value = [];
+        error.value = null }
 
     return {
         participants,
-        selectedVIPs,
-        checkInLogs,
-        isLoading,
+        loading,
         error,
+        selectedVIPs,
         fetchParticipants,
-        addParticipant,
+        createParticipant,
         updateParticipant,
         deleteParticipant,
-        importParticipants,
-        toggleVIP,
-        isVIPSelected,
-        clearSelectedVIPs,
-        getSelectedVIPs,
+        checkinByToken,
         checkIn,
         checkOut,
+        regenerateQr,
         fetchStatistics,
-        stats
+        clearError,
+        clear,
+    }
+})
+
+// =========================================================
+// 公開報名 Store（前台，不需登入，使用 plain fetch）
+// =========================================================
+export const usePublicRegisterStore = defineStore('publicRegister', () => {
+    const page = ref(null)
+    const loading = ref(false)
+    const error = ref(null)
+    const submitted = ref(false)
+    const submittedParticipant = ref(null)
+    const BASE = API_BASE_URL
+
+    async function fetchPage(shortLink) {
+        loading.value = true
+        error.value = null
+        try {
+            const res = await fetch(`${BASE}/api/public/register/${shortLink}/`)
+            if (res.status === 404) {
+                error.value = '找不到此報名頁面，可能尚未發布或連結錯誤'
+                throw new Error(error.value)
+            }
+            if (!res.ok) throw new Error('載入報名頁面失敗')
+            page.value = await res.json()
+            return page.value
+        } catch (err) {
+            if (!error.value) error.value = err.message
+            throw err
+        } finally {
+            loading.value = false
+        }
+    }
+
+    async function submitRegistration(shortLink, formData) {
+        loading.value = true
+        error.value = null
+        try {
+            const res = await fetch(`${BASE}/api/public/register/${shortLink}/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            })
+            if (!res.ok) {
+                const errData = await res.json().catch(() => null)
+                if (errData && typeof errData === 'object') {
+                    error.value = Object.entries(errData)
+                        .map(([, msgs]) => (Array.isArray(msgs) ? msgs.join(', ') : msgs))
+                        .join('；')
+                } else {
+                    error.value = `報名失敗 (${res.status})`
+                }
+                throw new Error(error.value)
+            }
+            const data = await res.json()
+            submitted.value = true
+            submittedParticipant.value = data.participant
+            return data
+        } catch (err) {
+            if (!error.value) error.value = err.message
+            throw err
+        } finally {
+            loading.value = false
+        }
+    }
+
+    function reset() {
+        page.value = null
+        submitted.value = false
+        submittedParticipant.value = null
+        error.value = null
+    }
+
+    return {
+        page,
+        loading,
+        error,
+        submitted,
+        submittedParticipant,
+        fetchPage,
+        submitRegistration,
+        reset,
     }
 })

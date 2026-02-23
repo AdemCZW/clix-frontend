@@ -1,10 +1,12 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useToast } from "@/composables/useToast";
 import { useParticipantsStore } from "@/stores/participants";
+import { useEventsStore } from "@/stores/events";
 
 const { success, warning } = useToast();
 const participantsStore = useParticipantsStore();
+const eventsStore = useEventsStore();
 
 const showModal = ref(false);
 const searchName = ref("");
@@ -14,12 +16,49 @@ const filterMethod = ref("all"); // all, QR Scan, Manual
 const filterType = ref("all"); // all, VIP, 一般民眾
 const filterName = ref("");
 
-// 使用 store 的統計數據和報到紀錄
-const stats = computed(() => participantsStore.stats);
+// 隨活動切換載入報到資料
+watch(
+  () => eventsStore.currentEvent,
+  async (event) => {
+    if (!event?.id) {
+      participantsStore.clear();
+      return;
+    }
+    try {
+      await participantsStore.fetchParticipants({ event: event.id });
+    } catch { /* silent */ }
+  },
+  { immediate: true }
+);
+
+// 從 participants 衍生統計資料
+const stats = computed(() => {
+  const all = participantsStore.participants;
+  return {
+    total: all.length,
+    checkedIn: all.filter((p) => p.status === "已報到").length,
+    vip: all.filter((p) => p.type === "VIP").length,
+    general: all.filter((p) => p.type === "一般民眾").length,
+  };
+});
+
+// 從已報到的參與者衍生報到紀錄
+const allCheckInLogs = computed(() =>
+  participantsStore.participants
+    .filter((p) => p.status === "已報到")
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      type: p.type || "一般民眾",
+      method: "QR Scan",
+      time: p.updatedAt ? new Date(p.updatedAt).toLocaleTimeString("zh-TW") : "--",
+      seat: "--",
+    }))
+);
 
 // 篩選後的報到紀錄
 const logs = computed(() => {
-  let filtered = [...participantsStore.checkInLogs];
+  let filtered = [...allCheckInLogs.value];
 
   // 按報到方式篩選
   if (filterMethod.value !== "all") {
@@ -56,14 +95,18 @@ const pendingList = computed(() => {
 });
 
 // 通用報到處理邏輯
-const processCheckIn = (person, method) => {
-  const success_result = participantsStore.checkIn(person.id, method);
-  if (success_result) {
+const processCheckIn = async (person, method) => {
+  if (person.status === "已報到") {
+    warning(`${person.name} 已經報到過了`);
+    return;
+  }
+  try {
+    await participantsStore.checkIn(person.id);
     showModal.value = false;
     searchName.value = "";
     success(`${person.name} 報到成功！`);
-  } else {
-    warning(`${person.name} 已經報到過了`);
+  } catch {
+    warning(`${person.name} 報到失敗，請重試`);
   }
 };
 
