@@ -3,10 +3,10 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(() => {
     return {
-        // 確保 base 路徑完全對應 GitHub 倉庫名稱
-        base: mode === 'production' ? '/check_system/' : '/',
+        // 自訂網域不需要子路徑，直接用根目錄
+        base: '/',
 
         plugins: [
             vue(),
