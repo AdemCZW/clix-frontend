@@ -50,6 +50,7 @@ function buildPatchPayload(formData) {
     if (formData.emailContent !== undefined) payload.email_content = formData.emailContent
     if (formData.enableAutoSend !== undefined) payload.enable_auto_send = formData.enableAutoSend
     if (formData.formFields !== undefined) payload.form_fields = formData.formFields
+    if (formData.shortLink !== undefined) payload.short_link = formData.shortLink
     return { body: JSON.stringify(payload) }
 }
 

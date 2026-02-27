@@ -53,9 +53,12 @@
                   </div>
                 </div>
 
-                <button class="btn-create-new" @click="showCreateForm = true">
+                <button v-if="userStore.isSuperAdmin" class="btn-create-new" @click="showCreateForm = true">
                   ➕ 建立新活動
                 </button>
+                <div v-else-if="eventsStore.events.length === 0" class="no-permission-hint">
+                  如需建立新活動，請聯絡系統管理員
+                </div>
               </template>
 
               <!-- 建立新活動的表單 -->
@@ -564,6 +567,18 @@ watch(
     &:hover {
       background: #eff6ff;
     }
+  }
+
+  .no-permission-hint {
+    width: 100%;
+    margin-top: 8px;
+    padding: 12px;
+    border: 1px dashed #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    text-align: center;
   }
 }
 

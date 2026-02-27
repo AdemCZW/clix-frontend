@@ -71,8 +71,8 @@ const handleOnboardingClose = () => {
   // showOnboarding.value = false;
 };
 
-const handleLogout = () => {
-  userStore.logout();
+const handleLogout = async () => {
+  await userStore.logout();
   success("已成功登出");
   router.push("/login");
 };
@@ -353,7 +353,7 @@ const handleLogout = () => {
 
 .view-port {
   flex: 1;
-  padding: 40px;
+  padding: 15px;
   overflow-y: auto;
   background: var(--bg-primary);
 }

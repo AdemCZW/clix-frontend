@@ -298,6 +298,19 @@ const addParticipant = async () => {
   }
 };
 
+// 格式化建立時間
+const formatDate = (isoString) => {
+  if (!isoString) return "—";
+  const d = new Date(isoString);
+  return d.toLocaleString("zh-TW", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 // VIP 勾選管理（本地狀態）
 const selectedVIPIds = ref(new Set());
 const isVIPSelected = (id) => selectedVIPIds.value.has(id);
@@ -588,6 +601,19 @@ const toggleVIP = (participant) => {
                     <option value="已報到">已報到</option>
                     <option value="未報到">未報到</option>
                   </select>
+                </div>
+              </div>
+
+              <!-- 來源資訊（唯讀） -->
+              <div class="form-section">
+                <h4 class="section-title">來源資訊</h4>
+                <div class="form-field">
+                  <label>所屬活動</label>
+                  <div class="readonly-value">{{ editingParticipant.eventName || '—' }}</div>
+                </div>
+                <div class="form-field">
+                  <label>建立時間</label>
+                  <div class="readonly-value">{{ formatDate(editingParticipant.createdAt) }}</div>
                 </div>
               </div>
 
@@ -1323,6 +1349,18 @@ const toggleVIP = (participant) => {
 
   .select-styled {
     cursor: pointer;
+  }
+
+  .readonly-value {
+    padding: 10px 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    color: #64748b;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
   }
 }
 

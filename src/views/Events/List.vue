@@ -15,7 +15,7 @@
           {{ tab.label }}
         </button>
       </div>
-      <button class="btn-create" @click="showCreateModal = true">
+      <button v-if="userStore.isSuperAdmin" class="btn-create" @click="showCreateModal = true">
         <span class="icon">➕</span>
         建立新活動
       </button>
@@ -26,11 +26,12 @@
         v-for="event in filteredEvents"
         :key="event.id"
         class="event-card"
+        :class="{ expired: isEventExpired(event) }"
         @click="selectEvent(event)"
       >
         <div class="card-banner" :style="{ backgroundImage: `url(${event.banner})` }">
-          <div class="event-status-badge" :class="event.status">
-            {{ event.statusText }}
+          <div class="event-status-badge" :class="isEventExpired(event) ? 'expired' : event.status">
+            {{ isEventExpired(event) ? '已過期' : event.statusText }}
           </div>
         </div>
         <div class="card-content">
@@ -53,6 +54,7 @@
             <span class="reg-page-badge" :class="{ has: event.hasRegistrationPage }">
               {{ event.hasRegistrationPage ? '已建立報名頁' : '尚無報名頁' }}
             </span>
+            <button v-if="userStore.isSuperAdmin" class="btn-action btn-edit-event" @click.stop="openEditPanel(event)">編輯活動</button>
             <button class="btn-action" @click.stop="selectEvent(event)">設定報名頁面</button>
             <button class="btn-action" @click.stop="selectEventForFormFields(event)">報名表欄位</button>
           </div>
@@ -96,10 +98,64 @@
                 <label>詳細地址</label>
                 <input type="text" v-model="newEvent.address" placeholder="請輸入詳細地址（選填）" />
               </div>
+              <div class="form-group">
+                <label>報名人數上限 *</label>
+                <input type="number" v-model="newEvent.maxParticipants" min="1" max="9999" placeholder="預設500，可自訂" />
+              </div>
             </div>
             <div class="modal-footer">
               <button class="btn-cancel" @click="showCreateModal = false">取消</button>
               <button class="btn-confirm" @click="createEvent">建立活動</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- 右側編輯活動面板 -->
+    <Teleport to="body">
+      <Transition name="panel-slide">
+        <div v-if="editingEvent" class="edit-panel-overlay" @click.self="closeEditPanel">
+          <div class="edit-panel">
+            <div class="panel-header">
+              <h3>編輯活動資訊</h3>
+              <button class="btn-close" @click="closeEditPanel">✕</button>
+            </div>
+            <div class="panel-body">
+              <div class="form-group">
+                <label>活動名稱 *</label>
+                <input type="text" v-model="editingEvent.name" class="panel-input" placeholder="請輸入活動名稱" />
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>開始日期 *</label>
+                  <input type="date" v-model="editingEvent.date" class="panel-input" />
+                </div>
+                <div class="form-group">
+                  <label>結束日期</label>
+                  <input type="date" v-model="editingEvent.endDate" class="panel-input" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>活動時間 *</label>
+                <input type="time" v-model="editingEvent.time" class="panel-input" />
+              </div>
+              <div class="form-group">
+                <label>活動地點 *</label>
+                <input type="text" v-model="editingEvent.location" class="panel-input" placeholder="請輸入活動地點" />
+              </div>
+              <div class="form-group">
+                <label>詳細地址</label>
+                <input type="text" v-model="editingEvent.address" class="panel-input" placeholder="請輸入詳細地址（選填）" />
+              </div>
+              <div class="form-group">
+                <label>報名人數上限 *</label>
+                <input type="number" v-model="editingEvent.maxParticipants" min="1" max="9999" placeholder="預設500，可自訂" class="panel-input" />
+              </div>
+            </div>
+            <div class="panel-footer">
+              <button class="btn-panel-cancel" @click="closeEditPanel">取消</button>
+              <button class="btn-panel-save" @click="saveEditEvent">儲存變更</button>
             </div>
           </div>
         </div>
@@ -114,6 +170,7 @@ import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { useEventsStore } from "@/stores/events";
 import { useToast } from "@/composables/useToast";
+import { apiRequest } from "@/utils/api";
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -123,6 +180,53 @@ const { success, error } = useToast();
 const searchQuery = ref("");
 const activeFilter = ref("all");
 const showCreateModal = ref(false);
+
+// 活動過期判斷
+const today = new Date().toISOString().slice(0, 10);
+const isEventExpired = (event) => {
+  const endDate = event.endDate || event.date;
+  return !!endDate && endDate < today;
+};
+
+// 右側編輯面板
+const editingEvent = ref(null);
+
+const openEditPanel = (event) => {
+  editingEvent.value = {
+    id: event.id,
+    name: event.name,
+    date: event.date,
+    endDate: event.endDate || "",
+    time: event.time || "",
+    location: event.location || "",
+    address: event.address || "",
+    maxParticipants: event.maxParticipants || 500,
+  };
+};
+
+const closeEditPanel = () => { editingEvent.value = null; };
+
+const saveEditEvent = async () => {
+  if (!editingEvent.value) return;
+  try {
+    const updated = await eventsStore.updateEvent(editingEvent.value.id, {
+      name:             editingEvent.value.name,
+      date:             editingEvent.value.date,
+      end_date:         editingEvent.value.endDate || editingEvent.value.date,
+      time:             editingEvent.value.time + ":00",
+      location:         editingEvent.value.location,
+      address:          editingEvent.value.address || "",
+      max_participants: editingEvent.value.maxParticipants || 500,
+    });
+    if (eventsStore.currentEvent?.id === updated.id) {
+      eventsStore.setCurrentEvent(updated, userStore.user?.id);
+    }
+    success("活動已更新");
+    closeEditPanel();
+  } catch (err) {
+    error(err.message || "更新失敗");
+  }
+};
 
 const filterTabs = [
   { label: "全部", value: "all" },
@@ -138,6 +242,7 @@ const newEvent = ref({
   time: "",
   location: "",
   address: "",
+  maxParticipants: 500,
 });
 
 // 從 store 取得活動列表
@@ -164,6 +269,24 @@ onMounted(async () => {
       userId: userStore.user?.id,
       isSuperAdmin: userStore.isSuperAdmin,
     });
+    // 自動取消發佈已過期活動的報名連結（背景靜默執行）
+    const expiredPublished = eventsStore.events.filter(
+      (e) => isEventExpired(e) && e.isPublished && e.hasRegistrationPage
+    );
+    for (const event of expiredPublished) {
+      try {
+        const pageRes = await apiRequest(`/api/registration-pages/by_event/${event.id}/`);
+        if (pageRes.ok) {
+          const pageData = await pageRes.json();
+          if (pageData.is_published) {
+            await apiRequest(`/api/registration-pages/${pageData.id}/unpublish/`, {
+              method: "POST",
+              body: JSON.stringify({}),
+            });
+          }
+        }
+      } catch { /* silent */ }
+    }
   } catch (err) {
     error(err.message || "載入活動列表失敗");
   }
@@ -196,16 +319,17 @@ const createEvent = async () => {
   }
   try {
     const created = await eventsStore.createEvent({
-      name:      newEvent.value.name,
-      date:      newEvent.value.date,
-      end_date:  newEvent.value.endDate || newEvent.value.date,
-      time:      newEvent.value.time + ':00',
-      location:  newEvent.value.location,
-      address:   newEvent.value.address || "",
+      name:             newEvent.value.name,
+      date:             newEvent.value.date,
+      end_date:         newEvent.value.endDate || newEvent.value.date,
+      time:             newEvent.value.time + ':00',
+      location:         newEvent.value.location,
+      address:          newEvent.value.address || "",
+      max_participants: newEvent.value.maxParticipants || 500,
     });
     success("活動已建立");
     showCreateModal.value = false;
-    newEvent.value = { name: "", date: "", endDate: "", time: "", location: "", address: "" };
+    newEvent.value = { name: "", date: "", endDate: "", time: "", location: "", address: "", maxParticipants: 500 };
     // 切換到新活動並前往設定頁
     eventsStore.setCurrentEvent(created, userStore.user?.id);
     router.push("/admin/registration-setting");
@@ -629,6 +753,194 @@ const createEvent = async () => {
 .modal-fade-leave-to {
   opacity: 0;
   transform: scale(0.9);
+}
+
+/* 過期活動卡片樣式 */
+.event-card.expired {
+  opacity: 0.65;
+  filter: grayscale(0.4);
+
+  .event-status-badge.expired {
+    background: rgba(148, 163, 184, 0.95);
+    color: white;
+  }
+}
+
+/* 編輯活動按鈕 */
+.btn-edit-event {
+  background: white !important;
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+
+  &:hover {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+  }
+}
+
+/* 右側編輯面板 */
+.edit-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 9999;
+}
+
+.edit-panel {
+  width: 480px;
+  max-width: 90vw;
+  height: 100%;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+  overflow-y: auto;
+
+  .panel-header {
+    padding: 24px 28px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+
+    h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .btn-close {
+      background: transparent;
+      border: none;
+      font-size: 1.4rem;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+
+      &:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+        transform: rotate(90deg);
+      }
+    }
+  }
+
+  .panel-body {
+    padding: 28px;
+    flex: 1;
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+
+      .form-group {
+        flex: 1;
+      }
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+
+      label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 8px;
+      }
+
+      .panel-input {
+        width: 100%;
+        padding: 11px 14px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+        box-sizing: border-box;
+
+        &:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+      }
+    }
+  }
+
+  .panel-footer {
+    padding: 20px 28px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    flex-shrink: 0;
+
+    .btn-panel-cancel {
+      padding: 10px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      background: white;
+      border: 1px solid #e5e7eb;
+      color: #475569;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #f8fafc;
+      }
+    }
+
+    .btn-panel-save {
+      padding: 10px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border: none;
+      color: white;
+      transition: all 0.2s;
+
+      &:hover {
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      }
+    }
+  }
+}
+
+/* 右側面板滑入動畫 */
+.panel-slide-enter-active,
+.panel-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.panel-slide-enter-from {
+  opacity: 0;
+
+  .edit-panel {
+    transform: translateX(100%);
+  }
+}
+
+.panel-slide-leave-to {
+  opacity: 0;
+
+  .edit-panel {
+    transform: translateX(100%);
+  }
 }
 
 @media (max-width: 1200px) {

@@ -124,6 +124,22 @@ const router = createRouter({
                 import ('../views/CheckIn/MobileScanner.vue'),
             meta: { requiresAuth: true }
         },
+        // ===== 手機端：掃描後選擇列印站 =====
+        {
+            path: '/mobile/print-dispatch',
+            name: 'MobilePrintDispatch',
+            component: () =>
+                import ('../views/CheckIn/MobilePrintDispatch.vue'),
+            meta: { requiresAuth: true }
+        },
+        // ===== 獨立列印站台（電腦專用視窗，站台 1/2/3）=====
+        {
+            path: '/print/station/:slot',
+            name: 'PrintStation',
+            component: () =>
+                import ('../views/Badges/PrintStation.vue'),
+            meta: { requiresAuth: false }
+        },
         // ===== 公開報名頁面（不需登入）=====
         {
             path: '/r/:shortLink',

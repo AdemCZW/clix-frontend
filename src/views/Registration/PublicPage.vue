@@ -171,7 +171,16 @@ const formatDate = (date, endDate, time) => {
             </span>
             <span v-if="pageData.event_location">📍 {{ pageData.event_location }}</span>
             <span v-if="pageData.event_address">🗺️ {{ pageData.event_address }}</span>
+            <span class="badge-count">
+              👥 {{ participantsCount }} / {{ maxParticipants }}
+            </span>
+            <span class="badge-status">{{ statusText }}</span>
           </div>
+        </div>
+
+        <!-- 報名截止提示 -->
+        <div v-if="isFull" class="full-alert">
+          <span>報名已截止，名額已滿</span>
         </div>
 
         <!-- Rich text content -->
@@ -186,10 +195,10 @@ const formatDate = (date, endDate, time) => {
             <span class="f-title">立即報名參加</span>
             <span class="f-date">
               <template v-if="pageData.event_date">📅 {{ formatDate(pageData.event_date, pageData.event_end_date, pageData.event_time) }}</template>
-              <template v-if="pageData.event_location">&nbsp;📍 {{ pageData.event_location }}</template>
+              <template v-if="pageData.event_location">　📍 {{ pageData.event_location }}</template>
             </span>
           </div>
-          <button class="btn-apply" @click="openForm">
+          <button class="btn-apply" @click="openForm" :disabled="isFull">
             <span>立即報名</span>
           </button>
         </div>
@@ -208,12 +217,10 @@ const formatDate = (date, endDate, time) => {
           <h2 class="form-embed-title">線上報名</h2>
           <p class="form-embed-sub">填寫以下資料，完成後將自動產生您的專屬 QR Code</p>
         </div>
-
-        <div v-if="store.error && !store.submitted" class="form-error-banner">
-          ⚠️ {{ store.error }}
+        <div v-if="isFull" class="full-alert">
+          <span>報名已截止，名額已滿</span>
         </div>
-
-        <form @submit.prevent="handleSubmit" class="reg-form" novalidate>
+        <form v-if="!isFull" @submit.prevent="handleSubmit" class="reg-form" novalidate>
 
           <div class="form-row two-col">
             <div class="field-group" :class="{ 'has-error': formErrors.name }">

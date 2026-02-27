@@ -53,11 +53,33 @@ const currentEvent = computed(() => eventsStore.currentEvent);
 // 短連結與發布狀態
 const shortLink = ref("");
 const isPublished = ref(false);
+const customSlug = ref("");
+
+// 從 shortLink（可能是完整 URL 或純 slug）提取純 slug
+const extractSlug = (link) => {
+  if (!link) return "";
+  if (link.startsWith("http")) {
+    const match = link.match(/\/r\/(.+?)(?:\?|$)/);
+    return match ? match[1] : link;
+  }
+  return link;
+};
+
+// 活動過期判斷
+const isCurrentEventExpired = computed(() => {
+  const end = currentEvent.value?.endDate || currentEvent.value?.date;
+  return !!end && end < new Date().toISOString().slice(0, 10);
+});
+
+// URL 基底（固定顯示部分）
+const urlBase = computed(() => {
+  const base = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+  return `${base}/#/r/`;
+});
 
 const isPreviewOpen = ref(false);
 const previewMode = ref("desktop");
 const showToast = ref(false);
-const showRegenerateConfirm = ref(false);
 const viewingGuest = ref(null);
 const myQuill = ref(null);
 const emailQuill = ref(null);
@@ -137,6 +159,7 @@ onMounted(async () => {
     // 用後端資料初始化表單
     pageId.value = page.id;
     shortLink.value = page.shortLink;
+    customSlug.value = extractSlug(page.shortLink);
     isPublished.value = page.isPublished;
     form.mainContent      = page.mainContent;
     form.emailSubject     = page.emailSubject;
@@ -238,24 +261,19 @@ const handleUnpublish = async () => {
 };
 
 // ── 短連結 ────────────────────────────────────────────────────────────────
-const confirmRegenerate = () => {
-  showRegenerateConfirm.value = true;
-};
-
-const executeRegenerate = async () => {
+const saveCustomSlug = async () => {
   if (!pageId.value) return;
-  showRegenerateConfirm.value = false;
+  if (!customSlug.value.trim()) { toastError("連結後綴不能為空"); return; }
   try {
-    const newLink = await pagesStore.regenerateLink(pageId.value);
-    shortLink.value = newLink;
-    toastSuccess("短連結已重新產生");
+    const updated = await pagesStore.saveDraft(pageId.value, {
+      shortLink: customSlug.value.trim(),
+    });
+    shortLink.value = updated.shortLink;
+    customSlug.value = extractSlug(updated.shortLink);
+    toastSuccess("報名連結已更新");
   } catch (err) {
-    toastError(err.message || "重新產生短連結失敗");
+    toastError(err.message || "更新連結失敗");
   }
-};
-
-const cancelRegenerate = () => {
-  showRegenerateConfirm.value = false;
 };
 
 // 產生完整的報名頁 URL（對應 /r/:shortLink 路由）
@@ -315,7 +333,13 @@ const closeGuestDetail = () => {
       </div>
 
       <div class="tech-card data-card">
-        <h3 class="card-subtitle">活動基本資訊</h3>
+        <h3 class="card-subtitle">
+          活動基本資訊
+          <span v-if="isPublished && !isCurrentEventExpired" class="publish-status published" style="margin-left: 8px;">
+            <span class="status-dot"></span>
+            已發布
+          </span>
+        </h3>
         <div class="event-info-display">
           <div class="info-row">
             <span class="info-label">活動名稱</span>
@@ -343,38 +367,37 @@ const closeGuestDetail = () => {
 
       <div class="tech-card link-card accent-blue">
         <h3 class="card-subtitle">產出報名連結</h3>
-        <div class="publish-status" :class="{ published: isPublished }">
-          <span class="status-dot"></span>
-          <span>{{ isPublished ? '已發布' : '草稿' }}</span>
+
+        <!-- 過期警告 -->
+        <div v-if="isCurrentEventExpired" class="expired-warning">
+          ⚠️ 此活動已過期，報名已停止接受。如需重新開放，請先至活動列表更新活動日期。
         </div>
+
+
+        <!-- 已發布狀態移至標題旁，這裡移除 -->
+
         <div class="link-container">
-          <div class="link-input-group full-url">
-            <input :value="fullRegistrationUrl || shortLink" readonly class="url-input" title="點擊右方按鈕複製" />
+          <!-- 自訂 URL 編輯器 -->
+          <div class="custom-url-editor">
+            <span class="url-base-label">{{ urlBase }}</span>
+            <input
+              v-model="customSlug"
+              class="slug-input"
+              placeholder="自訂連結後綴"
+              @keyup.enter="saveCustomSlug"
+            />
+            <button class="btn-update-slug" @click="saveCustomSlug">更新</button>
           </div>
           <div class="button-row">
             <button class="btn-copy" @click="copyLink">複製</button>
             <button class="btn-preview" @click="isPreviewOpen = true">預覽</button>
           </div>
-          <button class="btn-regen" @click="confirmRegenerate">
-            <svg
-              viewBox="0 0 24 24"
-              width="14"
-              height="14"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-            >
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-            </svg>
-            重新產生連結
-          </button>
         </div>
         <div class="action-buttons">
           <button class="btn-save" :disabled="saving" @click="saveDraft">
             {{ saving ? '儲存中...' : '儲存草稿' }}
           </button>
-          <button v-if="!isPublished" class="btn-publish" :disabled="saving" @click="confirmPublish">
+          <button v-if="!isPublished" class="btn-publish" :disabled="saving || isCurrentEventExpired" @click="confirmPublish">
             {{ saving ? '處理中...' : '發布' }}
           </button>
           <button v-else class="btn-unpublish" :disabled="saving" @click="handleUnpublish">
@@ -466,61 +489,6 @@ const closeGuestDetail = () => {
       </div>
     </div>
 
-    <!-- 重新產生連結確認彈窗 -->
-    <Teleport to="body">
-      <Transition name="modal-fade">
-        <div v-if="showRegenerateConfirm" class="modal-overlay" @click.self="cancelRegenerate">
-          <div class="confirm-modal">
-            <div class="confirm-header">
-              <div class="warning-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="24"
-                  height="24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-                  ></path>
-                  <line x1="12" y1="9" x2="12" y2="13"></line>
-                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                </svg>
-              </div>
-              <h3>確認重新產生連結？</h3>
-            </div>
-            <div class="confirm-body">
-              <p class="warning-text">⚠️ 請注意以下影響：</p>
-              <ul class="warning-list">
-                <li>舊的報名連結將立即失效</li>
-                <li>已發布的報名表單將無法透過舊連結存取</li>
-                <li>需要重新分享新的連結給參與者</li>
-                <li>此操作無法復原</li>
-              </ul>
-              <p class="confirm-question">您確定要繼續嗎？</p>
-            </div>
-            <div class="confirm-actions">
-              <button class="btn-cancel" @click="cancelRegenerate">取消</button>
-              <button class="btn-confirm-danger" @click="executeRegenerate">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="16"
-                  height="16"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                >
-                  <polyline points="23 4 23 10 17 10"></polyline>
-                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                </svg>
-                確認重新產生
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
 
     <Teleport to="body">
       <Transition name="modal-fade">
@@ -669,6 +637,27 @@ const closeGuestDetail = () => {
   --text-gray-light: #64748b;
   --bg-soft: #f8fafc;
   --border-light: #e2e8f0;
+}
+
+.published-badge {
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  background: #4caf50;
+  color: #fff;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.85em;
+  font-weight: 500;
+  vertical-align: middle;
+}
+.published-dot {
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 5px;
 }
 
 /* 活動基本資訊唯讀區 */
@@ -1202,34 +1191,69 @@ label {
   }
 }
 
-.btn-regen {
-  background: white;
-  border: none;
-  color: #475569; /* WCAG AA: 對比度 5.8:1 */
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 10px 16px;
-  border-radius: 0;
-  cursor: pointer;
-  transition: all 0.2s;
+/* 自訂 URL 編輯器 */
+.custom-url-editor {
   display: flex;
   align-items: center;
+  padding: 10px 12px;
   gap: 6px;
-  width: 100%;
-  justify-content: center;
-  svg {
-    transition: transform 0.3s;
+  border-bottom: 1px solid var(--border-light);
+  background: white;
+
+  .url-base-label {
+    color: #94a3b8;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
-  &:hover {
-    background: #f8fafc;
-    color: var(--primary-blue);
-    svg {
-      transform: rotate(180deg);
+
+  .slug-input {
+    flex: 1;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--deep-dark);
+    outline: none;
+    transition: all 0.2s;
+    min-width: 0;
+
+    &:focus {
+      border-color: var(--primary-blue);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
   }
-  &:active {
-    background: #f1f5f9;
+
+  .btn-update-slug {
+    padding: 7px 14px;
+    background: var(--primary-blue);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #2563eb;
+    }
   }
+}
+
+/* 過期警告 */
+.expired-warning {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: #c2410c;
+  font-weight: 500;
+  margin-bottom: 12px;
+  line-height: 1.5;
 }
 
 .action-buttons {

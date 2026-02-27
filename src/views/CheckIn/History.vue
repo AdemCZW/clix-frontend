@@ -15,6 +15,7 @@ const searchName = ref("");
 const filterMethod = ref("all"); // all, QR Scan, Manual
 const filterType = ref("all"); // all, VIP, 一般民眾
 const filterName = ref("");
+const filterDate = ref(""); // 多天活動日期篩選
 
 // 隨活動切換載入報到資料
 watch(
@@ -31,6 +32,35 @@ watch(
   { immediate: true }
 );
 
+// 活動日期相關
+const currentEvent = computed(() => eventsStore.currentEvent);
+
+const eventDateDisplay = computed(() => {
+  const e = currentEvent.value;
+  if (!e?.date) return "—";
+  if (e.endDate && e.endDate !== e.date) return `${e.date} ～ ${e.endDate}`;
+  return e.date;
+});
+
+const isMultiDayEvent = computed(() => {
+  const e = currentEvent.value;
+  return !!(e?.endDate && e.endDate !== e.date);
+});
+
+const eventDateOptions = computed(() => {
+  const e = currentEvent.value;
+  if (!e?.date) return [];
+  const start = new Date(e.date);
+  const end = e.endDate && e.endDate !== e.date ? new Date(e.endDate) : new Date(e.date);
+  const dates = [];
+  const d = new Date(start);
+  while (d <= end) {
+    dates.push(d.toISOString().slice(0, 10));
+    d.setDate(d.getDate() + 1);
+  }
+  return dates;
+});
+
 // 從 participants 衍生統計資料
 const stats = computed(() => {
   const all = participantsStore.participants;
@@ -42,23 +72,41 @@ const stats = computed(() => {
   };
 });
 
-// 從已報到的參與者衍生報到紀錄
+// 從已報到的參與者衍生報到紀錄（依時間降序：最新在上）
 const allCheckInLogs = computed(() =>
   participantsStore.participants
     .filter((p) => p.status === "已報到")
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      type: p.type || "一般民眾",
-      method: "QR Scan",
-      time: p.updatedAt ? new Date(p.updatedAt).toLocaleTimeString("zh-TW") : "--",
-      seat: "--",
-    }))
+    .map((p) => {
+      const ts = p.updatedAt ? new Date(p.updatedAt) : null;
+      return {
+        id: p.id,
+        name: p.name,
+        type: p.type || "一般民眾",
+        method: "QR Scan",
+        time: ts
+          ? ts.toLocaleString("zh-TW", {
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "--",
+        dateStr: ts ? ts.toISOString().slice(0, 10) : "",
+        timestamp: ts ? ts.getTime() : 0,
+        seat: "--",
+      };
+    })
+    .sort((a, b) => b.timestamp - a.timestamp)
 );
 
 // 篩選後的報到紀錄
 const logs = computed(() => {
   let filtered = [...allCheckInLogs.value];
+
+  // 按日期篩選（多天活動）
+  if (filterDate.value) {
+    filtered = filtered.filter((log) => log.dateStr === filterDate.value);
+  }
 
   // 按報到方式篩選
   if (filterMethod.value !== "all") {
@@ -128,22 +176,53 @@ const simulateQRScan = () => {
       <div class="left-panel">
         <!-- 統計儀表板 -->
         <div class="tech-card unified-stats">
-          <div class="main-stat-row">
-            <div class="stat-label">當前報到率</div>
-            <div class="stat-value-large">{{ checkInRate }}%</div>
+          <!-- 活動日期 -->
+          <div class="event-date-bar">
+            <span class="date-icon">📅</span>
+            <span class="date-text">{{ eventDateDisplay }}</span>
           </div>
-          <div class="progress-container">
-            <div class="progress-bar" :style="{ width: checkInRate + '%' }"></div>
+
+          <!-- 日期篩選（多天活動才顯示） -->
+          <div v-if="isMultiDayEvent" class="date-filter-row">
+            <label class="date-filter-label">篩選日期</label>
+            <select v-model="filterDate" class="date-filter-select">
+              <option value="">全部日期</option>
+              <option v-for="d in eventDateOptions" :key="d" :value="d">{{ d }}</option>
+            </select>
           </div>
+
+          <!-- 圓形進度環 -->
+          <div class="circular-progress-container">
+            <svg viewBox="0 0 120 120" class="circular-ring">
+              <circle class="ring-bg" cx="60" cy="60" r="50" />
+              <circle
+                class="ring-fill"
+                cx="60" cy="60" r="50"
+                transform="rotate(-90 60 60)"
+                :stroke-dasharray="`${(checkInRate / 100) * 314.159} 314.159`"
+              />
+            </svg>
+            <div class="ring-center">
+              <div class="rate-value">{{ checkInRate }}%</div>
+              <div class="rate-label">報到率</div>
+            </div>
+          </div>
+
+          <!-- 數字統計 -->
           <div class="mini-stats-row">
             <div class="mini-stat-item">
-              <div class="mini-label">應到人數</div>
+              <div class="mini-label">應到</div>
               <div class="mini-value">{{ stats.total }}</div>
             </div>
             <div class="stat-divider"></div>
             <div class="mini-stat-item accent">
               <div class="mini-label">已報到</div>
               <div class="mini-value">{{ stats.checkedIn }}</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="mini-stat-item pending">
+              <div class="mini-label">未報到</div>
+              <div class="mini-value">{{ stats.total - stats.checkedIn }}</div>
             </div>
           </div>
         </div>
@@ -238,8 +317,9 @@ const simulateQRScan = () => {
                   filterMethod = 'all';
                   filterType = 'all';
                   filterName = '';
+                  filterDate = '';
                 "
-                :disabled="filterMethod === 'all' && filterType === 'all' && !filterName"
+                :disabled="filterMethod === 'all' && filterType === 'all' && !filterName && !filterDate"
               >
                 清除篩選
               </button>
@@ -307,42 +387,116 @@ const simulateQRScan = () => {
 
 /* 統一統計區塊 */
 .unified-stats {
-  padding: 24px;
+  padding: 20px 24px;
 
-  .main-stat-row {
+  /* 活動日期列 */
+  .event-date-bar {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 16px;
-
-    .stat-label {
-      font-size: 0.9rem;
-      color: #64748b;
-      font-weight: 600;
-    }
-
-    .stat-value-large {
-      font-size: 3rem;
-      font-weight: 800;
-      color: #0ea5e9;
-      line-height: 1;
-    }
-  }
-
-  .progress-container {
-    height: 12px;
-    background: #f1f5f9;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 8px 12px;
+    background: #f0f9ff;
     border-radius: 10px;
-    overflow: hidden;
-    margin-bottom: 20px;
+    border: 1px solid #bae6fd;
 
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, #38bdf8, #0ea5e9);
-      transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    .date-icon {
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    .date-text {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #0369a1;
+      letter-spacing: 0.3px;
     }
   }
 
+  /* 日期篩選（多天活動） */
+  .date-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+
+    .date-filter-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #64748b;
+      white-space: nowrap;
+    }
+
+    .date-filter-select {
+      flex: 1;
+      padding: 7px 10px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      outline: none;
+      background: white;
+      cursor: pointer;
+
+      &:focus {
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+      }
+    }
+  }
+
+  /* 圓形進度環 */
+  .circular-progress-container {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin: 0 auto 20px;
+
+    .circular-ring {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+
+      .ring-bg {
+        fill: none;
+        stroke: #f1f5f9;
+        stroke-width: 12;
+      }
+
+      .ring-fill {
+        fill: none;
+        stroke: url(#ringGradient);
+        stroke-width: 12;
+        stroke-linecap: round;
+        transition: stroke-dasharray 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        stroke: #0ea5e9;
+      }
+    }
+
+    .ring-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+
+      .rate-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #0ea5e9;
+        line-height: 1;
+      }
+
+      .rate-label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #94a3b8;
+        margin-top: 4px;
+        letter-spacing: 0.5px;
+      }
+    }
+  }
+
+  /* 數字統計列 */
   .mini-stats-row {
     display: flex;
     align-items: center;
@@ -355,16 +509,16 @@ const simulateQRScan = () => {
       text-align: center;
 
       .mini-label {
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         color: #94a3b8;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
       }
 
       .mini-value {
-        font-size: 1.75rem;
+        font-size: 1.6rem;
         font-weight: 800;
         color: #1e293b;
       }
@@ -372,11 +526,15 @@ const simulateQRScan = () => {
       &.accent .mini-value {
         color: #10b981;
       }
+
+      &.pending .mini-value {
+        color: #f59e0b;
+      }
     }
 
     .stat-divider {
       width: 1px;
-      height: 40px;
+      height: 36px;
       background: #e2e8f0;
     }
   }
