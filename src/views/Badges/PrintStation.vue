@@ -51,9 +51,12 @@ function connectWebSocket() {
   if (!sessionId.value || wsInstance) return;
   wsStatus.value = "connecting";
   const wsBase = (import.meta.env.VITE_API_BASE_URL || window.location.origin)
+    .replace(/\/$/, "")
     .replace(/^https/, "wss")
     .replace(/^http/, "ws");
-  wsInstance = new WebSocket(`${wsBase}/ws/print/${sessionId.value}/`);
+  const token = localStorage.getItem("access_token") || "";
+  const tokenParam = token ? `?token=${token}` : "";
+  wsInstance = new WebSocket(`${wsBase}/ws/print/${sessionId.value}/${tokenParam}`);
   wsInstance.onopen  = () => { wsStatus.value = "connected"; };
   wsInstance.onclose = () => { wsStatus.value = "disconnected"; wsInstance = null; };
   wsInstance.onerror = () => { wsStatus.value = "error"; };

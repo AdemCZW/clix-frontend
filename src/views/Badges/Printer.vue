@@ -59,32 +59,44 @@ function stopDrag() {
 }
 
 const activeElement = ref(null); // 當前正在編輯的元件
-const templateElements = ref([
+
+// 預設排版（60mm≈227px，所有座標需在此範圍內）
+const defaultElements = [
   {
     id: "t1",
     key: "name",
     label: "姓名",
     x: 20,
-    y: 180,
-    style: { fontSize: 32, fontWeight: "900", color: "#1e293b" },
+    y: 80,
+    style: { fontSize: 26, fontWeight: "900", color: "#1e293b" },
   },
   {
     id: "t2",
     key: "company",
     label: "單位",
     x: 20,
-    y: 240,
-    style: { fontSize: 16, fontWeight: "400", color: "#64748b" },
+    y: 120,
+    style: { fontSize: 14, fontWeight: "400", color: "#64748b" },
   },
   {
     id: "t3",
     key: "code",
     label: "QR編碼",
-    x: 110,
-    y: 60,
+    x: 230,
+    y: 20,
     style: { fontSize: 12, fontWeight: "400", color: "#cbd5e1" },
   },
-]);
+];
+
+// 從 localStorage 載入已儲存的排版，否則使用預設值
+function loadSavedTemplate() {
+  try {
+    const saved = localStorage.getItem("badge_template");
+    return saved ? JSON.parse(saved) : null;
+  } catch { return null; }
+}
+
+const templateElements = ref(loadSavedTemplate() || defaultElements);
 
 onMounted(() => {
   window.addEventListener("mousemove", onDrag);
@@ -168,9 +180,12 @@ function connectWebSocket() {
   if (!sessionId.value || wsInstance) return;
   wsStatus.value = "connecting";
   const wsBase = (import.meta.env.VITE_API_BASE_URL || window.location.origin)
+    .replace(/\/$/, "")
     .replace(/^https/, "wss")
     .replace(/^http/, "ws");
-  wsInstance = new WebSocket(`${wsBase}/ws/print/${sessionId.value}/`);
+  const token = localStorage.getItem("access_token") || "";
+  const tokenParam = token ? `?token=${token}` : "";
+  wsInstance = new WebSocket(`${wsBase}/ws/print/${sessionId.value}/${tokenParam}`);
   wsInstance.onopen = () => { wsStatus.value = "connected"; };
   wsInstance.onclose = () => { wsStatus.value = "disconnected"; wsInstance = null; };
   wsInstance.onerror = () => { wsStatus.value = "error"; };

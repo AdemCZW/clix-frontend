@@ -327,7 +327,9 @@ const sendToStation = async (slot) => {
 
   try {
     await new Promise((resolve, reject) => {
-      const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/`);
+      const token = localStorage.getItem("access_token") || "";
+      const tokenParam = token ? `?token=${token}` : "";
+      const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/${tokenParam}`);
       const timeout = setTimeout(() => { ws.close(); reject(new Error("連線超時（5秒）")); }, 5000);
       ws.onopen = () => {
         clearTimeout(timeout);

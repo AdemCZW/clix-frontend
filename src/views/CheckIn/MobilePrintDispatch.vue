@@ -103,12 +103,15 @@ const sendToStation = async (slot) => {
 
   const stationSession = `print-${eventId.value}-station-${slot}`;
   const wsBase = (import.meta.env.VITE_API_BASE_URL || window.location.origin)
+    .replace(/\/$/, "")
     .replace(/^https/, "wss")
     .replace(/^http/, "ws");
 
   try {
     await new Promise((resolve, reject) => {
-      const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/`);
+      const token = localStorage.getItem("access_token") || "";
+      const tokenParam = token ? `?token=${token}` : "";
+      const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/${tokenParam}`);
       const timeout = setTimeout(() => { ws.close(); reject(new Error("連線超時（5秒）")); }, 5000);
       ws.onopen = () => {
         clearTimeout(timeout);
