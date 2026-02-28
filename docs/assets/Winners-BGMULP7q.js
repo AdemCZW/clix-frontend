@@ -1,0 +1,1 @@
+import{_ as n,c as s,b as t,o}from"./index-By5l3B_B.js";const r={name:"LotteryWinners"},a={class:"lottery-winners"};function c(_,e,i,l,p,d){return o(),s("div",a,[...e[0]||(e[0]=[t("h1",null,"Lottery Winners",-1),t("p",null,"這是中獎名單管理頁面。",-1)])])}const u=n(r,[["render",c],["__scopeId","data-v-52033afb"]]);export{u as default};
