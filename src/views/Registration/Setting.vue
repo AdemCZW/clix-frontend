@@ -71,10 +71,9 @@ const isCurrentEventExpired = computed(() => {
   return !!end && end < new Date().toISOString().slice(0, 10);
 });
 
-// URL 基底（固定顯示部分）
+// URL 基底（前端網域，用於顯示報名連結）
 const urlBase = computed(() => {
-  const base = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-  return `${base}/#/r/`;
+  return `${window.location.origin}/#/r/`;
 });
 
 const isPreviewOpen = ref(false);
@@ -281,9 +280,8 @@ const fullRegistrationUrl = computed(() => {
   if (!shortLink.value) return ''
   // 若後端已回傳完整 URL（http 開頭）直接使用
   if (shortLink.value.startsWith('http')) return shortLink.value
-  // 否則拼接當前 origin（dev / prod 都適用）
-  const base = import.meta.env.VITE_API_BASE_URL || window.location.origin
-  return `${base}/#/r/${shortLink.value}`
+  // 否則拼接當前 origin（前端網域）
+  return `${window.location.origin}/#/r/${shortLink.value}`
 });
 
 const copyLink = () => {
