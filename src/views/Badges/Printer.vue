@@ -96,7 +96,13 @@ function loadSavedTemplate() {
   } catch { return null; }
 }
 
-const templateElements = ref(loadSavedTemplate() || defaultElements);
+const _savedTemplate = loadSavedTemplate();
+const templateElements = ref(_savedTemplate?.length ? _savedTemplate : defaultElements);
+
+function resetTemplate() {
+  localStorage.removeItem("badge_template");
+  templateElements.value = defaultElements.map(el => ({ ...el, style: { ...el.style } }));
+}
 
 onMounted(() => {
   window.addEventListener("mousemove", onDrag);
@@ -365,7 +371,10 @@ watch(logoUrl, (val) => {
         <div class="tech-card badge-canvas">
           <div class="card-header-flex">
             <h3 class="card-subtitle">範本設計預覽</h3>
-            <span class="size-label">60 × 90 mm</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="btn-reset-template" @click="resetTemplate">重置排版</button>
+              <span class="size-label">60 × 90 mm</span>
+            </div>
           </div>
           <div class="canvas-box">
             <img v-if="logoUrl" :src="logoUrl" class="canvas-logo" style="position:absolute;left:20px;top:20px;height:40px;max-width:120px;z-index:2;" />
@@ -594,6 +603,19 @@ watch(logoUrl, (val) => {
     border-radius: 6px;
     border: 1px solid #e2e8f0;
   }
+}
+
+.btn-reset-template {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #fca5a5;
+  background: #fff1f2;
+  color: #ef4444;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  &:hover { background: #fee2e2; }
 }
 
 /* 左側人員選擇面板 */
@@ -825,6 +847,7 @@ watch(logoUrl, (val) => {
     height: 60mm;
     background: white;
     position: relative;
+    overflow: hidden;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     border-radius: 4px;
     border: 2px solid #e2e8f0;

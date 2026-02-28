@@ -3,14 +3,15 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
     return {
         // 自訂網域不需要子路徑，直接用根目錄
         base: '/',
 
         plugins: [
             vue(),
-            vueDevTools(),
+            // vueDevTools 只在開發環境啟用，production build 不注入
+            ...(mode === 'development' ? [vueDevTools()] : []),
         ],
         resolve: {
             alias: {
