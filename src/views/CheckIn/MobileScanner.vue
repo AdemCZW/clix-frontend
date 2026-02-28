@@ -3,8 +3,8 @@
     <div class="scanner-header">
       <h1 class="title">現場報到掃描器</h1>
       <div class="event-info">
-        <span class="event-name">2026 科技創新論壇</span>
-        <span class="event-date">2026/02/15</span>
+        <span class="event-name">{{ eventsStore.currentEvent?.name || '現場報到' }}</span>
+        <span class="event-date">{{ eventsStore.currentEvent?.date || '' }}</span>
       </div>
     </div>
 
@@ -89,16 +89,19 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import jsQR from "jsqr";
+import { apiRequest } from "@/utils/api";
+import { useEventsStore } from "@/stores/events";
 
 const router = useRouter();
+const eventsStore = useEventsStore();
 const isScanning = ref(false);
 const videoElement = ref(null);
 const showResult = ref(false);
 const resultType = ref("success"); // 'success' | 'error'
 const scannedData = ref(null);
 const errorMessage = ref("");
-const todayCheckins = ref(127);
-const totalCheckins = ref(642);
+const todayCheckins = ref(0);
+const totalCheckins = ref(0);
 
 let stream = null;
 let animationId = null;
@@ -208,20 +211,9 @@ const tick = () => {
 };
 
 const onScanSuccess = (decodedText) => {
-  console.log("掃描成功:", decodedText);
-
-  // 停止掃描
+  // 停止掃描後呼叫後端驗證（check_in_token 是純字串，不需 JSON.parse）
   stopScanning();
-
-  // 解析 QR Code 內容
-  try {
-    const data = JSON.parse(decodedText);
-    validateCheckin(data);
-  } catch (error) {
-    errorMessage.value = "無效的 QR Code 格式";
-    resultType.value = "error";
-    showResult.value = true;
-  }
+  validateCheckin(decodedText.trim());
 };
 
 const stopScanning = () => {
@@ -245,32 +237,36 @@ const stopScanning = () => {
   }
 };
 
-const validateCheckin = async (qrData) => {
-  // 這裡應該呼叫後端 API 驗證
-  // 目前為模擬功能
+const validateCheckin = async (token) => {
+  try {
+    const res = await apiRequest("/api/participants/checkin_by_token/", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    });
+    const data = await res.json();
 
-  // 模擬 API 延遲
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  // 模擬驗證成功
-  if (qrData.participantId) {
-    scannedData.value = {
-      name: qrData.name || "張小明",
-      company: qrData.company || "文靜科技",
-      title: qrData.title || "CTO",
-      checkinTime: new Date().toLocaleString("zh-TW", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-    resultType.value = "success";
-    todayCheckins.value++;
-    totalCheckins.value++;
-  } else {
-    errorMessage.value = "查無此參與者資料";
+    if (res.ok) {
+      scannedData.value = {
+        name: data.name || "",
+        company: data.company || "",
+        title: data.title || "",
+        checkinTime: new Date().toLocaleString("zh-TW", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+      resultType.value = "success";
+      todayCheckins.value++;
+      totalCheckins.value++;
+    } else {
+      errorMessage.value = data.detail || data.error || "報到失敗，請確認 QR Code 是否正確";
+      resultType.value = "error";
+    }
+  } catch {
+    errorMessage.value = "網路錯誤，請檢查連線後重試";
     resultType.value = "error";
   }
 

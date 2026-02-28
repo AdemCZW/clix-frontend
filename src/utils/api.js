@@ -7,8 +7,9 @@
  */
 
 // 開發環境用相對路徑（Vite proxy 處理），正式環境用環境變數
+// 移除結尾斜線，避免拼接路徑時出現雙斜線
 const BASE_URL =
-    import.meta.env.VITE_API_BASE_URL || '';
+    (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
 /**
  * 取得當前請求 headers（帶 Token）
