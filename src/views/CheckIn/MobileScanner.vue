@@ -45,27 +45,54 @@
           <h2 class="result-title">
             {{ resultType === "success" ? "報到成功" : "報到失敗" }}
           </h2>
-          <div v-if="resultType === 'success' && scannedData" class="participant-info">
-            <div class="info-row">
-              <span class="label">姓名</span>
-              <span class="value">{{ scannedData.name }}</span>
+
+          <!-- 成功：顯示人員資訊 + 列印站台選擇 -->
+          <template v-if="resultType === 'success' && scannedData">
+            <div class="participant-info">
+              <div class="info-row">
+                <span class="label">姓名</span>
+                <span class="value">{{ scannedData.name }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">公司</span>
+                <span class="value">{{ scannedData.company }}</span>
+              </div>
+              <div class="info-row" v-if="scannedData.title">
+                <span class="label">職稱</span>
+                <span class="value">{{ scannedData.title }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">報到時間</span>
+                <span class="value">{{ scannedData.checkinTime }}</span>
+              </div>
             </div>
-            <div class="info-row">
-              <span class="label">公司</span>
-              <span class="value">{{ scannedData.company }}</span>
+
+            <!-- 列印站台 -->
+            <div v-if="sendPhase === 'idle'" class="station-section">
+              <p class="station-prompt">選擇列印站台：</p>
+              <div class="station-buttons">
+                <button v-for="s in [1, 2, 3]" :key="s" class="btn-station" @click="sendToStation(s)">
+                  <span class="station-icon">🖨️</span>
+                  <span>站台 {{ s }}</span>
+                </button>
+              </div>
             </div>
-            <div class="info-row">
-              <span class="label">職稱</span>
-              <span class="value">{{ scannedData.title }}</span>
+            <div v-else-if="sendPhase === 'sending'" class="send-status">
+              傳送到站台 {{ sendingStation }}...
             </div>
-            <div class="info-row">
-              <span class="label">報到時間</span>
-              <span class="value">{{ scannedData.checkinTime }}</span>
+            <div v-else-if="sendPhase === 'sent'" class="send-status success-text">
+              ✓ 已傳送至站台 {{ sendingStation }}，識別證列印中
             </div>
-          </div>
+            <div v-else-if="sendPhase === 'error'" class="send-status error-text">
+              {{ sendError }}
+            </div>
+          </template>
+
+          <!-- 失敗：顯示錯誤訊息 -->
           <div v-else class="error-message">
             {{ errorMessage }}
           </div>
+
           <button class="btn-continue" @click="closeResult">繼續掃描</button>
         </div>
       </div>
@@ -86,22 +113,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
-import { useRouter } from "vue-router";
+import { ref, onUnmounted } from "vue";
 import jsQR from "jsqr";
 import { apiRequest } from "@/utils/api";
 import { useEventsStore } from "@/stores/events";
 
-const router = useRouter();
 const eventsStore = useEventsStore();
 const isScanning = ref(false);
 const videoElement = ref(null);
 const showResult = ref(false);
 const resultType = ref("success"); // 'success' | 'error'
-const scannedData = ref(null);
+const scannedData = ref(null);       // 顯示用
+const currentParticipant = ref(null); // 原始 API 資料（傳送給站台用）
 const errorMessage = ref("");
 const todayCheckins = ref(0);
 const totalCheckins = ref(0);
+const sendingStation = ref(null);
+const sendPhase = ref("idle"); // 'idle' | 'sending' | 'sent' | 'error'
+const sendError = ref("");
 
 let stream = null;
 let animationId = null;
@@ -246,10 +275,13 @@ const validateCheckin = async (token) => {
     const data = await res.json();
 
     if (res.ok) {
+      // API 可能回傳 { participant: {...} } 或直接 {...}
+      const p = data.participant || data;
+      currentParticipant.value = p;
       scannedData.value = {
-        name: data.name || "",
-        company: data.company || "",
-        title: data.title || "",
+        name: p.name || "",
+        company: p.company || "",
+        title: p.title || "",
         checkinTime: new Date().toLocaleString("zh-TW", {
           year: "numeric",
           month: "2-digit",
@@ -259,6 +291,7 @@ const validateCheckin = async (token) => {
         }),
       };
       resultType.value = "success";
+      sendPhase.value = "idle";
       todayCheckins.value++;
       totalCheckins.value++;
     } else {
@@ -271,6 +304,37 @@ const validateCheckin = async (token) => {
   }
 
   showResult.value = true;
+};
+
+const sendToStation = async (slot) => {
+  if (!currentParticipant.value) return;
+  sendingStation.value = slot;
+  sendPhase.value = "sending";
+  sendError.value = "";
+
+  const eid = eventsStore.currentEvent?.id || "";
+  const stationSession = `print-${eid}-station-${slot}`;
+  const wsBase = (import.meta.env.VITE_API_BASE_URL || window.location.origin)
+    .replace(/\/$/, "")
+    .replace(/^https/, "wss")
+    .replace(/^http/, "ws");
+
+  try {
+    await new Promise((resolve, reject) => {
+      const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/`);
+      const timeout = setTimeout(() => { ws.close(); reject(new Error("連線超時（5秒）")); }, 5000);
+      ws.onopen = () => {
+        clearTimeout(timeout);
+        ws.send(JSON.stringify({ type: "print", data: currentParticipant.value }));
+        setTimeout(() => { ws.close(); resolve(); }, 400);
+      };
+      ws.onerror = () => { clearTimeout(timeout); reject(new Error(`無法連接站台 ${slot}`)); };
+    });
+    sendPhase.value = "sent";
+  } catch (err) {
+    sendError.value = err.message;
+    sendPhase.value = "error";
+  }
 };
 
 const closeResult = () => {
@@ -616,6 +680,22 @@ onUnmounted(() => {
   white-space: pre-line;
   line-height: 1.6;
 }
+
+.station-section { width: 100%; margin-bottom: 16px; }
+.station-prompt { font-size: 0.9rem; color: #64748b; font-weight: 600; margin-bottom: 12px; }
+.station-buttons { display: flex; gap: 12px; justify-content: center; }
+.btn-station {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 16px 20px; border-radius: 12px;
+  background: #f1f5f9; border: 2px solid #e2e8f0;
+  color: #0f172a; cursor: pointer; font-weight: 700; font-size: 0.85rem;
+  transition: all 0.2s; min-width: 80px;
+}
+.btn-station:hover { border-color: #3b82f6; background: #eff6ff; transform: translateY(-2px); }
+.station-icon { font-size: 1.6rem; }
+.send-status { font-size: 0.95rem; color: #475569; margin-bottom: 12px; font-weight: 600; }
+.success-text { color: #059669; }
+.error-text { color: #ef4444; }
 
 .btn-continue {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
