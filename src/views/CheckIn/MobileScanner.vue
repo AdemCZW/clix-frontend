@@ -113,12 +113,19 @@
 </template>
 
 <script setup>
-import { ref, onUnmounted } from "vue";
+import { ref, computed, onUnmounted } from "vue";
+import { useRoute } from "vue-router";
 import jsQR from "jsqr";
 import { apiRequest } from "@/utils/api";
 import { useEventsStore } from "@/stores/events";
 
+const route = useRoute();
 const eventsStore = useEventsStore();
+
+// 優先從 URL query param 讀取 event ID，其次從 store
+const eventId = computed(() =>
+  String(route.query.event || eventsStore.currentEvent?.id || "")
+);
 const isScanning = ref(false);
 const videoElement = ref(null);
 const showResult = ref(false);
@@ -312,8 +319,7 @@ const sendToStation = async (slot) => {
   sendPhase.value = "sending";
   sendError.value = "";
 
-  const eid = eventsStore.currentEvent?.id || "";
-  const stationSession = `print-${eid}-station-${slot}`;
+  const stationSession = `print-${eventId.value}-station-${slot}`;
   const wsBase = (import.meta.env.VITE_API_BASE_URL || window.location.origin)
     .replace(/\/$/, "")
     .replace(/^https/, "wss")

@@ -96,9 +96,11 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useParticipantsStore } from "@/stores/participants";
+import { useEventsStore } from "@/stores/events";
 
 const router = useRouter();
 const participantsStore = useParticipantsStore();
+const eventsStore = useEventsStore();
 const showQRLinkModal = ref(false);
 const linkCopied = ref(false);
 const linkInput = ref(null);
@@ -122,12 +124,12 @@ onMounted(async () => {
   }
 });
 
-// 生成報到掃描連結
+// 生成報到掃描連結（帶入當前活動 ID 供手機端使用）
 const checkinUrl = computed(() => {
-  // 使用當前頁面的完整路徑（包含 /check_system/）
   const baseUrl = window.location.origin;
-  const basePath = import.meta.env.BASE_URL;
-  return `${baseUrl}${basePath}#/mobile/checkin`;
+  const eid = eventsStore.currentEvent?.id || "";
+  const eventParam = eid ? `?event=${eid}` : "";
+  return `${baseUrl}/#/mobile/checkin${eventParam}`;
 });
 
 const copyLink = async () => {
