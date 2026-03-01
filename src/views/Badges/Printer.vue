@@ -1222,8 +1222,7 @@ watch(logoUrl, (val) => {
     position: relative;
     page-break-after: always;
     background: white;
-    border: 1px solid #e2e8f0;
-    margin: 0 auto 10mm;
+    margin: 0;
 
     .print-element {
       position: absolute;
@@ -1231,13 +1230,12 @@ watch(logoUrl, (val) => {
 
     &:last-child {
       page-break-after: auto;
-      margin-bottom: 0;
     }
   }
 
   @page {
-    margin: 10mm;
-    size: A4;
+    size: 90mm 60mm;
+    margin: 0;
   }
 }
 </style>

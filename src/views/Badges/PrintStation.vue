@@ -456,8 +456,8 @@ onUnmounted(() => disconnectWebSocket());
   }
 
   @page {
-    size: A4;
-    margin: 10mm;
+    size: 90mm 60mm;
+    margin: 0;
   }
 }
 </style>
