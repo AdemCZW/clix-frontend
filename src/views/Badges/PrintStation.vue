@@ -14,6 +14,9 @@ async function ensureQr(token) {
   qrDataUrls.value[token] = await QRCodeLib.toDataURL(token, { width: 80, margin: 1 });
 }
 
+// 預覽用：保留最後一筆列印資料（列印後不清空，方便確認）
+const lastPrint = ref(null);
+
 // 從 localStorage 讀取管理頁面儲存的版面設計
 function loadTemplate() {
   try {
@@ -88,6 +91,7 @@ async function handleWsPrint(raw) {
     checkInToken: raw.check_in_token,
   };
   await ensureQr(p.checkInToken);
+  lastPrint.value = p;
   wsCurrentPrint.value = p;
   wsLog.value.unshift({
     name: p.name,
@@ -132,35 +136,74 @@ onUnmounted(() => disconnectWebSocket());
       <!-- 主內容 -->
       <div class="station-body">
 
-        <!-- 等待中 -->
-        <div class="idle-screen" v-if="!wsLog.length">
-          <div class="idle-icon">🖨️</div>
-          <div class="idle-title">等待列印指令</div>
-          <div class="idle-hint">手機掃描成功後，選擇此站台即可自動列印</div>
-          <div class="idle-session">
-            <span>Session：</span>
-            <code>{{ sessionId }}</code>
+        <!-- 左側：等待中 / 列印紀錄 -->
+        <div class="station-left">
+          <div class="idle-screen" v-if="!wsLog.length">
+            <div class="idle-icon">🖨️</div>
+            <div class="idle-title">等待列印指令</div>
+            <div class="idle-hint">手機掃描成功後，選擇此站台即可自動列印</div>
+            <div class="idle-session">
+              <span>Session：</span>
+              <code>{{ sessionId }}</code>
+            </div>
+          </div>
+
+          <div class="print-log" v-else>
+            <div class="log-header">
+              <span>列印紀錄</span>
+              <span class="log-count">共 {{ wsLog.length }} 筆</span>
+            </div>
+            <div
+              v-for="(item, i) in wsLog"
+              :key="i"
+              class="log-row"
+              :class="{ newest: i === 0 }"
+            >
+              <span class="log-seq">{{ wsLog.length - i }}</span>
+              <span class="log-name">{{ item.name }}</span>
+              <span class="log-comp">{{ item.company }}</span>
+              <span class="log-time">{{ item.time }}</span>
+            </div>
           </div>
         </div>
 
-        <!-- 列印紀錄 -->
-        <div class="print-log" v-else>
-          <div class="log-header">
-            <span>列印紀錄</span>
-            <span class="log-count">共 {{ wsLog.length }} 筆</span>
-          </div>
-          <div
-            v-for="(item, i) in wsLog"
-            :key="i"
-            class="log-row"
-            :class="{ newest: i === 0 }"
-          >
-            <span class="log-seq">{{ wsLog.length - i }}</span>
-            <span class="log-name">{{ item.name }}</span>
-            <span class="log-comp">{{ item.company }}</span>
-            <span class="log-time">{{ item.time }}</span>
+        <!-- 右側：識別證預覽 -->
+        <div class="station-preview">
+          <div class="preview-label">{{ lastPrint ? '最後列印' : '版型預覽' }}</div>
+          <div class="preview-badge-wrap">
+            <div class="preview-badge">
+              <img v-if="logoUrl" :src="logoUrl"
+                style="position:absolute;left:12px;top:12px;height:36px;max-width:100px;z-index:2;" />
+              <div
+                v-for="el in templateElements"
+                :key="el.id"
+                class="preview-el"
+                :style="{
+                  position: 'absolute',
+                  left: el.x + 'px',
+                  top: el.y + 'px',
+                  fontSize: el.style.fontSize + 'px',
+                  fontWeight: el.style.fontWeight,
+                  color: lastPrint ? el.style.color : '#94a3b8',
+                  whiteSpace: 'nowrap',
+                }"
+              >
+                <template v-if="el.key === 'name'">
+                  {{ lastPrint ? lastPrint.name : '[姓名]' }}
+                </template>
+                <template v-else-if="el.key === 'company'">
+                  {{ lastPrint ? lastPrint.company : '[單位]' }}
+                </template>
+                <template v-else-if="el.key === 'code'">
+                  <img v-if="lastPrint && qrDataUrls[lastPrint.checkInToken]"
+                    :src="qrDataUrls[lastPrint.checkInToken]" width="80" height="80" />
+                  <div v-else style="width:80px;height:80px;background:#1e293b;border-radius:4px;border:1px solid #334155;"></div>
+                </template>
+              </div>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
 
@@ -297,8 +340,49 @@ onUnmounted(() => disconnectWebSocket());
   flex: 1;
   padding: 40px;
   display: flex;
+  gap: 40px;
   align-items: flex-start;
   justify-content: center;
+}
+
+/* 左右分欄 */
+.station-left {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 右側預覽 */
+.station-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-top: 20px;
+}
+
+.preview-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.preview-badge-wrap {
+  /* 放大 1.6 倍顯示，讓識別證在螢幕上看得清楚 */
+  transform: scale(1.6);
+  transform-origin: top center;
+  margin-bottom: calc(60mm * 0.6);
+}
+
+.preview-badge {
+  width: 90mm;
+  height: 60mm;
+  background: white;
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px #334155, 0 20px 60px rgba(0,0,0,0.5);
 }
 
 /* Idle */
