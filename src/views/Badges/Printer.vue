@@ -442,18 +442,25 @@ watch(logoUrl, (val) => {
 
       <!-- 手動列印專用區域 -->
       <div id="printBadges" class="print-only-area">
-        <div v-for="p in selectedParticipants" :key="p.id" class="print-badge">
+        <div
+          v-for="p in selectedParticipants"
+          :key="p.id"
+          class="print-badge"
+          style="position:relative;width:90mm;height:60mm;overflow:hidden;background:white;page-break-after:always;"
+        >
           <img v-if="logoUrl" :src="logoUrl" class="print-logo" style="position:absolute;left:20px;top:20px;height:40px;max-width:120px;z-index:2;" />
           <div
             v-for="el in templateElements"
             :key="el.id"
             class="print-element"
             :style="{
+              position: 'absolute',
               left: el.x + 'px',
               top: el.y + 'px',
               fontSize: el.style.fontSize + 'px',
               fontWeight: el.style.fontWeight,
               color: el.style.color,
+              whiteSpace: 'nowrap',
             }"
           >
             <template v-if="el.key === 'name'">{{ p.name }}</template>
@@ -1164,6 +1171,11 @@ watch(logoUrl, (val) => {
 }
 
 @media print {
+  /* v-print 在獨立 popup 中只含 .print-only-area，需直接顯示 */
+  .print-only-area {
+    display: block !important;
+  }
+
   .badge-printer-view {
     padding: 0;
     background: white;
