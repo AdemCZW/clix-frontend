@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { apiRequest } from '@/utils/api'
+import { parseApiError } from '@/utils/parseApiError'
 
 export const useEventsStore = defineStore('events', () => {
     const events = ref([])
@@ -8,6 +9,11 @@ export const useEventsStore = defineStore('events', () => {
     const storageUserId = ref(null)
     const isLoading = ref(false)
     const error = ref(null)
+
+    // ── 快取 ──────────────────────────────────────────────────────────────
+    const CACHE_TTL = 60_000 // 60 秒
+    const _lastFetched = ref(0)
+    const _lastFetchedKey = ref('')
 
     const getStorageKey = (userId) => (userId ? `current_event__${userId}` : 'current_event')
 
@@ -63,6 +69,8 @@ export const useEventsStore = defineStore('events', () => {
      * 取得活動列表 GET /api/events/
      */
     const fetchEvents = async(options = {}) => {
+        const cacheKey = `${options.userId}_${options.isSuperAdmin}`
+        if (events.value.length > 0 && _lastFetchedKey.value === cacheKey && Date.now() - _lastFetched.value < CACHE_TTL) return
         isLoading.value = true
         error.value = null
         try {
@@ -100,6 +108,8 @@ export const useEventsStore = defineStore('events', () => {
                 list
 
             events.value = filtered.map(mapEvent)
+            _lastFetched.value = Date.now()
+            _lastFetchedKey.value = cacheKey
         } catch (err) {
             error.value = err.message
             throw err
@@ -132,14 +142,7 @@ export const useEventsStore = defineStore('events', () => {
                 method: 'POST',
                 body: toFormData(payload),
             })
-            if (!res.ok) {
-                let msg = `建立活動失敗 (${res.status})`
-                try {
-                    const e = await res.json();
-                    msg = e.detail || JSON.stringify(e)
-                } catch { /* ignore */ }
-                throw new Error(msg)
-            }
+            if (!res.ok) throw new Error(await parseApiError(res, `建立活動失敗 (${res.status})`))
             const created = mapEvent(await res.json())
             events.value.unshift(created)
             return created
@@ -162,14 +165,7 @@ export const useEventsStore = defineStore('events', () => {
                 method: 'PATCH',
                 body: toFormData(payload),
             })
-            if (!res.ok) {
-                let msg = `更新活動失敗 (${res.status})`
-                try {
-                    const e = await res.json();
-                    msg = e.detail || JSON.stringify(e)
-                } catch { /* ignore */ }
-                throw new Error(msg)
-            }
+            if (!res.ok) throw new Error(await parseApiError(res, `更新活動失敗 (${res.status})`))
             const updated = mapEvent(await res.json())
             const idx = events.value.findIndex((e) => e.id === id)
             if (idx > -1) events.value[idx] = updated

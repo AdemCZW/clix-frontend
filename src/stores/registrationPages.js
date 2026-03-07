@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { apiRequest } from '@/utils/api'
+import { parseApiError } from '@/utils/parseApiError'
 
 /**
  * 後端欄位 → 前端 camelCase
@@ -110,13 +111,8 @@ export const useRegistrationPagesStore = defineStore('registrationPages', () => 
                 body: JSON.stringify(payload),
             })
             if (!res.ok) {
-                let msg = `建立報名頁設定失敗 (${res.status})`
-                try {
-                    const e = await res.json();
-                    msg = e.detail || JSON.stringify(e)
-                } catch { /* ignore */ }
-                error.value = msg
-                throw new Error(msg)
+                error.value = await parseApiError(res, `建立報名頁設定失敗 (${res.status})`)
+                throw new Error(error.value)
             }
             currentPage.value = mapPage(await res.json())
             return currentPage.value
@@ -143,13 +139,8 @@ export const useRegistrationPagesStore = defineStore('registrationPages', () => 
                 body,
             })
             if (!res.ok) {
-                let msg = `儲存失敗 (${res.status})`
-                try {
-                    const e = await res.json();
-                    msg = e.detail || JSON.stringify(e)
-                } catch { /* ignore */ }
-                error.value = msg
-                throw new Error(msg)
+                error.value = await parseApiError(res, `儲存失敗 (${res.status})`)
+                throw new Error(error.value)
             }
             currentPage.value = mapPage(await res.json())
             return currentPage.value
@@ -174,13 +165,8 @@ export const useRegistrationPagesStore = defineStore('registrationPages', () => 
                 body: JSON.stringify({}),
             })
             if (!res.ok) {
-                let msg = `發布失敗 (${res.status})`
-                try {
-                    const e = await res.json();
-                    msg = e.detail || JSON.stringify(e)
-                } catch { /* ignore */ }
-                error.value = msg
-                throw new Error(msg)
+                error.value = await parseApiError(res, `發布失敗 (${res.status})`)
+                throw new Error(error.value)
             }
             currentPage.value = mapPage(await res.json())
             return currentPage.value
@@ -205,13 +191,8 @@ export const useRegistrationPagesStore = defineStore('registrationPages', () => 
                 body: JSON.stringify({}),
             })
             if (!res.ok) {
-                let msg = `取消發布失敗 (${res.status})`
-                try {
-                    const e = await res.json();
-                    msg = e.detail || JSON.stringify(e)
-                } catch { /* ignore */ }
-                error.value = msg
-                throw new Error(msg)
+                error.value = await parseApiError(res, `取消發布失敗 (${res.status})`)
+                throw new Error(error.value)
             }
             currentPage.value = mapPage(await res.json())
             return currentPage.value

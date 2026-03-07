@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import vPrint from "vue3-print-nb";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
@@ -112,7 +112,6 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener("mousemove", onDrag);
   window.removeEventListener("mouseup", stopDrag);
-  disconnectWebSocket();
 });
 
 watch(
@@ -166,74 +165,35 @@ const isAllSelected = computed(
     selectedIds.value.length === filteredParticipants.value.length,
 );
 
-// ===== WebSocket 掃描自動列印 =====
-const wsStatus = ref("disconnected"); // disconnected | connecting | connected | error
-const wsCurrentPrint = ref(null);     // 當前 WS 觸發列印的參與者
-const wsPrinting = ref(false);        // 是否正在 WS 列印模式
-const wsLog = ref([]);                // 最近列印紀錄
-let wsInstance = null;
 
-const sessionId = computed(() =>
-  eventsStore.currentEvent?.id ? `print-${eventsStore.currentEvent.id}` : null,
-);
+// ===== 外部列印站台連線測試 =====
+// stationTestStatus: 'idle' | 'testing' | 'online' | 'offline'
+const stationTestStatus = ref({ 1: "idle", 2: "idle", 3: "idle" });
 
-const wsStatusText = computed(() => {
-  const map = { disconnected: "未連線", connecting: "連線中...", connected: "已連線", error: "連線錯誤" };
-  return map[wsStatus.value] || "未知";
-});
+async function testStation(slot) {
+  const eid = eventsStore.currentEvent?.id;
+  if (!eid) return;
+  stationTestStatus.value[slot] = "testing";
 
-function connectWebSocket() {
-  if (!sessionId.value || wsInstance) return;
-  wsStatus.value = "connecting";
+  const stationSession = `print-${eid}-station-${slot}`;
   const wsBase = (import.meta.env.VITE_API_BASE_URL || window.location.origin)
     .replace(/\/$/, "")
     .replace(/^https/, "wss")
     .replace(/^http/, "ws");
   const token = localStorage.getItem("access_token") || "";
   const tokenParam = token ? `?token=${token}` : "";
-  wsInstance = new WebSocket(`${wsBase}/ws/print/${sessionId.value}/${tokenParam}`);
-  wsInstance.onopen = () => { wsStatus.value = "connected"; };
-  wsInstance.onclose = () => { wsStatus.value = "disconnected"; wsInstance = null; };
-  wsInstance.onerror = () => { wsStatus.value = "error"; };
-  wsInstance.onmessage = async ({ data }) => {
-    try {
-      const msg = JSON.parse(data);
-      if (msg.type === "print" && msg.data) {
-        await handleWsPrint(msg.data);
-      }
-    } catch { /* ignore */ }
-  };
-}
 
-function disconnectWebSocket() {
-  wsInstance?.close();
-  wsInstance = null;
-  wsStatus.value = "disconnected";
-}
-
-async function handleWsPrint(raw) {
-  const p = {
-    id: raw.id,
-    name: raw.name || "",
-    company: raw.company || "",
-    title: raw.title || "",
-    checkInToken: raw.check_in_token,
-  };
-  await ensureQr(p.checkInToken);
-  wsCurrentPrint.value = p;
-  wsLog.value.unshift({
-    name: p.name,
-    company: p.company,
-    time: new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-  });
-  if (wsLog.value.length > 8) wsLog.value.pop();
-  wsPrinting.value = true;
-  await nextTick();
-  window.print();
-  setTimeout(() => {
-    wsPrinting.value = false;
-    wsCurrentPrint.value = null;
-  }, 2000);
+  try {
+    await new Promise((resolve, reject) => {
+      const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/${tokenParam}`);
+      const timeout = setTimeout(() => { ws.close(); reject(); }, 5000);
+      ws.onopen = () => { clearTimeout(timeout); ws.close(); resolve(); };
+      ws.onerror = () => { clearTimeout(timeout); reject(); };
+    });
+    stationTestStatus.value[slot] = "online";
+  } catch {
+    stationTestStatus.value[slot] = "offline";
+  }
 }
 
 // ===== 外部列印站台管理 =====
@@ -269,7 +229,7 @@ watch(logoUrl, (val) => {
 </script>
 
 <template>
-  <div class="badge-printer-view" :class="{ 'ws-printing-mode': wsPrinting }" @mousemove="onDrag" @mouseup="stopDrag">
+  <div class="badge-printer-view" @mousemove="onDrag" @mouseup="stopDrag">
     <div class="page-header no-print">
       <div class="header-actions">
         <button
@@ -279,39 +239,6 @@ watch(logoUrl, (val) => {
         >
           確認列印 ({{ selectedIds.length }})
         </button>
-        <label class="logo-upload">
-          <span>上傳 LOGO</span>
-          <input type="file" accept="image/*" @change="handleLogoUpload" style="display:none" />
-        </label>
-        <span v-if="logoUrl" class="logo-preview">
-          <img :src="logoUrl" alt="Logo" style="height:40px;max-width:120px;border-radius:8px;" />
-        </span>
-      </div>
-    </div>
-
-    <!-- WebSocket 掃描自動印票面板 -->
-    <div class="ws-bar no-print" v-if="eventsStore.currentEvent">
-      <div class="ws-left">
-        <div class="ws-status-dot" :class="wsStatus"></div>
-        <span class="ws-label">掃描印票</span>
-        <code class="ws-session-id">{{ sessionId }}</code>
-        <span class="ws-status-text">{{ wsStatusText }}</span>
-      </div>
-      <div class="ws-center">
-        <button
-          v-if="wsStatus === 'disconnected' || wsStatus === 'error'"
-          class="btn-ws-connect"
-          @click="connectWebSocket"
-        >連線</button>
-        <button v-else class="btn-ws-disconnect" @click="disconnectWebSocket">中斷連線</button>
-      </div>
-      <div class="ws-log" v-if="wsLog.length">
-        <span class="ws-log-title">最近列印：</span>
-        <div v-for="(item, i) in wsLog" :key="i" class="ws-log-item">
-          <span class="log-name">{{ item.name }}</span>
-          <span class="log-comp">{{ item.company }}</span>
-          <span class="log-time">{{ item.time }}</span>
-        </div>
       </div>
     </div>
 
@@ -320,9 +247,18 @@ watch(logoUrl, (val) => {
       <div class="mgmt-left">
         <span class="mgmt-title">外部列印站台</span>
         <div class="station-btns">
-          <button v-for="s in [1, 2, 3]" :key="s" class="btn-open-station" @click="openStation(s)">
-            🖨️ 站台 {{ s }}
-          </button>
+          <div v-for="s in [1, 2, 3]" :key="s" class="station-item">
+            <div class="station-test-dot" :class="stationTestStatus[s]"></div>
+            <button class="btn-open-station" @click="openStation(s)">🖨️ 站台 {{ s }}</button>
+            <button
+              class="btn-test-station"
+              :class="stationTestStatus[s]"
+              :disabled="stationTestStatus[s] === 'testing'"
+              @click="testStation(s)"
+            >
+              {{ stationTestStatus[s] === 'testing' ? '測試中...' : stationTestStatus[s] === 'online' ? '✓ 已連線' : stationTestStatus[s] === 'offline' ? '✕ 離線' : '連線測試' }}
+            </button>
+          </div>
         </div>
       </div>
       <div class="mgmt-right" v-if="mobileQrDataUrl">
@@ -372,6 +308,11 @@ watch(logoUrl, (val) => {
           <div class="card-header-flex">
             <h3 class="card-subtitle">範本設計預覽</h3>
             <div style="display:flex;gap:8px;align-items:center;">
+              <label class="logo-upload">
+                <span>{{ logoUrl ? '更換 LOGO' : '上傳 LOGO' }}</span>
+                <input type="file" accept="image/*" @change="handleLogoUpload" style="display:none" />
+              </label>
+              <img v-if="logoUrl" :src="logoUrl" alt="Logo" style="height:28px;max-width:80px;border-radius:6px;object-fit:contain;" />
               <button class="btn-reset-template" @click="resetTemplate">重置排版</button>
               <span class="size-label">60 × 90 mm</span>
             </div>
@@ -478,35 +419,6 @@ watch(logoUrl, (val) => {
       </div>
     </div>
 
-    <!-- WebSocket 自動列印專用區域 -->
-    <div class="ws-print-area">
-      <div v-if="wsCurrentPrint" class="print-badge">
-        <img v-if="logoUrl" :src="logoUrl" class="print-logo" style="position:absolute;left:20px;top:20px;height:40px;max-width:120px;z-index:2;" />
-        <div
-          v-for="el in templateElements"
-          :key="el.id"
-          class="print-element"
-          :style="{
-            left: el.x + 'px',
-            top: el.y + 'px',
-            fontSize: el.style.fontSize + 'px',
-            fontWeight: el.style.fontWeight,
-            color: el.style.color,
-          }"
-        >
-          <template v-if="el.key === 'name'">{{ wsCurrentPrint.name }}</template>
-          <template v-else-if="el.key === 'company'">{{ wsCurrentPrint.company }}</template>
-          <template v-else-if="el.key === 'code'">
-            <img
-              v-if="qrDataUrls[wsCurrentPrint.checkInToken]"
-              :src="qrDataUrls[wsCurrentPrint.checkInToken]"
-              width="80"
-              height="80"
-            />
-          </template>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -610,6 +522,20 @@ watch(logoUrl, (val) => {
     border-radius: 6px;
     border: 1px solid #e2e8f0;
   }
+}
+
+.logo-upload {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  white-space: nowrap;
+  &:hover { border-color: #3b82f6; color: #2563eb; background: #eff6ff; }
 }
 
 .btn-reset-template {
@@ -991,6 +917,45 @@ watch(logoUrl, (val) => {
     .station-btns {
       display: flex;
       gap: 10px;
+      flex-wrap: wrap;
+
+      .station-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 6px 10px 6px 8px;
+      }
+
+      .station-test-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: #cbd5e1;
+        transition: background 0.3s;
+        &.testing  { background: #f59e0b; animation: ws-pulse 1s infinite; }
+        &.online   { background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.5); }
+        &.offline  { background: #ef4444; }
+      }
+
+      .btn-test-station {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.78rem;
+        cursor: pointer;
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: #64748b;
+        transition: all 0.2s;
+        &:hover:not(:disabled) { border-color: #3b82f6; color: #2563eb; }
+        &:disabled { opacity: 0.6; cursor: default; }
+        &.online  { border-color: #bbf7d0; color: #16a34a; background: #f0fdf4; }
+        &.offline { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
+      }
 
       .btn-open-station {
         padding: 8px 20px;
@@ -1038,135 +1003,14 @@ watch(logoUrl, (val) => {
   }
 }
 
-/* WebSocket 掃描印票面板 */
-.ws-bar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 12px 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  flex-wrap: wrap;
-
-  .ws-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
-
-    .ws-status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      transition: background 0.3s;
-
-      &.connected {
-        background: #22c55e;
-        box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
-      }
-      &.connecting {
-        background: #f59e0b;
-        animation: ws-pulse 1s infinite;
-      }
-      &.disconnected { background: #94a3b8; }
-      &.error { background: #ef4444; }
-    }
-
-    .ws-label {
-      font-weight: 700;
-      color: #0f172a;
-      font-size: 0.9rem;
-    }
-
-    .ws-session-id {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 3px 10px;
-      font-size: 0.8rem;
-      color: #475569;
-      font-family: monospace;
-      letter-spacing: 0.5px;
-    }
-
-    .ws-status-text {
-      font-size: 0.8rem;
-      color: #64748b;
-    }
-  }
-
-  .ws-center {
-    .btn-ws-connect {
-      padding: 8px 20px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.875rem;
-      cursor: pointer;
-      border: none;
-      background: #22c55e;
-      color: white;
-      transition: all 0.2s;
-
-      &:hover { background: #16a34a; }
-    }
-
-    .btn-ws-disconnect {
-      padding: 8px 20px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.875rem;
-      cursor: pointer;
-      background: white;
-      color: #ef4444;
-      border: 1px solid #ef4444;
-      transition: all 0.2s;
-
-      &:hover { background: #fef2f2; }
-    }
-  }
-
-  .ws-log {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-
-    .ws-log-title {
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: #94a3b8;
-      white-space: nowrap;
-    }
-
-    .ws-log-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 3px 10px;
-      font-size: 0.78rem;
-
-      .log-name { font-weight: 700; color: #0f172a; }
-      .log-comp { color: #64748b; }
-      .log-time { color: #94a3b8; font-family: monospace; margin-left: 4px; }
-    }
-  }
-}
 
 @keyframes ws-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
 
-/* 列印專用區域 / WS 列印區 - 平時隱藏 */
-.print-only-area,
-.ws-print-area {
+/* 列印專用區域 - 平時隱藏 */
+.print-only-area {
   display: none;
 }
 
@@ -1179,40 +1023,12 @@ watch(logoUrl, (val) => {
   .badge-printer-view {
     padding: 0;
     background: white;
-  }
 
-  /* 手動列印模式（預設）：顯示 print-only-area，隱藏 ws-print-area */
-  .badge-printer-view:not(.ws-printing-mode) {
     .page-header,
-    .ws-bar,
     .selection-panel,
     .design-canvas-area,
     .main-layout {
       display: none !important;
-    }
-
-    .print-only-area {
-      display: block !important;
-    }
-
-    .ws-print-area {
-      display: none !important;
-    }
-  }
-
-  /* WebSocket 自動列印模式：顯示 ws-print-area，隱藏其餘 */
-  .badge-printer-view.ws-printing-mode {
-    .page-header,
-    .ws-bar,
-    .selection-panel,
-    .design-canvas-area,
-    .main-layout,
-    .print-only-area {
-      display: none !important;
-    }
-
-    .ws-print-area {
-      display: block !important;
     }
   }
 

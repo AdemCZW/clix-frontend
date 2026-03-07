@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { apiRequest, API_BASE_URL } from '@/utils/api'
+import { parseApiError } from '@/utils/parseApiError'
 
 function mapParticipant(p) {
     return {
@@ -29,7 +30,16 @@ export const useParticipantsStore = defineStore('participants', () => {
     const error = ref(null)
     const selectedVIPs = ref([])
 
+    // ── 快取 ──────────────────────────────────────────────────────────────
+    const CACHE_TTL = 30_000 // 30 秒
+    const _lastFetched = ref(0)
+    const _lastFetchedKey = ref('')
+
     async function fetchParticipants(params = {}) {
+        const cacheKey = params.event ? String(params.event) : ''
+        if (participants.value.length > 0 && _lastFetchedKey.value === cacheKey && Date.now() - _lastFetched.value < CACHE_TTL) {
+            return participants.value
+        }
         loading.value = true
         error.value = null
         try {
@@ -39,6 +49,8 @@ export const useParticipantsStore = defineStore('participants', () => {
             if (!res.ok) throw new Error(`取得參與者列表失敗 (${res.status})`)
             const data = await res.json()
             participants.value = (data.results || data).map(mapParticipant)
+            _lastFetched.value = Date.now()
+            _lastFetchedKey.value = cacheKey
             return participants.value
         } catch (err) {
             error.value = err.message
@@ -56,12 +68,7 @@ export const useParticipantsStore = defineStore('participants', () => {
                 method: 'POST',
                 body: JSON.stringify(data),
             })
-            if (!res.ok) {
-                let msg = `新增失敗 (${res.status})`
-                try { const e = await res.json();
-                    msg = e.detail || JSON.stringify(e) } catch { /* ignore */ }
-                throw new Error(msg)
-            }
+            if (!res.ok) throw new Error(await parseApiError(res, `新增失敗 (${res.status})`))
             const p = mapParticipant(await res.json())
             participants.value.unshift(p)
             return p
@@ -81,12 +88,7 @@ export const useParticipantsStore = defineStore('participants', () => {
                 method: 'PATCH',
                 body: JSON.stringify(data),
             })
-            if (!res.ok) {
-                let msg = `更新失敗 (${res.status})`
-                try { const e = await res.json();
-                    msg = e.detail || JSON.stringify(e) } catch { /* ignore */ }
-                throw new Error(msg)
-            }
+            if (!res.ok) throw new Error(await parseApiError(res, `更新失敗 (${res.status})`))
             const updated = mapParticipant(await res.json())
             const idx = participants.value.findIndex(p => p.id === id)
             if (idx !== -1) participants.value[idx] = updated
@@ -122,12 +124,7 @@ export const useParticipantsStore = defineStore('participants', () => {
                 method: 'POST',
                 body: JSON.stringify({ token }),
             })
-            if (!res.ok) {
-                let msg = `報到失敗 (${res.status})`
-                try { const e = await res.json();
-                    msg = e.detail || e.message || JSON.stringify(e) } catch { /* ignore */ }
-                throw new Error(msg)
-            }
+            if (!res.ok) throw new Error(await parseApiError(res, `報到失敗 (${res.status})`))
             const data = await res.json()
             const updated = mapParticipant(data.participant)
             const idx = participants.value.findIndex(p => p.id === updated.id)
@@ -189,8 +186,12 @@ export const useParticipantsStore = defineStore('participants', () => {
 
     function clearError() { error.value = null }
 
-    function clear() { participants.value = [];
-        error.value = null }
+    function clear() {
+        participants.value = []
+        error.value = null
+        _lastFetched.value = 0
+        _lastFetchedKey.value = ''
+    }
 
     return {
         participants,

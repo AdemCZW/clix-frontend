@@ -67,6 +67,7 @@ function connectWebSocket() {
     try {
       const msg = JSON.parse(data);
       if (msg.type === "print" && msg.data) await handleWsPrint(msg.data);
+      else if (msg.type === "ping") wsInstance?.send(JSON.stringify({ type: "pong" }));
     } catch { /* ignore */ }
   };
 }

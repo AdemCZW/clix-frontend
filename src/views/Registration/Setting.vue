@@ -26,14 +26,14 @@ const pageId = ref(null);
 const saving = ref(false);
 const loading = ref(false);
 
-// 合併兩個來源的特邀貴賓資料
+// 合併兩個來源的特邀貴賓資料（Set 去重，O(n)）
 const allSelectedGuests = computed(() => {
-  const fromGuestsPage = guestsStore.selectedGuests;
-  const fromParticipantsPage = participantsStore.selectedVIPs;
-  const combined = [...fromGuestsPage, ...fromParticipantsPage];
-  return combined.filter(
-    (guest, index, self) => index === self.findIndex((g) => g.id === guest.id),
-  );
+  const seen = new Set();
+  return [...guestsStore.selectedGuests, ...participantsStore.selectedVIPs].filter((g) => {
+    if (seen.has(g.id)) return false;
+    seen.add(g.id);
+    return true;
+  });
 });
 
 // 表單資料（對應報名頁設定欄位）

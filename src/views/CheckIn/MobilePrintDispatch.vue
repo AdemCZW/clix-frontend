@@ -115,18 +115,59 @@ const sendToStation = async (slot) => {
     .replace(/^https/, "wss")
     .replace(/^http/, "ws");
 
+  // 快照資料，避免後續掃描覆蓋
+  const participantSnapshot = { ...currentParticipant.value };
+
   try {
     await new Promise((resolve, reject) => {
       const token = localStorage.getItem("access_token") || "";
       const tokenParam = token ? `?token=${token}` : "";
       const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/${tokenParam}`);
-      const timeout = setTimeout(() => { ws.close(); reject(new Error("連線超時（5秒）")); }, 5000);
-      ws.onopen = () => {
-        clearTimeout(timeout);
-        ws.send(JSON.stringify({ type: "print", data: currentParticipant.value }));
-        setTimeout(() => { ws.close(); resolve(); }, 400);
+
+      let settled = false;
+      let connectTimeout = null;
+      let ackTimeout = null;
+
+      // 唯一的 settle 入口，防止重複 resolve/reject
+      const settle = (ok, err) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(connectTimeout);
+        clearTimeout(ackTimeout);
+        try { ws.close(); } catch { /* ignore */ }
+        ok ? resolve() : reject(err);
       };
-      ws.onerror = () => { clearTimeout(timeout); reject(new Error(`無法連接站台 ${slot}`)); };
+
+      // 連線超時 5 秒
+      connectTimeout = setTimeout(
+        () => settle(false, new Error("連線超時（5秒）")),
+        5000
+      );
+
+      ws.onopen = () => {
+        clearTimeout(connectTimeout);
+        ws.send(JSON.stringify({ type: "print", data: participantSnapshot }));
+        // 等待後端 ACK 確認（最多 6 秒）
+        // 若後端不回 ACK（舊版相容），逾時後降級視為成功
+        ackTimeout = setTimeout(() => settle(true), 6000);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          // 後端回傳任一確認訊號，立即標記成功
+          if (["ack", "print_queued", "print_received", "ok"].includes(msg.type)) {
+            settle(true);
+          }
+        } catch { /* 忽略非 JSON 訊息 */ }
+      };
+
+      ws.onerror = () => settle(false, new Error(`無法連接站台 ${slot}`));
+
+      ws.onclose = () => {
+        // 若後端主動關閉連線（已接收訊息），視為成功
+        if (!settled) settle(true);
+      };
     });
     phase.value = "sent";
   } catch (err) {

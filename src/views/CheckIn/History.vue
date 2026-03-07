@@ -12,10 +12,10 @@ const showModal = ref(false);
 const searchName = ref("");
 
 // 篩選條件
-const filterMethod = ref("all"); // all, QR Scan, Manual
 const filterType = ref("all"); // all, VIP, 一般民眾
 const filterName = ref("");
-const filterDate = ref(""); // 多天活動日期篩選
+const filterDateFrom = ref(""); // 日期區間起始
+const filterDateTo = ref("");   // 日期區間結束
 
 // 隨活動切換載入報到資料
 watch(
@@ -103,14 +103,21 @@ const allCheckInLogs = computed(() =>
 const logs = computed(() => {
   let filtered = [...allCheckInLogs.value];
 
-  // 按日期篩選（多天活動）
-  if (filterDate.value) {
-    filtered = filtered.filter((log) => log.dateStr === filterDate.value);
+  // 按 tab 篩選報到方式
+  if (activeTab.value === "qr") {
+    filtered = filtered.filter((log) => log.method === "QR Scan");
+  } else if (activeTab.value === "manual") {
+    filtered = filtered.filter((log) => log.method === "Manual");
   }
 
-  // 按報到方式篩選
-  if (filterMethod.value !== "all") {
-    filtered = filtered.filter((log) => log.method === filterMethod.value);
+  // 按日期區間篩選
+  if (filterDateFrom.value || filterDateTo.value) {
+    filtered = filtered.filter((log) => {
+      if (!log.dateStr) return false;
+      if (filterDateFrom.value && log.dateStr < filterDateFrom.value) return false;
+      if (filterDateTo.value && log.dateStr > filterDateTo.value) return false;
+      return true;
+    });
   }
 
   // 按身份類型篩選
@@ -158,14 +165,29 @@ const processCheckIn = async (person, method) => {
   }
 };
 
-const simulateQRScan = () => {
-  const pendingOnes = participantsStore.participants.filter((p) => p.status !== "已報到");
-  if (pendingOnes.length === 0) {
-    warning("名單已全部報到");
-    return;
+// ===== 右側 tab（QR / 手動）=====
+const activeTab = ref("all"); // 'all' | 'qr' | 'manual'
+
+// ===== 取消報到 =====
+const cancelTarget = ref(null);
+const showCancelDialog = ref(false);
+
+const askCancelCheckIn = (log) => {
+  cancelTarget.value = log;
+  showCancelDialog.value = true;
+};
+
+const confirmCancel = async () => {
+  if (!cancelTarget.value) return;
+  try {
+    await participantsStore.checkOut(cancelTarget.value.id);
+    success(`已取消 ${cancelTarget.value.name} 的報到`);
+  } catch {
+    warning("取消報到失敗，請重試");
+  } finally {
+    showCancelDialog.value = false;
+    cancelTarget.value = null;
   }
-  const luckyGuest = pendingOnes[Math.floor(Math.random() * pendingOnes.length)];
-  processCheckIn(luckyGuest, "QR Scan");
 };
 </script>
 
@@ -182,13 +204,26 @@ const simulateQRScan = () => {
             <span class="date-text">{{ eventDateDisplay }}</span>
           </div>
 
-          <!-- 日期篩選（多天活動才顯示） -->
+          <!-- 日期區間篩選（多天活動才顯示） -->
           <div v-if="isMultiDayEvent" class="date-filter-row">
             <label class="date-filter-label">篩選日期</label>
-            <select v-model="filterDate" class="date-filter-select">
-              <option value="">全部日期</option>
-              <option v-for="d in eventDateOptions" :key="d" :value="d">{{ d }}</option>
-            </select>
+            <div class="date-range-inputs">
+              <input
+                type="date"
+                v-model="filterDateFrom"
+                class="date-filter-input"
+                :min="eventDateOptions[0]"
+                :max="filterDateTo || eventDateOptions[eventDateOptions.length - 1]"
+              />
+              <span class="date-range-sep">～</span>
+              <input
+                type="date"
+                v-model="filterDateTo"
+                class="date-filter-input"
+                :min="filterDateFrom || eventDateOptions[0]"
+                :max="eventDateOptions[eventDateOptions.length - 1]"
+              />
+            </div>
           </div>
 
           <!-- 圓形進度環 -->
@@ -229,7 +264,6 @@ const simulateQRScan = () => {
 
         <!-- 操作按鈕區 -->
         <div class="action-section">
-          <button class="btn-primary btn-full" @click="simulateQRScan">模擬 QR 掃描</button>
           <button class="btn-secondary btn-full" @click="showModal = true">手動報到補錄</button>
         </div>
 
@@ -282,7 +316,15 @@ const simulateQRScan = () => {
         <div class="tech-card logs-container">
           <div class="card-header">
             <h3 class="subtitle">即時報到紀錄</h3>
-            <span class="record-count">共 {{ logs.length }} 筆</span>
+            <div class="header-right">
+              <!-- Tab 切換 -->
+              <div class="method-tabs">
+                <button :class="['tab-btn', activeTab === 'all' ? 'active' : '']" @click="activeTab = 'all'">全部</button>
+                <button :class="['tab-btn', activeTab === 'qr' ? 'active' : '']" @click="activeTab = 'qr'">QR 掃描</button>
+                <button :class="['tab-btn', activeTab === 'manual' ? 'active' : '']" @click="activeTab = 'manual'">手動補錄</button>
+              </div>
+              <span class="record-count">共 {{ logs.length }} 筆</span>
+            </div>
           </div>
 
           <!-- 篩選控制區 -->
@@ -291,15 +333,6 @@ const simulateQRScan = () => {
               <div class="filter-group">
                 <label class="filter-label">搜尋姓名</label>
                 <input v-model="filterName" class="filter-input" placeholder="輸入姓名..." />
-              </div>
-
-              <div class="filter-group">
-                <label class="filter-label">報到方式</label>
-                <select v-model="filterMethod" class="filter-select">
-                  <option value="all">全部</option>
-                  <option value="QR Scan">QR 掃描</option>
-                  <option value="Manual">手動補錄</option>
-                </select>
               </div>
 
               <div class="filter-group">
@@ -314,12 +347,13 @@ const simulateQRScan = () => {
               <button
                 class="filter-reset-btn"
                 @click="
-                  filterMethod = 'all';
+                  activeTab = 'all';
                   filterType = 'all';
                   filterName = '';
-                  filterDate = '';
+                  filterDateFrom = '';
+                  filterDateTo = '';
                 "
-                :disabled="filterMethod === 'all' && filterType === 'all' && !filterName && !filterDate"
+                :disabled="activeTab === 'all' && filterType === 'all' && !filterName && !filterDateFrom && !filterDateTo"
               >
                 清除篩選
               </button>
@@ -351,6 +385,7 @@ const simulateQRScan = () => {
                   >
                     {{ log.method === "QR Scan" ? "QR 掃描" : "手動補錄" }}
                   </span>
+                  <button class="btn-cancel-checkin" @click="askCancelCheckIn(log)">取消報到</button>
                 </div>
               </div>
             </transition-group>
@@ -359,6 +394,23 @@ const simulateQRScan = () => {
         </div>
       </div>
     </div>
+
+    <!-- 取消報到確認 Dialog -->
+    <Teleport to="body">
+      <div v-if="showCancelDialog" class="dialog-overlay" @click.self="showCancelDialog = false">
+        <div class="dialog-box">
+          <div class="dialog-icon">⚠️</div>
+          <h3 class="dialog-title">確認取消報到？</h3>
+          <p class="dialog-msg">
+            即將取消 <strong>{{ cancelTarget?.name }}</strong> 的報到紀錄，此操作將把狀態還原為「未報到」。
+          </p>
+          <div class="dialog-actions">
+            <button class="dialog-btn cancel" @click="showCancelDialog = false">返回</button>
+            <button class="dialog-btn confirm" @click="confirmCancel">確認取消</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -427,15 +479,29 @@ const simulateQRScan = () => {
       white-space: nowrap;
     }
 
-    .date-filter-select {
+    .date-range-inputs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       flex: 1;
-      padding: 7px 10px;
+    }
+
+    .date-range-sep {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      flex-shrink: 0;
+    }
+
+    .date-filter-input {
+      flex: 1;
+      padding: 6px 8px;
       border: 1.5px solid #e2e8f0;
       border-radius: 8px;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       outline: none;
       background: white;
       cursor: pointer;
+      min-width: 0;
 
       &:focus {
         border-color: #0ea5e9;
@@ -639,7 +705,7 @@ const simulateQRScan = () => {
     flex-direction: column;
 
     .card-header {
-      padding: 20px 24px;
+      padding: 16px 24px;
       border-bottom: 1px solid #f1f5f9;
       flex-shrink: 0;
       display: flex;
@@ -653,6 +719,41 @@ const simulateQRScan = () => {
         color: #0f172a;
       }
 
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .method-tabs {
+        display: flex;
+        gap: 4px;
+        background: #f1f5f9;
+        border-radius: 8px;
+        padding: 3px;
+
+        .tab-btn {
+          padding: 5px 14px;
+          border-radius: 6px;
+          border: none;
+          background: transparent;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #64748b;
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+
+          &.active {
+            background: white;
+            color: #0f172a;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+          }
+
+          &:hover:not(.active) { color: #334155; }
+        }
+      }
+
       .record-count {
         font-size: 0.85rem;
         color: #64748b;
@@ -661,6 +762,7 @@ const simulateQRScan = () => {
         padding: 4px 12px;
         border-radius: 6px;
         border: 1px solid #e2e8f0;
+        white-space: nowrap;
       }
     }
 
@@ -672,7 +774,7 @@ const simulateQRScan = () => {
 
       .filter-row {
         display: grid;
-        grid-template-columns: 1fr 180px 180px auto;
+        grid-template-columns: 1fr 180px auto;
         gap: 12px;
         align-items: end;
       }
@@ -905,6 +1007,27 @@ const simulateQRScan = () => {
 
   .log-right {
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .btn-cancel-checkin {
+      padding: 5px 12px;
+      border-radius: 7px;
+      border: 1px solid #fecaca;
+      background: #fff1f2;
+      color: #ef4444;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+
+      &:hover {
+        background: #fee2e2;
+        border-color: #fca5a5;
+      }
+    }
 
     .log-method {
       display: inline-block;
@@ -1034,6 +1157,84 @@ const simulateQRScan = () => {
     color: #cbd5e1;
     font-weight: 600;
   }
+}
+
+/* 取消報到 Dialog */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.dialog-box {
+  background: white;
+  border-radius: 20px;
+  padding: 36px 32px 28px;
+  width: 380px;
+  max-width: 90vw;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  animation: dialogPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  .dialog-icon {
+    font-size: 2.8rem;
+    margin-bottom: 12px;
+  }
+
+  .dialog-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 12px;
+  }
+
+  .dialog-msg {
+    font-size: 0.9rem;
+    color: #64748b;
+    line-height: 1.6;
+    margin: 0 0 24px;
+
+    strong { color: #0f172a; }
+  }
+
+  .dialog-actions {
+    display: flex;
+    gap: 10px;
+
+    .dialog-btn {
+      flex: 1;
+      padding: 11px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+
+      &.cancel {
+        background: #f1f5f9;
+        color: #475569;
+        &:hover { background: #e2e8f0; }
+      }
+
+      &.confirm {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+        &:hover { box-shadow: 0 6px 16px rgba(239,68,68,0.4); transform: translateY(-1px); }
+      }
+    }
+  }
+}
+
+@keyframes dialogPop {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 /* 動畫效果 */

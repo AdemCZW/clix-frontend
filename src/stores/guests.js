@@ -1,6 +1,7 @@
 import { ref, computed, reactive } from 'vue'
 import { defineStore } from 'pinia'
 import { apiRequest } from '@/utils/api'
+import { parseApiError } from '@/utils/parseApiError'
 
 export const useGuestsStore = defineStore('guests', () => {
 
@@ -9,10 +10,16 @@ export const useGuestsStore = defineStore('guests', () => {
     const isLoading = ref(false)
     const error = ref(null)
 
+    // ── 快取 ──────────────────────────────────────────────────────────────
+    const CACHE_TTL = 30_000 // 30 秒
+    const _lastFetched = ref(0)
+    const _lastFetchedEventId = ref(null)
+
     /**
      * 取得活動貴賓 GET /api/guests/?event={eventId}
      */
     const fetchGuests = async(eventId) => {
+        if (guests.length > 0 && _lastFetchedEventId.value === eventId && Date.now() - _lastFetched.value < CACHE_TTL) return
         isLoading.value = true
         error.value = null
         try {
@@ -21,6 +28,8 @@ export const useGuestsStore = defineStore('guests', () => {
             const data = await res.json()
             guests.splice(0, guests.length)
             guests.push(...(data.results || data))
+            _lastFetched.value = Date.now()
+            _lastFetchedEventId.value = eventId
         } catch (err) {
             error.value = err.message
             throw err
@@ -40,10 +49,7 @@ export const useGuestsStore = defineStore('guests', () => {
                 method: 'POST',
                 body: JSON.stringify(payload),
             })
-            if (!res.ok) {
-                const errData = await res.json()
-                throw new Error(errData.detail || JSON.stringify(errData))
-            }
+            if (!res.ok) throw new Error(await parseApiError(res, '新增貴賓失敗'))
             const newGuest = await res.json()
             guests.push(newGuest)
             return newGuest
