@@ -183,7 +183,7 @@ const handleImport = async (e) => {
     }));
 
     try {
-      const result = await participantsStore.importParticipants(sanitizedData);
+      const result = await participantsStore.importParticipants(sanitizedData, eventsStore.currentEvent?.id);
 
       // 根據匯入模式顯示不同訊息
       if (result.mode === "bulk") {
@@ -840,92 +840,6 @@ const toggleVIP = (participant) => {
 .dropdown-fade-leave-to {
   opacity: 0;
   transform: translateY(-10px);
-}
-
-/* 標籤導航 - 資料夾標籤頁樣式 */
-.tab-navigation {
-  display: flex;
-  gap: 4px;
-  padding: 12px 12px 0 12px;
-  background: transparent;
-}
-
-.tab-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-bottom: none;
-  border-radius: 12px 12px 0 0;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #64748b;
-  position: relative;
-  margin-bottom: -1px;
-
-  &::before {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: #f1f5f9;
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-
-  .tab-icon {
-    font-size: 1.1rem;
-  }
-
-  .tab-label {
-    font-size: 0.95rem;
-  }
-
-  .tab-count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 22px;
-    height: 22px;
-    padding: 0 7px;
-    background: #cbd5e1;
-    color: #64748b;
-    border-radius: 11px;
-    font-size: 0.7rem;
-    font-weight: 700;
-  }
-
-  &:hover:not(.active) {
-    background: #e2e8f0;
-    color: #475569;
-    transform: translateY(-2px);
-  }
-
-  &.active {
-    background: white;
-    color: #667eea;
-    border-color: #e2e8f0;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
-    z-index: 1;
-
-    &::before {
-      opacity: 1;
-      background: white;
-    }
-
-    .tab-count {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
-    }
-  }
 }
 
 /* 標籤導航 - 資料夾標籤頁樣式 */

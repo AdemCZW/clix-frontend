@@ -105,12 +105,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import * as XLSX from "xlsx";
 import { useAdminAccountsStore } from "@/stores/adminAccounts";
+import { useParticipantsStore } from "@/stores/participants";
 import { storeToRefs } from "pinia";
 
 const adminStore = useAdminAccountsStore();
+const participantsStore = useParticipantsStore();
 const { adminAccounts } = storeToRefs(adminStore);
 
 const searchKeyword = ref("");
@@ -118,8 +120,37 @@ const selectedManager = ref("");
 const selectedEvent = ref("");
 const expandedEvents = ref([]);
 
-// 活動資料（從 API 載入）
+// 活動資料（從全部參與者資料重建）
 const events = ref([]);
+
+onMounted(async () => {
+  // 確保管理者列表已載入
+  if (!adminAccounts.value.length) {
+    await adminStore.fetchManagers();
+  }
+
+  // 拉取全部參與者（不限活動），並重建成以活動為單位的資料結構
+  const all = await participantsStore.fetchParticipants({});
+  const eventMap = {};
+  all.forEach((p) => {
+    if (!p.eventId) return;
+    if (!eventMap[p.eventId]) {
+      eventMap[p.eventId] = {
+        id: p.eventId,
+        name: p.eventName || `活動 #${p.eventId}`,
+        date: "",
+        managerId: p.managerId,
+        participants: [],
+      };
+    }
+    eventMap[p.eventId].participants.push({
+      ...p,
+      checkedIn: p.status === "已報到",
+      registeredAt: p.createdAt,
+    });
+  });
+  events.value = Object.values(eventMap);
+});
 
 // 根據選擇的管理者篩選活動
 const filteredEvents = computed(() => {
@@ -169,22 +200,6 @@ const groupedData = computed(() => {
   }
 
   return result;
-});
-
-// 總參與人數
-const totalParticipants = computed(() => {
-  return groupedData.value.reduce((sum, org) => sum + org.totalParticipants, 0);
-});
-
-// 已報到人數
-const checkedInCount = computed(() => {
-  let count = 0;
-  groupedData.value.forEach((org) => {
-    org.events.forEach((event) => {
-      count += event.participants.filter((p) => p.checkedIn).length;
-    });
-  });
-  return count;
 });
 
 // 篩選參與者（搜尋關鍵字）

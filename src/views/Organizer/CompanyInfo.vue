@@ -124,10 +124,15 @@
 </template>
 
 <script setup>
-import { reactive } from "vue";
+import { reactive, ref, onMounted } from "vue";
 import { useToast } from "@/composables/useToast";
+import { apiRequest } from "@/utils/api";
+import { parseApiError } from "@/utils/parseApiError";
 
-const { success } = useToast();
+const { success, error: toastError } = useToast();
+
+const loading = ref(false);
+const saving = ref(false);
 
 const companyInfo = reactive({
   name: "",
@@ -143,10 +148,61 @@ const companyInfo = reactive({
   description: "",
 });
 
-const saveCompanyInfo = () => {
-  console.log("保存主辦單位資訊:", companyInfo);
-  // 這裡可以添加 API 呼叫
-  success("主辦單位資訊已儲存！");
+// 後端 snake_case → 前端 camelCase
+const mapFromApi = (data) => {
+  companyInfo.name         = data.name          ?? "";
+  companyInfo.taxId        = data.tax_id        ?? "";
+  companyInfo.phone        = data.phone         ?? "";
+  companyInfo.email        = data.email         ?? "";
+  companyInfo.address      = data.address       ?? "";
+  companyInfo.website      = data.website       ?? "";
+  companyInfo.contactName  = data.contact_name  ?? "";
+  companyInfo.contactTitle = data.contact_title ?? "";
+  companyInfo.contactPhone = data.contact_phone ?? "";
+  companyInfo.contactEmail = data.contact_email ?? "";
+  companyInfo.description  = data.description   ?? "";
+};
+
+onMounted(async () => {
+  loading.value = true;
+  try {
+    const res = await apiRequest("/api/organizer-info/");
+    if (!res.ok) throw new Error(await parseApiError(res, "載入主辦單位資訊失敗"));
+    mapFromApi(await res.json());
+  } catch (err) {
+    toastError(err.message || "載入失敗");
+  } finally {
+    loading.value = false;
+  }
+});
+
+const saveCompanyInfo = async () => {
+  saving.value = true;
+  try {
+    const res = await apiRequest("/api/organizer-info/", {
+      method: "PATCH",
+      body: JSON.stringify({
+        name:          companyInfo.name,
+        tax_id:        companyInfo.taxId,
+        phone:         companyInfo.phone,
+        email:         companyInfo.email,
+        address:       companyInfo.address,
+        website:       companyInfo.website,
+        contact_name:  companyInfo.contactName,
+        contact_title: companyInfo.contactTitle,
+        contact_phone: companyInfo.contactPhone,
+        contact_email: companyInfo.contactEmail,
+        description:   companyInfo.description,
+      }),
+    });
+    if (!res.ok) throw new Error(await parseApiError(res, "儲存失敗"));
+    mapFromApi(await res.json());
+    success("主辦單位資訊已儲存！");
+  } catch (err) {
+    toastError(err.message || "儲存失敗，請稍後再試");
+  } finally {
+    saving.value = false;
+  }
 };
 </script>
 

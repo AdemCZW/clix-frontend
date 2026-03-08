@@ -184,6 +184,27 @@ export const useParticipantsStore = defineStore('participants', () => {
         return res.json()
     }
 
+    async function importParticipants(data, eventId) {
+        loading.value = true
+        error.value = null
+        try {
+            const res = await apiRequest('/api/participants/bulk_import/', {
+                method: 'POST',
+                body: JSON.stringify({ event: eventId, participants: data }),
+            })
+            if (!res.ok) throw new Error(await parseApiError(res, `批量匯入失敗 (${res.status})`))
+            const result = await res.json()
+            // 匯入成功後清除快取，下次拉取最新資料
+            _lastFetched.value = 0
+            return result
+        } catch (err) {
+            error.value = err.message
+            throw err
+        } finally {
+            loading.value = false
+        }
+    }
+
     function clearError() { error.value = null }
 
     function clear() {
@@ -207,6 +228,7 @@ export const useParticipantsStore = defineStore('participants', () => {
         checkOut,
         regenerateQr,
         fetchStatistics,
+        importParticipants,
         clearError,
         clear,
     }
