@@ -1,14 +1,27 @@
 <script setup>
-import { reactive, ref, computed, watch } from "vue";
+import { reactive, ref, computed, watch, onMounted } from "vue";
 import draggable from "vuedraggable";
+import { useParticipantsStore } from "@/stores/participants";
+import { useEventsStore } from "@/stores/events";
+
+const participantsStore = useParticipantsStore();
+const eventsStore = useEventsStore();
 
 // 當前專案和活動資訊
-const currentProject = ref("2026 數位轉型高峰會");
-const currentActivity = ref("高峰論壇");
+const currentProject = computed(() => eventsStore.currentEvent?.name || "—");
+const currentActivity = computed(() => eventsStore.currentEvent?.name || "—");
 const currentActivityId = ref("act_01");
 
-// 賓客名單（從 API 或其他來源載入）
-const allParticipants = [];
+// 賓客名單（從 store 載入）
+const allParticipants = computed(() =>
+  participantsStore.participants.map((p, i) => ({
+    id: p.id,
+    serial: String(i + 1).padStart(3, "0"),
+    name: p.name,
+    company: p.company || "",
+    type: p.type || "一般民眾",
+  })),
+);
 
 // 設定初始行列數 (Row 為排，Col 為每排幾人)
 const layout = reactive({ rows: 3, cols: 5 });
@@ -48,13 +61,13 @@ const unassignedList = ref([]);
 const updateUnassignedList = () => {
   const currentSeats = activitySeats[currentActivityId.value];
   const seatedIds = currentSeats.filter((s) => s.attendee.length > 0).map((s) => s.attendee[0].id);
-  unassignedList.value = allParticipants.filter((p) => !seatedIds.includes(p.id));
+  unassignedList.value = allParticipants.value.filter((p) => !seatedIds.includes(p.id));
 };
 
 // 分離貴賓和一般民眾
 const vipList = computed(() => unassignedList.value.filter((p) => p.type === "VIP"));
 const attendeeList = computed(() =>
-  unassignedList.value.filter((p) => p.type === "Attendee" || p.type === "Staff"),
+  unassignedList.value.filter((p) => p.type !== "VIP"),
 );
 
 // 切換顯示類型
@@ -64,6 +77,15 @@ const currentGuestList = computed(() => {
 });
 
 watch(currentActivityId, () => updateUnassignedList(), { immediate: true });
+watch(allParticipants, () => updateUnassignedList());
+
+onMounted(async () => {
+  const event = eventsStore.currentEvent;
+  if (event?.id) {
+    await participantsStore.fetchParticipants({ event: event.id });
+    updateUnassignedList();
+  }
+});
 
 // 換位歷史紀錄
 const swapHistory = ref([]);

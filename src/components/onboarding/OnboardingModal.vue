@@ -229,6 +229,7 @@
             <template v-if="mode === 'select' && !showCreateForm">
               <button
                 class="btn-primary"
+                style="margin-left: auto"
                 :disabled="!canProceed"
                 @click="complete"
               >

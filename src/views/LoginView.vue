@@ -29,13 +29,18 @@ const handleLogin = async () => {
     if (result.success) {
       success("登入成功！");
       localStorage.removeItem("current_event");
-      router.push("/admin/dashboard");
+      const redirect = router.currentRoute.value.query.redirect;
+      router.push(redirect || "/admin/dashboard");
     }
   } catch (err) {
     error(err.message || "登入失敗，請檢查您的帳號密碼");
   } finally {
     loading.value = false;
   }
+};
+
+const goToScanner = () => {
+  router.push("/mobile/checkin");
 };
 </script>
 
@@ -48,8 +53,9 @@ const handleLogin = async () => {
       <div class="circle circle-3"></div>
     </div>
 
-    <!-- 登入卡片 -->
-    <div class="login-card">
+    <div class="login-wrapper">
+      <!-- 登入卡片 -->
+      <div class="login-card">
       <div class="card-header">
         <div class="logo">
           <div class="logo-icon">
@@ -109,6 +115,33 @@ const handleLogin = async () => {
 
       <div class="card-footer">
         <p class="footer-text">© 2026 Event System. All rights reserved.</p>
+      </div>
+      </div>
+
+      <!-- 右側：QR 掃描快速入口 -->
+      <div class="qr-panel">
+        <div class="qr-icon">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+            <rect x="4" y="4" width="24" height="24" rx="3" stroke="white" stroke-width="3" fill="none"/>
+            <rect x="10" y="10" width="12" height="12" rx="1" fill="white"/>
+            <rect x="36" y="4" width="24" height="24" rx="3" stroke="white" stroke-width="3" fill="none"/>
+            <rect x="42" y="10" width="12" height="12" rx="1" fill="white"/>
+            <rect x="4" y="36" width="24" height="24" rx="3" stroke="white" stroke-width="3" fill="none"/>
+            <rect x="10" y="42" width="12" height="12" rx="1" fill="white"/>
+            <rect x="36" y="36" width="6" height="6" rx="1" fill="white"/>
+            <rect x="46" y="36" width="6" height="6" rx="1" fill="white"/>
+            <rect x="36" y="46" width="6" height="6" rx="1" fill="white"/>
+            <rect x="46" y="46" width="14" height="14" rx="1" fill="white"/>
+          </svg>
+        </div>
+        <h2 class="qr-title">掃描報到</h2>
+        <p class="qr-desc">使用手機掃描 QR Code<br/>快速完成現場報到作業</p>
+        <button class="btn-qr" @click="goToScanner">
+          前往掃描器
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="margin-left:6px">
+            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </div>
     </div>
   </div>
@@ -176,6 +209,15 @@ const handleLogin = async () => {
   }
 }
 
+.login-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  position: relative;
+  z-index: 1;
+  animation: slideUp 0.6s ease-out;
+}
+
 /* 登入卡片 */
 .login-card {
   width: 100%;
@@ -185,10 +227,7 @@ const handleLogin = async () => {
   box-shadow:
     0 20px 60px rgba(0, 0, 0, 0.3),
     0 0 0 1px rgba(255, 255, 255, 0.1);
-  position: relative;
-  z-index: 1;
   overflow: hidden;
-  animation: slideUp 0.6s ease-out;
 }
 
 @keyframes slideUp {
@@ -384,7 +423,115 @@ const handleLogin = async () => {
   margin: 0;
 }
 
+/* QR 掃描面板 */
+.qr-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 32px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 24px;
+  backdrop-filter: blur(12px);
+  width: 240px;
+  flex-shrink: 0;
+
+  .qr-icon {
+    width: 96px;
+    height: 96px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .qr-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: white;
+    margin: 0 0 12px 0;
+    letter-spacing: -0.01em;
+  }
+
+  .qr-desc {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0 0 28px 0;
+    line-height: 1.6;
+  }
+
+  .btn-qr {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 14px 20px;
+    background: white;
+    color: #764ba2;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      background: #f8f0ff;
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
 /* 響應式設計 */
+@media (max-width: 860px) {
+  .login-wrapper {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .qr-panel {
+    width: 100%;
+    max-width: 460px;
+    flex-direction: row;
+    text-align: left;
+    padding: 24px 28px;
+    gap: 20px;
+
+    .qr-icon {
+      margin-bottom: 0;
+      flex-shrink: 0;
+      width: 64px;
+      height: 64px;
+    }
+
+    .qr-title {
+      margin-bottom: 6px;
+      font-size: 1.1rem;
+    }
+
+    .qr-desc {
+      margin-bottom: 0;
+      font-size: 0.8rem;
+    }
+
+    .btn-qr {
+      width: auto;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+  }
+}
+
 @media (max-width: 640px) {
   .login-card {
     max-width: 100%;
@@ -399,6 +546,23 @@ const handleLogin = async () => {
 
   .logo .system-title {
     font-size: 1.5rem;
+  }
+
+  .qr-panel {
+    flex-direction: column;
+    text-align: center;
+
+    .qr-icon {
+      margin-bottom: 16px;
+    }
+
+    .qr-desc {
+      margin-bottom: 20px;
+    }
+
+    .btn-qr {
+      width: 100%;
+    }
   }
 }
 </style>

@@ -116,21 +116,21 @@ const router = createRouter({
                 }
             ]
         },
-        // ===== 手機端：報到掃描器 =====
+        // ===== 手機端：報到掃描器（無需登入，用 check-in token 驗證）=====
         {
             path: '/mobile/checkin',
             name: 'MobileScanner',
             component: () =>
                 import ('../views/CheckIn/MobileScanner.vue'),
-            meta: { requiresAuth: true }
+            meta: { requiresAuth: false }
         },
-        // ===== 手機端：掃描後選擇列印站 =====
+        // ===== 手機端：掃描後選擇列印站（無需登入）=====
         {
             path: '/mobile/print-dispatch',
             name: 'MobilePrintDispatch',
             component: () =>
                 import ('../views/CheckIn/MobilePrintDispatch.vue'),
-            meta: { requiresAuth: true }
+            meta: { requiresAuth: false }
         },
         // ===== 獨立列印站台（電腦專用視窗，站台 1/2/3）=====
         {
@@ -160,8 +160,8 @@ router.beforeEach((to, from, next) => {
         // 檢查是否已登入
         const isAuth = userStore.checkAuth();
         if (!isAuth) {
-            // 未登入，重定向到登入頁
-            next('/login');
+            // 未登入，重定向到登入頁（附帶 redirect 參數）
+            next({ path: '/login', query: { redirect: to.fullPath } });
         } else {
             next();
         }
