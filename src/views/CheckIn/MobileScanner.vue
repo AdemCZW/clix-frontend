@@ -116,7 +116,7 @@
 import { ref, computed, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import jsQR from "jsqr";
-import { apiRequest } from "@/utils/api";
+import { API_BASE_URL } from "@/utils/api";
 import { useEventsStore } from "@/stores/events";
 
 const route = useRoute();
@@ -275,8 +275,9 @@ const stopScanning = () => {
 
 const validateCheckin = async (token) => {
   try {
-    const res = await apiRequest("/api/participants/checkin_by_token/", {
+    const res = await fetch(`${API_BASE_URL}/api/participants/checkin_by_token/`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token }),
     });
     const data = await res.json();
