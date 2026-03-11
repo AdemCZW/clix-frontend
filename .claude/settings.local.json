@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build)",
+      "Bash(git add docs/ src/components/onboarding/OnboardingModal.vue src/router/index.js src/views/Dashboard/Overview.vue src/views/Guests/SeatManager.vue src/views/LoginView.vue src/views/Badges/Printer.vue)",
+      "Bash(git commit:*)",
+      "Bash(git push origin main)",
+      "Bash(git add docs/ src/views/CheckIn/MobileScanner.vue)"
+    ]
+  }
+}
