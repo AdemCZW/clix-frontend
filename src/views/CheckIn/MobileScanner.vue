@@ -13,6 +13,14 @@
         <div class="camera-icon">📷</div>
         <h2>準備開始掃描</h2>
         <p>點擊下方按鈕啟動相機</p>
+
+        <!-- 未登入警告 -->
+        <div v-if="!isLoggedIn" class="login-warning">
+          <div class="warning-icon">⚠️</div>
+          <p class="warning-text">掃描報到需要登入帳號</p>
+          <button class="btn-goto-login" @click="goToLogin">前往登入</button>
+        </div>
+
         <div class="help-tips">
           <p class="tip-item">💡 請使用 Chrome 或 Safari 瀏覽器</p>
           <p class="tip-item">🔒 首次使用需允許相機權限</p>
@@ -93,7 +101,8 @@
             {{ errorMessage }}
           </div>
 
-          <button class="btn-continue" @click="closeResult">繼續掃描</button>
+          <button v-if="needsLogin" class="btn-continue btn-login-now" @click="goToLogin">前往登入</button>
+          <button class="btn-continue" @click="closeResult">{{ needsLogin ? '取消' : '繼續掃描' }}</button>
         </div>
       </div>
     </Transition>
@@ -113,14 +122,29 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from "vue";
-import { useRoute } from "vue-router";
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import jsQR from "jsqr";
 import { API_BASE_URL } from "@/utils/api";
 import { useEventsStore } from "@/stores/events";
 
 const route = useRoute();
+const router = useRouter();
 const eventsStore = useEventsStore();
+
+// 登入狀態
+const isLoggedIn = computed(() => !!localStorage.getItem("access_token"));
+const needsLogin = ref(false);
+
+const goToLogin = () => {
+  router.push({ path: "/login", query: { redirect: "/mobile/checkin" } });
+};
+
+onMounted(() => {
+  if (!isLoggedIn.value) {
+    needsLogin.value = true;
+  }
+});
 
 // 優先從 URL query param 讀取 event ID，其次從 store
 const eventId = computed(() =>
@@ -275,11 +299,24 @@ const stopScanning = () => {
 
 const validateCheckin = async (token) => {
   try {
+    const accessToken = localStorage.getItem("access_token");
     const res = await fetch(`${API_BASE_URL}/api/participants/checkin_by_token/`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
       body: JSON.stringify({ token }),
     });
+
+    if (res.status === 401) {
+      errorMessage.value = "請先登入後才能使用掃描功能\n\n點擊下方按鈕前往登入頁面";
+      resultType.value = "error";
+      needsLogin.value = true;
+      showResult.value = true;
+      return;
+    }
+
     const data = await res.json();
 
     if (res.ok) {
@@ -350,6 +387,7 @@ const closeResult = () => {
   showResult.value = false;
   scannedData.value = null;
   errorMessage.value = "";
+  needsLogin.value = false;
 
   // 繼續掃描
   setTimeout(() => {
@@ -705,6 +743,51 @@ onUnmounted(() => {
 .send-status { font-size: 0.95rem; color: #475569; margin-bottom: 12px; font-weight: 600; }
 .success-text { color: #059669; }
 .error-text { color: #ef4444; }
+
+/* 未登入警告 */
+.login-warning {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.warning-icon { font-size: 1.5rem; }
+
+.warning-text {
+  font-size: 0.9rem;
+  color: #fbbf24;
+  font-weight: 600;
+  margin: 0;
+}
+
+.btn-goto-login {
+  background: #fbbf24;
+  color: #0f172a;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-goto-login:hover {
+  background: #f59e0b;
+  transform: translateY(-1px);
+}
+
+.btn-login-now {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+  color: #0f172a !important;
+  margin-bottom: 10px;
+}
 
 .btn-continue {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
