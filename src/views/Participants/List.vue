@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import { useToast } from "@/composables/useToast";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
+import BasePanel from "@/components/shared/BasePanel.vue";
 
 const { success, warning, error: showError } = useToast();
 const participantsStore = useParticipantsStore();
@@ -245,6 +246,10 @@ const openEditPanel = (participant) => {
 const closeEditPanel = () => {
   editingParticipant.value = null;
 };
+const editPanelOpen = computed({
+  get: () => !!editingParticipant.value,
+  set: (v) => { if (!v) editingParticipant.value = null; },
+});
 const deleteParticipant = async (participant) => {
   if (!confirm("確定要刪除這位參與者嗎？")) return;
 
@@ -519,127 +524,114 @@ const toggleVIP = (participant) => {
     </div>
 
     <!-- 右側滑出編輯面板 -->
-    <Teleport to="body">
-      <Transition name="panel-slide">
-        <div v-if="editingParticipant" class="edit-panel-overlay" @click.self="closeEditPanel">
-          <div class="edit-panel">
-            <div class="panel-header">
-              <h3>編輯參與者資訊</h3>
-              <button class="btn-close" @click="closeEditPanel">✕</button>
-            </div>
+    <BasePanel v-model="editPanelOpen" title="編輯參與者資訊">
+      <div class="form-section">
+        <h4 class="section-title">基本資訊</h4>
 
-            <div class="panel-body">
-              <div class="form-section">
-                <h4 class="section-title">基本資訊</h4>
-
-                <div class="form-field">
-                  <label>姓名 *</label>
-                  <input
-                    v-model="editingParticipant.name"
-                    placeholder="請輸入姓名"
-                    class="input-styled"
-                  />
-                </div>
-
-                <div class="form-field">
-                  <label>公司單位</label>
-                  <input
-                    v-model="editingParticipant.company"
-                    placeholder="請輸入公司名稱"
-                    class="input-styled"
-                  />
-                </div>
-
-                <div class="form-field">
-                  <label>職稱</label>
-                  <input
-                    v-model="editingParticipant.title"
-                    placeholder="請輸入職稱"
-                    class="input-styled"
-                  />
-                </div>
-
-                <div class="form-field">
-                  <label>身分</label>
-                  <select v-model="editingParticipant.type" class="select-styled">
-                    <option value="VIP">貴賓 VIP</option>
-                    <option value="一般民眾">一般民眾</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="form-section">
-                <h4 class="section-title">聯絡資訊</h4>
-
-                <div class="form-field">
-                  <label>電子信箱</label>
-                  <input
-                    v-model="editingParticipant.email"
-                    type="email"
-                    placeholder="請輸入信箱"
-                    class="input-styled"
-                  />
-                </div>
-
-                <div class="form-field">
-                  <label>聯絡電話</label>
-                  <input
-                    v-model="editingParticipant.phone"
-                    type="tel"
-                    placeholder="請輸入電話"
-                    class="input-styled"
-                  />
-                </div>
-              </div>
-
-              <div class="form-section">
-                <h4 class="section-title">報到狀態</h4>
-
-                <div class="form-field">
-                  <label>狀態</label>
-                  <select v-model="editingParticipant.status" class="select-styled">
-                    <option value="已報到">已報到</option>
-                    <option value="未報到">未報到</option>
-                  </select>
-                </div>
-              </div>
-
-              <!-- 來源資訊（唯讀） -->
-              <div class="form-section">
-                <h4 class="section-title">來源資訊</h4>
-                <div class="form-field">
-                  <label>所屬活動</label>
-                  <div class="readonly-value">{{ editingParticipant.eventName || '—' }}</div>
-                </div>
-                <div class="form-field">
-                  <label>建立時間</label>
-                  <div class="readonly-value">{{ formatDate(editingParticipant.createdAt) }}</div>
-                </div>
-              </div>
-
-              <!-- QR Code 區塊 -->
-              <div class="form-section" v-if="editingParticipant.qrCodeUrl">
-                <h4 class="section-title">專屬報到 QR Code</h4>
-                <div class="qr-display">
-                  <img :src="editingParticipant.qrCodeUrl" alt="QR Code" class="qr-image" />
-                  <p class="qr-token">{{ editingParticipant.checkInToken }}</p>
-                  <a :href="editingParticipant.qrCodeUrl" download="qrcode.png" class="btn-download-qr">
-                    ⬇ 下載 QR Code
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div class="panel-footer">
-              <button class="btn-delete-participant" @click="deleteParticipant(editingParticipant)">
-                刪除參與者
-              </button>
-              <button class="btn-save" @click="saveParticipant">儲存</button>
-            </div>
-          </div>
+        <div class="form-field">
+          <label>姓名 *</label>
+          <input
+            v-model="editingParticipant.name"
+            placeholder="請輸入姓名"
+            class="input-styled"
+          />
         </div>
-      </Transition>
-    </Teleport>
+
+        <div class="form-field">
+          <label>公司單位</label>
+          <input
+            v-model="editingParticipant.company"
+            placeholder="請輸入公司名稱"
+            class="input-styled"
+          />
+        </div>
+
+        <div class="form-field">
+          <label>職稱</label>
+          <input
+            v-model="editingParticipant.title"
+            placeholder="請輸入職稱"
+            class="input-styled"
+          />
+        </div>
+
+        <div class="form-field">
+          <label>身分</label>
+          <select v-model="editingParticipant.type" class="select-styled">
+            <option value="VIP">貴賓 VIP</option>
+            <option value="一般民眾">一般民眾</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h4 class="section-title">聯絡資訊</h4>
+
+        <div class="form-field">
+          <label>電子信箱</label>
+          <input
+            v-model="editingParticipant.email"
+            type="email"
+            placeholder="請輸入信箱"
+            class="input-styled"
+          />
+        </div>
+
+        <div class="form-field">
+          <label>聯絡電話</label>
+          <input
+            v-model="editingParticipant.phone"
+            type="tel"
+            placeholder="請輸入電話"
+            class="input-styled"
+          />
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h4 class="section-title">報到狀態</h4>
+
+        <div class="form-field">
+          <label>狀態</label>
+          <select v-model="editingParticipant.status" class="select-styled">
+            <option value="已報到">已報到</option>
+            <option value="未報到">未報到</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 來源資訊（唯讀） -->
+      <div class="form-section">
+        <h4 class="section-title">來源資訊</h4>
+        <div class="form-field">
+          <label>所屬活動</label>
+          <div class="readonly-value">{{ editingParticipant.eventName || '—' }}</div>
+        </div>
+        <div class="form-field">
+          <label>建立時間</label>
+          <div class="readonly-value">{{ formatDate(editingParticipant.createdAt) }}</div>
+        </div>
+      </div>
+
+      <!-- QR Code 區塊 -->
+      <div class="form-section" v-if="editingParticipant.qrCodeUrl">
+        <h4 class="section-title">專屬報到 QR Code</h4>
+        <div class="qr-display">
+          <img :src="editingParticipant.qrCodeUrl" alt="QR Code" class="qr-image" />
+          <p class="qr-token">{{ editingParticipant.checkInToken }}</p>
+          <a :href="editingParticipant.qrCodeUrl" download="qrcode.png" class="btn-download-qr">
+            ⬇ 下載 QR Code
+          </a>
+        </div>
+      </div>
+
+      <template #footer>
+        <button class="btn-delete-participant" @click="deleteParticipant(editingParticipant)">
+          刪除參與者
+        </button>
+        <button class="btn-save" @click="saveParticipant">儲存</button>
+      </template>
+    </BasePanel>
   </div>
 </template>
 
@@ -1148,72 +1140,7 @@ const toggleVIP = (participant) => {
   font-style: italic;
 }
 
-/* 右側編輯面板樣式 */
-.edit-panel-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.edit-panel {
-  width: 480px;
-  max-width: 90vw;
-  background: white;
-  height: 100vh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
-}
-
-.panel-header {
-  padding: 24px 28px;
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #f8fafc;
-
-  h3 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #1e293b;
-    margin: 0;
-  }
-
-  .btn-close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: #64748b;
-    cursor: pointer;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    transition: all 0.2s;
-
-    &:hover {
-      background: #e2e8f0;
-      color: #1e293b;
-    }
-  }
-}
-
-.panel-body {
-  flex: 1;
-  padding: 28px;
-  overflow-y: auto;
-}
-
+/* 編輯面板內容樣式 */
 .form-section {
   margin-bottom: 32px;
 
@@ -1316,73 +1243,38 @@ const toggleVIP = (participant) => {
   }
 }
 
-.panel-footer {
-  padding: 20px 28px;
-  border-top: 1px solid #e2e8f0;
-  display: flex;
-  gap: 12px;
-  background: #f8fafc;
+.btn-delete-participant {
+  flex: 1;
+  padding: 12px 20px;
+  background: white;
+  border: 2px solid #ef4444;
+  color: #ef4444;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
 
-  .btn-delete-participant {
-    flex: 1;
-    padding: 12px 20px;
-    background: white;
-    border: 2px solid #ef4444;
-    color: #ef4444;
-    border-radius: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-      background: #ef4444;
-      color: white;
-    }
-  }
-
-  .btn-save {
-    flex: 1;
-    padding: 12px 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
+  &:hover {
+    background: #ef4444;
     color: white;
-    border-radius: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-    }
   }
 }
 
-/* 面板滑動動畫 */
-.panel-slide-enter-active,
-.panel-slide-leave-active {
-  transition: all 0.3s ease;
-}
+.btn-save {
+  flex: 1;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
 
-.panel-slide-enter-from {
-  opacity: 0;
-
-  .edit-panel {
-    transform: translateX(100%);
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   }
-}
-
-.panel-slide-leave-to {
-  opacity: 0;
-
-  .edit-panel {
-    transform: translateX(100%);
-  }
-}
-
-.panel-slide-enter-active .edit-panel,
-.panel-slide-leave-active .edit-panel {
-  transition: transform 0.3s ease;
 }
 
 /* 加載狀態 */

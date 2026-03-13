@@ -37,7 +37,7 @@ const selectedParticipants = computed(() =>
   allParticipants.value.filter((p) => selectedIds.value.includes(p.id)),
 );
 
-// 2. 隨意拖曳範本設定 (核心升級)
+// 拖曳範本設定
 const dragging = ref(false);
 const dragOffset = ref({ x: 0, y: 0 });
 
@@ -58,9 +58,9 @@ function stopDrag() {
   dragging.value = false;
 }
 
-const activeElement = ref(null); // 當前正在編輯的元件
+const activeElement = ref(null);
 
-// 預設排版（60mm≈227px，所有座標需在此範圍內）
+// 預設排版
 const defaultElements = [
   {
     id: "t1",
@@ -88,7 +88,6 @@ const defaultElements = [
   },
 ];
 
-// 從 localStorage 載入已儲存的排版，否則使用預設值
 function loadSavedTemplate() {
   try {
     const saved = localStorage.getItem("badge_template");
@@ -126,10 +125,6 @@ watch(
   { immediate: true }
 );
 
-// 3. 處理拖曳位置 (簡單實現：透過點擊選中並編輯)
-// 移除 selectElement
-
-// 4. 切換選取邏輯
 const toggleSelection = (id) => {
   const index = selectedIds.value.indexOf(id);
   if (index > -1) {
@@ -165,9 +160,8 @@ const isAllSelected = computed(
     selectedIds.value.length === filteredParticipants.value.length,
 );
 
-
-// ===== 外部列印站台連線測試 =====
-// stationTestStatus: 'idle' | 'testing' | 'online' | 'offline'
+// ===== 站台管理 =====
+const showStations = ref(false);
 const stationTestStatus = ref({ 1: "idle", 2: "idle", 3: "idle" });
 
 async function testStation(slot) {
@@ -196,7 +190,6 @@ async function testStation(slot) {
   }
 }
 
-// ===== 外部列印站台管理 =====
 const mobileDispatchUrl = computed(() => {
   const eid = eventsStore.currentEvent?.id;
   if (!eid) return null;
@@ -217,7 +210,7 @@ function openStation(slot) {
   window.open(url, `_station_${slot}`, "width=960,height=700,menubar=no,toolbar=no,status=no,scrollbars=yes");
 }
 
-// 儲存版面設計 & Logo 到 localStorage（供 PrintStation 讀取）
+// 儲存版面設計 & Logo 到 localStorage
 watch(templateElements, (val) => {
   localStorage.setItem("badge_template", JSON.stringify(val));
 }, { deep: true });
@@ -230,8 +223,23 @@ watch(logoUrl, (val) => {
 
 <template>
   <div class="badge-printer-view" @mousemove="onDrag" @mouseup="stopDrag">
-    <div class="page-header no-print">
-      <div class="header-actions">
+    <!-- 頂部工具列 -->
+    <div class="toolbar no-print">
+      <div class="toolbar-left">
+        <span class="toolbar-stat">
+          共 <strong>{{ allParticipants.length }}</strong> 人，已選
+          <strong class="highlight">{{ selectedIds.length }}</strong> 人
+        </span>
+      </div>
+      <div class="toolbar-right">
+        <button
+          v-if="eventsStore.currentEvent"
+          class="btn-outline"
+          :class="{ active: showStations }"
+          @click="showStations = !showStations"
+        >
+          外部站台 {{ showStations ? '▲' : '▼' }}
+        </button>
         <button
           class="btn-primary"
           :disabled="selectedIds.length === 0"
@@ -242,49 +250,46 @@ watch(logoUrl, (val) => {
       </div>
     </div>
 
-    <!-- 外部列印站台管理 -->
-    <div class="station-mgmt no-print" v-if="eventsStore.currentEvent">
-      <div class="mgmt-left">
-        <span class="mgmt-title">外部列印站台</span>
-        <div class="station-btns">
+    <!-- 站台管理（可展開） -->
+    <Transition name="slide-down">
+      <div class="station-mgmt no-print" v-if="showStations && eventsStore.currentEvent">
+        <div class="station-list">
           <div v-for="s in [1, 2, 3]" :key="s" class="station-item">
             <div class="station-test-dot" :class="stationTestStatus[s]"></div>
-            <button class="btn-open-station" @click="openStation(s)">🖨️ 站台 {{ s }}</button>
+            <button class="btn-station" @click="openStation(s)">站台 {{ s }}</button>
             <button
-              class="btn-test-station"
+              class="btn-test"
               :class="stationTestStatus[s]"
               :disabled="stationTestStatus[s] === 'testing'"
               @click="testStation(s)"
             >
-              {{ stationTestStatus[s] === 'testing' ? '測試中...' : stationTestStatus[s] === 'online' ? '✓ 已連線' : stationTestStatus[s] === 'offline' ? '✕ 離線' : '連線測試' }}
+              {{ stationTestStatus[s] === 'testing' ? '測試中...' : stationTestStatus[s] === 'online' ? '已連線' : stationTestStatus[s] === 'offline' ? '離線' : '測試' }}
             </button>
           </div>
         </div>
-      </div>
-      <div class="mgmt-right" v-if="mobileQrDataUrl">
-        <div class="qr-wrap">
+        <div class="qr-wrap" v-if="mobileQrDataUrl">
           <img :src="mobileQrDataUrl" class="qr-img" alt="手機派送頁 QR" />
-          <div class="qr-label">手機掃碼開啟派送頁</div>
+          <span class="qr-label">手機派送</span>
         </div>
       </div>
-    </div>
+    </Transition>
 
+    <!-- 主區塊：人員選擇 + 設計畫布 -->
     <div class="main-layout">
-      <div class="tech-card selection-panel no-print">
-        <h3 class="card-subtitle">人員選擇</h3>
+      <!-- 左側：人員選擇 -->
+      <div class="selection-panel no-print">
         <input
           v-model="searchQuery"
-          class="input-styled search-input"
+          class="search-input"
           placeholder="搜尋姓名或單位..."
         />
         <div class="list-header">
-          <button class="btn-toggle-all" :class="{ active: isAllSelected }" @click="toggleAll">
+          <button class="btn-toggle" :class="{ active: isAllSelected }" @click="toggleAll">
             <span class="toggle-icon">{{ isAllSelected ? "✓" : "○" }}</span>
             全選
           </button>
-          <span class="badge-count">已選 {{ selectedIds.length }} 位</span>
         </div>
-        <div class="participant-selector">
+        <div class="participant-list">
           <div
             v-for="p in filteredParticipants"
             :key="p.id"
@@ -296,235 +301,427 @@ watch(logoUrl, (val) => {
               <span class="name">{{ p.name }}</span>
               <span class="comp">{{ p.company }}</span>
             </div>
-            <div class="check-indicator">
-              <span v-if="selectedIds.includes(p.id)" class="check-mark">✓</span>
-            </div>
+            <span v-if="selectedIds.includes(p.id)" class="check-mark">✓</span>
           </div>
         </div>
       </div>
 
-      <div class="design-canvas-area no-print">
-        <div class="tech-card badge-canvas">
-          <div class="card-header-flex">
-            <h3 class="card-subtitle">範本設計預覽</h3>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <label class="logo-upload">
-                <span>{{ logoUrl ? '更換 LOGO' : '上傳 LOGO' }}</span>
-                <input type="file" accept="image/*" @change="handleLogoUpload" style="display:none" />
-              </label>
-              <img v-if="logoUrl" :src="logoUrl" alt="Logo" style="height:28px;max-width:80px;border-radius:6px;object-fit:contain;" />
-              <button class="btn-reset-template" @click="resetTemplate">重置排版</button>
-              <span class="size-label">60 × 90 mm</span>
-            </div>
-          </div>
-          <div class="canvas-box">
-            <img v-if="logoUrl" :src="logoUrl" class="canvas-logo" style="position:absolute;left:20px;top:20px;height:40px;max-width:120px;z-index:2;" />
-            <div
-              v-for="el in templateElements"
-              :key="el.id"
-              class="draggable-element"
-              :class="{ active: activeElement?.id === el.id }"
-              :style="{
-                left: el.x + 'px',
-                top: el.y + 'px',
-                fontSize: el.style.fontSize + 'px',
-                fontWeight: el.style.fontWeight,
-                color: el.style.color,
-              }"
-              @mousedown="(evt) => startDrag(el, evt)"
-            >
-              <template v-if="el.label === 'QR編碼'">
-                <img
-                  v-if="qrDataUrls[selectedParticipants[0]?.checkInToken]"
-                  :src="qrDataUrls[selectedParticipants[0]?.checkInToken]"
-                  width="80"
-                  height="80"
-                />
-                <div v-else style="width:80px;height:80px;background:#f1f5f9;border-radius:4px;"></div>
-              </template>
-              <template v-else>
-                [{{ el.label }}]
-              </template>
-              <div class="drag-handle" v-if="activeElement?.id === el.id"></div>
-            </div>
+      <!-- 右側：設計畫布 -->
+      <div class="design-area no-print">
+        <div class="canvas-toolbar">
+          <span class="canvas-title">範本設計</span>
+          <div class="canvas-actions">
+            <label class="btn-sm">
+              <span>{{ logoUrl ? '更換 LOGO' : '上傳 LOGO' }}</span>
+              <input type="file" accept="image/*" @change="handleLogoUpload" hidden />
+            </label>
+            <img v-if="logoUrl" :src="logoUrl" alt="Logo" class="logo-thumb" />
+            <button class="btn-sm danger" @click="resetTemplate">重置排版</button>
+            <span class="size-label">60 × 90 mm</span>
           </div>
         </div>
 
-        <div class="tech-card style-editor" v-if="activeElement">
-          <h3 class="card-subtitle">編輯：{{ activeElement.label }}</h3>
-          <div class="controls">
-            <div class="control-item">
-              <label class="control-label">大小</label>
-              <input
-                type="range"
-                v-model="activeElement.style.fontSize"
-                min="12"
-                max="60"
-                class="range-input"
-              />
-              <span class="value-display">{{ activeElement.style.fontSize }}px</span>
-            </div>
-            <div class="control-item">
-              <label class="control-label">顏色</label>
-              <input type="color" v-model="activeElement.style.color" class="color-input-styled" />
-              <span class="value-display">{{ activeElement.style.color }}</span>
-            </div>
-            <div class="control-item">
-              <label class="control-label">X 位置</label>
-              <input type="number" v-model="activeElement.x" class="input-styled number-input" />
-            </div>
-            <div class="control-item">
-              <label class="control-label">Y 位置</label>
-              <input type="number" v-model="activeElement.y" class="input-styled number-input" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 手動列印專用區域 -->
-      <div id="printBadges" class="print-only-area">
-        <div
-          v-for="p in selectedParticipants"
-          :key="p.id"
-          class="print-badge"
-          style="position:relative;width:90mm;height:60mm;overflow:hidden;background:white;page-break-after:always;"
-        >
-          <img v-if="logoUrl" :src="logoUrl" class="print-logo" style="position:absolute;left:20px;top:20px;height:40px;max-width:120px;z-index:2;" />
+        <div class="canvas-box">
+          <img v-if="logoUrl" :src="logoUrl" class="canvas-logo" />
           <div
             v-for="el in templateElements"
             :key="el.id"
-            class="print-element"
+            class="draggable-element"
+            :class="{ active: activeElement?.id === el.id }"
             :style="{
-              position: 'absolute',
               left: el.x + 'px',
               top: el.y + 'px',
               fontSize: el.style.fontSize + 'px',
               fontWeight: el.style.fontWeight,
               color: el.style.color,
-              whiteSpace: 'nowrap',
             }"
+            @mousedown="(evt) => startDrag(el, evt)"
           >
-            <template v-if="el.key === 'name'">{{ p.name }}</template>
-            <template v-else-if="el.key === 'company'">{{ p.company }}</template>
-            <template v-else-if="el.key === 'code'">
+            <template v-if="el.label === 'QR編碼'">
               <img
-                v-if="qrDataUrls[p.checkInToken]"
-                :src="qrDataUrls[p.checkInToken]"
+                v-if="qrDataUrls[selectedParticipants[0]?.checkInToken]"
+                :src="qrDataUrls[selectedParticipants[0]?.checkInToken]"
                 width="80"
                 height="80"
               />
+              <div v-else class="qr-placeholder"></div>
             </template>
+            <template v-else>
+              [{{ el.label }}]
+            </template>
+            <div class="drag-handle" v-if="activeElement?.id === el.id"></div>
           </div>
         </div>
+
+        <!-- 行內樣式編輯器 -->
+        <Transition name="fade">
+          <div class="style-bar" v-if="activeElement">
+            <span class="style-bar-label">{{ activeElement.label }}</span>
+            <div class="style-control">
+              <label>大小</label>
+              <input type="range" v-model="activeElement.style.fontSize" min="12" max="60" />
+              <span class="val">{{ activeElement.style.fontSize }}px</span>
+            </div>
+            <div class="style-control">
+              <label>顏色</label>
+              <input type="color" v-model="activeElement.style.color" class="color-picker" />
+            </div>
+            <div class="style-control">
+              <label>X</label>
+              <input type="number" v-model="activeElement.x" class="num-input" />
+            </div>
+            <div class="style-control">
+              <label>Y</label>
+              <input type="number" v-model="activeElement.y" class="num-input" />
+            </div>
+          </div>
+        </Transition>
       </div>
     </div>
 
+    <!-- 列印專用區域 -->
+    <div id="printBadges" class="print-only-area">
+      <div
+        v-for="p in selectedParticipants"
+        :key="p.id"
+        class="print-badge"
+      >
+        <img v-if="logoUrl" :src="logoUrl" class="print-logo" />
+        <div
+          v-for="el in templateElements"
+          :key="el.id"
+          class="print-element"
+          :style="{
+            position: 'absolute',
+            left: el.x + 'px',
+            top: el.y + 'px',
+            fontSize: el.style.fontSize + 'px',
+            fontWeight: el.style.fontWeight,
+            color: el.style.color,
+            whiteSpace: 'nowrap',
+          }"
+        >
+          <template v-if="el.key === 'name'">{{ p.name }}</template>
+          <template v-else-if="el.key === 'company'">{{ p.company }}</template>
+          <template v-else-if="el.key === 'code'">
+            <img
+              v-if="qrDataUrls[p.checkInToken]"
+              :src="qrDataUrls[p.checkInToken]"
+              width="80"
+              height="80"
+            />
+          </template>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
 .badge-printer-view {
-  padding: 30px;
+  padding: 24px;
   background: #f8fafc;
   min-height: 100vh;
 }
 
-.page-header {
+/* ===== 頂部工具列 ===== */
+.toolbar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
-  margin-bottom: 28px;
+  background: white;
+  border-radius: 14px;
+  padding: 14px 24px;
+  margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.header-actions {
+.toolbar-left {
+  .toolbar-stat {
+    font-size: 0.9rem;
+    color: #475569;
+
+    strong { color: #0f172a; }
+    .highlight { color: #667eea; font-size: 1.1rem; }
+  }
+}
+
+.toolbar-right {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
 }
 
 .btn-primary {
-  display: inline-flex;
-  align-items: center;
-  padding: 12px 24px;
-  border-radius: 12px;
-  font-size: 0.95rem;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
   border: none;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s;
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-  }
+  &:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 }
 
+.btn-outline {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #475569;
+  transition: all 0.2s;
+
+  &:hover, &.active { border-color: #667eea; color: #667eea; background: #f5f3ff; }
+}
+
+/* ===== 站台管理 ===== */
+.station-mgmt {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px 20px;
+  margin-bottom: 16px;
+}
+
+.station-list {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.station-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.station-test-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  transition: background 0.3s;
+  &.testing { background: #f59e0b; animation: ws-pulse 1s infinite; }
+  &.online  { background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.5); }
+  &.offline { background: #ef4444; }
+}
+
+.btn-station {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #0f172a;
+  transition: all 0.2s;
+  &:hover { background: #eff6ff; border-color: #3b82f6; color: #2563eb; }
+}
+
+.btn-test {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  transition: all 0.2s;
+  &:hover:not(:disabled) { border-color: #3b82f6; color: #2563eb; }
+  &:disabled { opacity: 0.6; cursor: default; }
+  &.online  { border-color: #bbf7d0; color: #16a34a; background: #f0fdf4; }
+  &.offline { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
+}
+
+.qr-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+
+  .qr-img { width: 64px; height: 64px; border-radius: 6px; border: 1px solid #e2e8f0; }
+  .qr-label { font-size: 0.7rem; color: #94a3b8; }
+}
+
+/* ===== 主區塊 ===== */
 .main-layout {
   display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 24px;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
   align-items: start;
 }
 
-.tech-card {
+/* 左側人員選擇 */
+.selection-panel {
   background: white;
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid #e5e7eb;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: box-shadow 0.3s;
+  padding: 16px;
+  height: calc(100vh - 180px);
+  display: flex;
+  flex-direction: column;
 
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  }
-
-  .card-subtitle {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #0f172a;
-    margin: 0 0 20px 0;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #f3f4f6;
+  .search-input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    transition: 0.2s;
+    &:focus { border-color: #667eea; outline: none; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
   }
 }
 
-.card-header-flex {
+.list-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #e2e8f0;
+}
 
-  h3 {
-    margin: 0 !important;
-    padding-bottom: 0 !important;
-    border-bottom: none !important;
+.btn-toggle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0f172a;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+
+  .toggle-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 2px solid #cbd5e1;
+    font-size: 12px;
+    transition: all 0.2s;
   }
 
-  .size-label {
-    font-size: 0.75rem;
-    color: #64748b;
-    font-weight: 700;
-    background: #f8fafc;
-    padding: 4px 10px;
-    border-radius: 6px;
-    border: 1px solid #e2e8f0;
+  &.active .toggle-icon {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+  }
+
+  &:hover { color: #667eea; }
+  &:hover .toggle-icon { border-color: #667eea; }
+}
+
+.participant-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 2px;
+
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+}
+
+.p-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+  border: 2px solid transparent;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover { border-color: #a5b4fc; background: #f5f3ff; }
+
+  &.selected {
+    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
+    border-color: #667eea;
+
+    .name { color: #667eea; }
+  }
+
+  .p-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .name { font-weight: 700; color: #0f172a; font-size: 0.9rem; }
+    .comp { font-size: 0.75rem; color: #64748b; }
+  }
+
+  .check-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
   }
 }
 
-.logo-upload {
+/* ===== 右側設計區域 ===== */
+.design-area {
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  padding: 20px;
+}
+
+.canvas-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.canvas-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.canvas-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn-sm {
   font-size: 0.75rem;
   padding: 4px 10px;
   border-radius: 6px;
@@ -534,488 +731,242 @@ watch(logoUrl, (val) => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.2s;
-  white-space: nowrap;
   &:hover { border-color: #3b82f6; color: #2563eb; background: #eff6ff; }
+  &.danger { border-color: #fca5a5; background: #fff1f2; color: #ef4444; &:hover { background: #fee2e2; } }
 }
 
-.btn-reset-template {
-  font-size: 0.75rem;
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid #fca5a5;
-  background: #fff1f2;
-  color: #ef4444;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s;
-  &:hover { background: #fee2e2; }
+.logo-thumb {
+  height: 24px;
+  max-width: 60px;
+  border-radius: 4px;
+  object-fit: contain;
 }
 
-/* 左側人員選擇面板 */
-.selection-panel {
-  height: calc(100vh - 120px);
-  display: flex;
-  flex-direction: column;
-
-  .search-input {
-    margin-bottom: 12px;
-  }
-
-  .list-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 14px;
-    background: #f8fafc;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    border: 1px solid #e2e8f0;
-
-    .btn-toggle-all {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: #0f172a;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: transparent;
-      border: none;
-      padding: 0;
-      transition: all 0.2s;
-
-      .toggle-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 18px;
-        height: 18px;
-        border-radius: 4px;
-        border: 2px solid #cbd5e1;
-        font-size: 12px;
-        transition: all 0.2s;
-      }
-
-      &.active .toggle-icon {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-color: #667eea;
-        color: white;
-      }
-
-      &:hover {
-        color: #667eea;
-      }
-
-      &:hover .toggle-icon {
-        border-color: #667eea;
-      }
-    }
-
-    .badge-count {
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: #3b82f6;
-      background: white;
-      padding: 4px 10px;
-      border-radius: 6px;
-      border: 1px solid #dbeafe;
-    }
-  }
-
-  .participant-selector {
-    flex: 1;
-    overflow-y: auto;
-    padding-right: 4px;
-
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: #f8fafc;
-      border-radius: 10px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 10px;
-
-      &:hover {
-        background: #94a3b8;
-      }
-    }
-  }
-
-  .p-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 14px 16px;
-    border-radius: 12px;
-    margin-bottom: 8px;
-    border: 2px solid transparent;
-    background: #f8fafc;
-    cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-
-    &:hover {
-      border-color: #a5b4fc;
-      background: #f5f3ff;
-      transform: translateX(4px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.12);
-    }
-
-    &.selected {
-      background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
-      border-color: #667eea;
-      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);
-
-      &:hover {
-        border-color: #667eea;
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
-      }
-
-      .p-info .name {
-        color: #667eea;
-      }
-    }
-
-    .p-info {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-
-      .name {
-        font-weight: 700;
-        color: #0f172a;
-        font-size: 0.95rem;
-        transition: color 0.2s;
-      }
-
-      .comp {
-        font-size: 0.75rem;
-        color: #64748b;
-        font-weight: 500;
-      }
-    }
-
-    .check-indicator {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 24px;
-      height: 24px;
-
-      .check-mark {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        font-size: 14px;
-        font-weight: bold;
-        animation: checkPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      }
-    }
-  }
-
-  @keyframes checkPop {
-    0% {
-      transform: scale(0);
-      opacity: 0;
-    }
-    50% {
-      transform: scale(1.2);
-    }
-    100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-  }
-}
-
-.input-styled {
-  width: 100%;
-  padding: 12px 16px;
-  border-radius: 12px;
+.size-label {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 700;
+  background: #f8fafc;
+  padding: 3px 8px;
+  border-radius: 4px;
   border: 1px solid #e2e8f0;
-  font-weight: 600;
-  transition: 0.3s;
-
-  &:hover {
-    border-color: #cbd5e1;
-  }
-
-  &:focus {
-    border-color: #3b82f6;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-  }
-
-  &.number-input {
-    text-align: center;
-  }
 }
 
-/* 設計畫布區域 */
-.design-canvas-area {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.badge-canvas {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
-  .canvas-box {
-    width: 90mm;
-    height: 60mm;
-    background: white;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    border-radius: 4px;
-    border: 2px solid #e2e8f0;
-
-    .draggable-element {
-      position: absolute;
-      cursor: move;
-      padding: 6px 10px;
-      border: 2px dashed transparent;
-      white-space: nowrap;
-      border-radius: 6px;
-      transition: all 0.2s;
-
-      &:hover {
-        background: rgba(59, 130, 246, 0.05);
-        border-color: #cbd5e1;
-      }
-
-      &.active {
-        border: 2px dashed #3b82f6;
-        background: rgba(59, 130, 246, 0.1);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-
-        .drag-handle {
-          position: absolute;
-          bottom: -8px;
-          right: -8px;
-          width: 16px;
-          height: 16px;
-          background: #3b82f6;
-          border: 2px solid white;
-          border-radius: 50%;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-        }
-      }
-    }
-  }
-}
-
-.style-editor {
-  .controls {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-
-    .control-item {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-
-      .control-label {
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: #0f172a;
-      }
-
-      .range-input {
-        width: 100%;
-        height: 6px;
-        border-radius: 10px;
-        background: #f8fafc;
-        outline: none;
-        cursor: pointer;
-
-        &::-webkit-slider-thumb {
-          appearance: none;
-          width: 16px;
-          height: 16px;
-          border-radius: 50%;
-          background: #3b82f6;
-          cursor: pointer;
-          box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
-
-          &:hover {
-            transform: scale(1.2);
-          }
-        }
-      }
-
-      .color-input-styled {
-        border: none;
-        width: 50px;
-        height: 40px;
-        cursor: pointer;
-        background: none;
-        border-radius: 8px;
-        overflow: hidden;
-
-        &::-webkit-color-swatch-wrapper {
-          padding: 0;
-        }
-
-        &::-webkit-color-swatch {
-          border: 2px solid var(--border-light);
-          border-radius: 8px;
-        }
-      }
-
-      .value-display {
-        font-size: 0.8rem;
-        font-weight: 700;
-        color: var(--text-gray);
-        font-family: monospace;
-      }
-    }
-  }
-}
-
-/* 外部列印站台管理列 */
-.station-mgmt {
-  display: flex;
-  align-items: center;
-  gap: 24px;
+.canvas-box {
+  width: 90mm;
+  height: 60mm;
   background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 16px 24px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  border: 2px solid #e2e8f0;
+  margin: 0 auto;
+}
 
-  .mgmt-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex: 1;
+.canvas-logo {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  height: 40px;
+  max-width: 120px;
+  z-index: 2;
+}
 
-    .mgmt-title {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: #0f172a;
-      white-space: nowrap;
-    }
+.draggable-element {
+  position: absolute;
+  cursor: move;
+  padding: 4px 8px;
+  border: 2px dashed transparent;
+  white-space: nowrap;
+  border-radius: 4px;
+  transition: border-color 0.2s, background 0.2s;
 
-    .station-btns {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
+  &:hover { background: rgba(59, 130, 246, 0.05); border-color: #cbd5e1; }
 
-      .station-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 6px 10px 6px 8px;
-      }
+  &.active {
+    border: 2px dashed #3b82f6;
+    background: rgba(59, 130, 246, 0.08);
 
-      .station-test-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        flex-shrink: 0;
-        background: #cbd5e1;
-        transition: background 0.3s;
-        &.testing  { background: #f59e0b; animation: ws-pulse 1s infinite; }
-        &.online   { background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.5); }
-        &.offline  { background: #ef4444; }
-      }
-
-      .btn-test-station {
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 0.78rem;
-        cursor: pointer;
-        border: 1px solid #e2e8f0;
-        background: white;
-        color: #64748b;
-        transition: all 0.2s;
-        &:hover:not(:disabled) { border-color: #3b82f6; color: #2563eb; }
-        &:disabled { opacity: 0.6; cursor: default; }
-        &.online  { border-color: #bbf7d0; color: #16a34a; background: #f0fdf4; }
-        &.offline { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
-      }
-
-      .btn-open-station {
-        padding: 8px 20px;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 0.875rem;
-        cursor: pointer;
-        border: 1px solid #e2e8f0;
-        background: #f8fafc;
-        color: #0f172a;
-        transition: all 0.2s;
-
-        &:hover {
-          background: #eff6ff;
-          border-color: #3b82f6;
-          color: #2563eb;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 10px rgba(59, 130, 246, 0.15);
-        }
-      }
-    }
-  }
-
-  .mgmt-right {
-    .qr-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-
-      .qr-img {
-        width: 80px;
-        height: 80px;
-        border-radius: 6px;
-        border: 1px solid #e2e8f0;
-      }
-
-      .qr-label {
-        font-size: 0.72rem;
-        color: #94a3b8;
-        text-align: center;
-        white-space: nowrap;
-      }
+    .drag-handle {
+      position: absolute;
+      bottom: -6px;
+      right: -6px;
+      width: 12px;
+      height: 12px;
+      background: #3b82f6;
+      border: 2px solid white;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
   }
 }
 
+.qr-placeholder {
+  width: 80px;
+  height: 80px;
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+/* ===== 行內樣式編輯器 ===== */
+.style-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+
+.style-bar-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.style-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+  }
+
+  .val {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    font-family: monospace;
+    min-width: 36px;
+  }
+
+  input[type="range"] {
+    width: 80px;
+    height: 4px;
+    border-radius: 10px;
+    background: #e2e8f0;
+    outline: none;
+    cursor: pointer;
+
+    &::-webkit-slider-thumb {
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #3b82f6;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.4);
+    }
+  }
+
+  .color-picker {
+    border: none;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    background: none;
+    border-radius: 6px;
+    overflow: hidden;
+
+    &::-webkit-color-swatch-wrapper { padding: 0; }
+    &::-webkit-color-swatch { border: 2px solid #e2e8f0; border-radius: 6px; }
+  }
+
+  .num-input {
+    width: 56px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    &:focus { border-color: #3b82f6; outline: none; }
+  }
+}
+
+/* ===== 動畫 ===== */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  max-height: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.slide-down-enter-to,
+.slide-down-leave-from {
+  max-height: 120px;
+}
+
+.fade-enter-active,
+.fade-leave-active { transition: opacity 0.2s; }
+.fade-enter-from,
+.fade-leave-to { opacity: 0; }
 
 @keyframes ws-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
 
-/* 列印專用區域 - 平時隱藏 */
+/* ===== 列印 ===== */
 .print-only-area {
   display: none;
 }
 
+/* ===== RWD ===== */
+@media (max-width: 768px) {
+  .badge-printer-view { padding: 12px; }
+
+  .toolbar {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+    padding: 12px 16px;
+  }
+
+  .toolbar-right { justify-content: flex-end; }
+
+  .station-mgmt {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .selection-panel {
+    height: auto;
+    max-height: 300px;
+  }
+
+  .canvas-box {
+    width: 100%;
+    max-width: 90mm;
+  }
+
+  .style-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
 @media print {
-  /* v-print 在獨立 popup 中只含 .print-only-area，需直接顯示 */
   .print-only-area {
     display: block !important;
   }
@@ -1024,21 +975,30 @@ watch(logoUrl, (val) => {
     padding: 0;
     background: white;
 
-    .page-header,
-    .selection-panel,
-    .design-canvas-area,
+    .toolbar,
+    .station-mgmt,
     .main-layout {
       display: none !important;
     }
   }
 
   .print-badge {
+    position: relative;
     width: 90mm;
     height: 60mm;
-    position: relative;
-    page-break-after: always;
+    overflow: hidden;
     background: white;
+    page-break-after: always;
     margin: 0;
+
+    .print-logo {
+      position: absolute;
+      left: 20px;
+      top: 20px;
+      height: 40px;
+      max-width: 120px;
+      z-index: 2;
+    }
 
     .print-element {
       position: absolute;

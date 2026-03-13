@@ -2,10 +2,13 @@
 import { reactive, ref, onMounted, computed } from "vue";
 import { QuillEditor } from "@vueup/vue-quill";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
-import QRCode from "qrcode";
 import { useToast } from "@/composables/useToast";
+import { useParticipantsStore } from "@/stores/participants";
+import { useEventsStore } from "@/stores/events";
 
 const { success, warning } = useToast();
+const participantsStore = useParticipantsStore();
+const eventsStore = useEventsStore();
 
 // 1. 通知信資料模型
 const mailSettings = reactive({
@@ -18,30 +21,32 @@ const mailSettings = reactive({
 const myQuill = ref(null);
 const showTemplateDrawer = ref(false);
 const savedTemplates = ref([]);
-const showQRPreview = ref(false);
-const qrCodeDataUrl = ref("");
-const previewParticipant = ref(null);
 
-// 參與者資料（從 API 載入）
-const participants = ref([]);
+// 參與者資料（從 participantsStore 載入）
+const participants = computed(() => participantsStore.participants);
 
 const selectedParticipants = ref([]);
 const searchQuery = ref("");
 const selectedActivity = ref("所有活動");
-const activityOptions = ref(["所有活動"]);
+
+// 從參與者資料動態產生活動選項
+const activityOptions = computed(() => {
+  const names = new Set(participants.value.map((p) => p.eventName).filter(Boolean));
+  return ["所有活動", ...names];
+});
 
 // 修正後的過濾邏輯
 const getFilteredParticipants = computed(() => {
   let result = participants.value;
   if (selectedActivity.value !== "所有活動") {
-    result = result.filter((p) => p.activity === selectedActivity.value);
+    result = result.filter((p) => p.eventName === selectedActivity.value);
   }
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
     result = result.filter(
       (p) =>
         p.name.toLowerCase().includes(query) ||
-        p.company.toLowerCase().includes(query) ||
+        (p.company || "").toLowerCase().includes(query) ||
         p.email.toLowerCase().includes(query),
     );
   }
@@ -66,8 +71,10 @@ const clearSelection = () => {
   selectedParticipants.value = [];
 };
 
+const selectedIdSet = computed(() => new Set(selectedParticipants.value.map((p) => p.id)));
+
 const isParticipantSelected = (participant) => {
-  return selectedParticipants.value.some((p) => p.id === participant.id);
+  return selectedIdSet.value.has(participant.id);
 };
 
 // 智慧插入變數
@@ -85,8 +92,18 @@ const insertTag = (tag) => {
 
 // 樣板邏輯修正
 const loadTemplates = () => {
-  const data = localStorage.getItem("email_templates");
-  savedTemplates.value = data ? JSON.parse(data) : [];
+  try {
+    const data = localStorage.getItem("email_templates");
+    savedTemplates.value = data ? JSON.parse(data) : [];
+  } catch {
+    savedTemplates.value = [];
+    localStorage.removeItem("email_templates");
+  }
+};
+
+const deleteTemplate = (index) => {
+  savedTemplates.value.splice(index, 1);
+  localStorage.setItem("email_templates", JSON.stringify(savedTemplates.value));
 };
 
 const openTemplateDrawer = () => {
@@ -134,54 +151,6 @@ const sendTestEmail = () => {
   }
 };
 
-// 生成 QR Code
-const generateQRCode = async (participant) => {
-  previewParticipant.value = participant;
-
-  // 建立 QR Code 資料
-  const qrData = {
-    participantId: `P${String(participant.id).padStart(3, "0")}`,
-    name: participant.name,
-    company: participant.company,
-    title: participant.title,
-    activity: participant.activity,
-    email: participant.email,
-    eventId: "EVT2026001",
-    timestamp: new Date().toISOString(),
-  };
-
-  try {
-    // 生成 QR Code 圖片（Data URL）
-    const dataUrl = await QRCode.toDataURL(JSON.stringify(qrData), {
-      width: 300,
-      margin: 2,
-      color: {
-        dark: "#0f172a",
-        light: "#ffffff",
-      },
-    });
-
-    qrCodeDataUrl.value = dataUrl;
-    showQRPreview.value = true;
-  } catch (err) {
-    console.error("生成 QR Code 失敗:", err);
-    warning("生成 QR Code 失敗");
-  }
-};
-
-const closeQRPreview = () => {
-  showQRPreview.value = false;
-  qrCodeDataUrl.value = "";
-  previewParticipant.value = null;
-};
-
-const downloadQRCode = () => {
-  const link = document.createElement("a");
-  link.download = `QRCode_${previewParticipant.value.name}.png`;
-  link.href = qrCodeDataUrl.value;
-  link.click();
-};
-
 const editorOptions = {
   modules: {
     toolbar: [
@@ -196,8 +165,14 @@ const editorOptions = {
   theme: "snow",
 };
 
-onMounted(() => {
+onMounted(async () => {
   loadTemplates();
+  try {
+    const eventId = eventsStore.currentEvent?.id;
+    await participantsStore.fetchParticipants(eventId ? { event: eventId } : {});
+  } catch {
+    warning("載入參與者資料失敗");
+  }
 });
 </script>
 
@@ -256,7 +231,7 @@ onMounted(() => {
       <div class="panel participants-side">
         <div class="participants-header">
           <h3 class="panel-title">選擇收件人</h3>
-          <div class="selection-info">已選 {{ selectedParticipants.length }} 人</div>
+          <div class="selection-info">已選 {{ selectedParticipants.length }} / {{ participants.length }} 人</div>
         </div>
         <div class="participants-controls">
           <div class="filter-row">
@@ -279,11 +254,13 @@ onMounted(() => {
           >
             <div class="participant-info" @click="toggleParticipantSelection(p)">
               <div class="participant-name">{{ p.name }}</div>
+              <div class="participant-detail">{{ p.company }}<span v-if="p.title"> · {{ p.title }}</span></div>
               <div class="participant-email">{{ p.email }}</div>
+              <div class="participant-meta">
+                <span v-if="p.phone" class="meta-tag">{{ p.phone }}</span>
+                <span class="meta-tag" :class="p.status === '已報到' ? 'checked-in' : ''">{{ p.status || '未報到' }}</span>
+              </div>
             </div>
-            <button class="btn-qr-generate" @click="generateQRCode(p)" title="生成 QR Code">
-              <span class="qr-icon">⊞</span>
-            </button>
           </div>
         </div>
       </div>
@@ -302,14 +279,14 @@ onMounted(() => {
                 v-for="(template, index) in savedTemplates"
                 :key="index"
                 class="template-item"
-                @click="applyTemplate(template)"
               >
-                <div class="template-info">
+                <div class="template-info" @click="applyTemplate(template)">
                   <div class="template-subject">{{ template.subject }}</div>
                   <div class="template-date">
                     {{ new Date(template.date).toLocaleDateString() }}
                   </div>
                 </div>
+                <button class="btn-delete-template" @click="deleteTemplate(index)" title="刪除樣板">✕</button>
               </div>
             </div>
           </div>
@@ -317,44 +294,6 @@ onMounted(() => {
       </Transition>
     </Teleport>
 
-    <!-- QR Code 預覽彈窗 -->
-    <Teleport to="body">
-      <Transition name="modal">
-        <div v-if="showQRPreview" class="modal-overlay" @click="closeQRPreview">
-          <div class="qr-preview-modal" @click.stop>
-            <div class="modal-header">
-              <h3>報到 QR Code</h3>
-              <button class="btn-close" @click="closeQRPreview">✕</button>
-            </div>
-            <div class="modal-body">
-              <div v-if="previewParticipant" class="participant-preview">
-                <div class="preview-info">
-                  <div class="info-item">
-                    <span class="label">姓名</span>
-                    <span class="value">{{ previewParticipant.name }}</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="label">公司</span>
-                    <span class="value">{{ previewParticipant.company }}</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="label">活動</span>
-                    <span class="value">{{ previewParticipant.activity }}</span>
-                  </div>
-                </div>
-                <div class="qr-display">
-                  <img :src="qrCodeDataUrl" alt="QR Code" class="qr-image" />
-                </div>
-                <p class="qr-hint">此 QR Code 將包含在報名成功通知信中，供現場報到使用</p>
-                <div class="qr-actions">
-                  <button class="btn-download" @click="downloadQRCode">📥 下載 QR Code</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
   </div>
 </template>
 
@@ -385,23 +324,6 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-}
-
-.header-text {
-  flex: 1;
-}
-
-.title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: white;
-  margin: 0 0 6px 0;
-}
-
-.subtitle {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.95);
-  margin: 0;
 }
 
 .header-actions {
@@ -572,24 +494,6 @@ onMounted(() => {
   border-color: var(--primary-blue);
   outline: none;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-}
-
-.auto-send-card {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid var(--border-light);
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.card-info .label {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--deep-dark);
 }
 
 /* ===========================================
@@ -776,30 +680,31 @@ onMounted(() => {
   color: #475569;
 }
 
-.btn-qr-generate {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1.2rem;
-  transition: all 0.2s ease;
+.participant-detail {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.participant-meta {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-left: 8px;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
 }
 
-.btn-qr-generate:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+.meta-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #64748b;
 }
 
-.qr-icon {
-  font-size: 1rem;
-  font-weight: bold;
+.meta-tag.checked-in {
+  background: #d1fae5;
+  color: #065f46;
 }
 
 /* ===========================================
@@ -880,9 +785,16 @@ onMounted(() => {
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 12px;
-  cursor: pointer;
   transition: all 0.2s ease;
   background: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.template-item .template-info {
+  flex: 1;
+  cursor: pointer;
 }
 
 .template-item:hover {
@@ -913,55 +825,21 @@ onMounted(() => {
   margin-left: 12px;
 }
 
-/* ===========================================
-   🔄 Switch 組件
-   =========================================== */
-
-.switch-container {
-  position: relative;
-  width: 44px;
-  height: 24px;
+.btn-delete-template {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
   flex-shrink: 0;
 }
 
-.switch-container input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.switch-slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #cbd5e1;
-  border-radius: 24px;
-  transition: all 0.3s ease;
-}
-
-.switch-slider:before {
-  content: "";
-  position: absolute;
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background: white;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-input:checked + .switch-slider {
-  background: #0ea5e9;
-  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
-}
-
-input:checked + .switch-slider:before {
-  transform: translateX(20px);
+.btn-delete-template:hover {
+  color: #ef4444;
+  background: #fef2f2;
 }
 
 /* ===========================================
@@ -979,144 +857,13 @@ input:checked + .switch-slider:before {
   opacity: 0;
 }
 
-.modal-enter-active,
-.modal-leave-active {
-  transition: all 0.3s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-
-.modal-enter-from .qr-preview-modal,
-.modal-leave-to .qr-preview-modal {
-  transform: scale(0.9) translateY(20px);
-}
-
-/* ===========================================
-   📱 QR Code 預覽彈窗
-   =========================================== */
-
-.qr-preview-modal {
-  background: white;
-  border-radius: 20px;
-  width: 90%;
-  max-width: 450px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
-}
-
-.qr-preview-modal .modal-header {
-  padding: 24px 28px;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.qr-preview-modal .modal-header h3 {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0;
-}
-
-.qr-preview-modal .modal-body {
-  padding: 32px 28px;
-}
-
-.participant-preview {
-  text-align: center;
-}
-
-.preview-info {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 24px;
-}
-
-.info-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.info-item:last-child {
-  border-bottom: none;
-}
-
-.info-item .label {
-  font-size: 0.9rem;
-  color: #64748b;
-  font-weight: 600;
-}
-
-.info-item .value {
-  font-size: 0.95rem;
-  color: #0f172a;
-  font-weight: 700;
-}
-
-.qr-display {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 2px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.qr-image {
-  width: 100%;
-  max-width: 300px;
-  height: auto;
-  border-radius: 8px;
-}
-
-.qr-hint {
-  font-size: 0.85rem;
-  color: #64748b;
-  margin: 0 0 24px 0;
-  line-height: 1.5;
-}
-
-.qr-actions {
-  display: flex;
-  justify-content: center;
-}
-
-.btn-download {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
-  border: none;
-  padding: 12px 28px;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn-download:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
-}
-
 /* ===========================================
    📱 響應式設計
    =========================================== */
 
 @media (max-width: 1200px) {
   .editor-layout {
-    grid-template-columns: 260px 1fr 300px;
+    grid-template-columns: 1fr 300px;
     gap: 20px;
   }
 
@@ -1203,10 +950,6 @@ input:checked + .switch-slider:before {
 
   .page-header {
     padding: 16px;
-  }
-
-  .title {
-    font-size: 1.25rem;
   }
 
   .header-actions {

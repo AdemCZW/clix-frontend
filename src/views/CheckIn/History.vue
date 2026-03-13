@@ -3,19 +3,23 @@ import { ref, computed, watch } from "vue";
 import { useToast } from "@/composables/useToast";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
+import { useCheckinStats } from "@/composables/useCheckinStats";
+import BaseModal from "@/components/shared/BaseModal.vue";
 
 const { success, warning } = useToast();
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
+const { stats, checkInRate } = useCheckinStats();
 
-const showModal = ref(false);
+const showManualModal = ref(false);
 const searchName = ref("");
 
 // 篩選條件
-const filterType = ref("all"); // all, VIP, 一般民眾
+const filterType = ref("all");
 const filterName = ref("");
-const filterDateFrom = ref(""); // 日期區間起始
-const filterDateTo = ref("");   // 日期區間結束
+const filterDateFrom = ref("");
+const filterDateTo = ref("");
+const activeTab = ref("all");
 
 // 隨活動切換載入報到資料
 watch(
@@ -61,18 +65,7 @@ const eventDateOptions = computed(() => {
   return dates;
 });
 
-// 從 participants 衍生統計資料
-const stats = computed(() => {
-  const all = participantsStore.participants;
-  return {
-    total: all.length,
-    checkedIn: all.filter((p) => p.status === "已報到").length,
-    vip: all.filter((p) => p.type === "VIP").length,
-    general: all.filter((p) => p.type === "一般民眾").length,
-  };
-});
-
-// 從已報到的參與者衍生報到紀錄（依時間降序：最新在上）
+// 從已報到的參與者衍生報到紀錄（依時間降序）
 const allCheckInLogs = computed(() =>
   participantsStore.participants
     .filter((p) => p.status === "已報到")
@@ -93,7 +86,6 @@ const allCheckInLogs = computed(() =>
           : "--",
         dateStr: ts ? ts.toISOString().slice(0, 10) : "",
         timestamp: ts ? ts.getTime() : 0,
-        seat: "--",
       };
     })
     .sort((a, b) => b.timestamp - a.timestamp)
@@ -103,14 +95,12 @@ const allCheckInLogs = computed(() =>
 const logs = computed(() => {
   let filtered = [...allCheckInLogs.value];
 
-  // 按 tab 篩選報到方式
   if (activeTab.value === "qr") {
     filtered = filtered.filter((log) => log.method === "QR Scan");
   } else if (activeTab.value === "manual") {
     filtered = filtered.filter((log) => log.method === "Manual");
   }
 
-  // 按日期區間篩選
   if (filterDateFrom.value || filterDateTo.value) {
     filtered = filtered.filter((log) => {
       if (!log.dateStr) return false;
@@ -120,22 +110,16 @@ const logs = computed(() => {
     });
   }
 
-  // 按身份類型篩選
   if (filterType.value !== "all") {
     filtered = filtered.filter((log) => log.type === filterType.value);
   }
 
-  // 按姓名搜尋
   if (filterName.value) {
     filtered = filtered.filter((log) => log.name.includes(filterName.value));
   }
 
   return filtered;
 });
-
-const checkInRate = computed(() =>
-  stats.value.total > 0 ? Math.round((stats.value.checkedIn / stats.value.total) * 100) : 0,
-);
 
 // 搜尋與建議邏輯
 const searchResult = computed(() => {
@@ -149,15 +133,14 @@ const pendingList = computed(() => {
   return participantsStore.participants.filter((p) => p.status !== "已報到").slice(0, 5);
 });
 
-// 通用報到處理邏輯
-const processCheckIn = async (person, method) => {
+const processCheckIn = async (person) => {
   if (person.status === "已報到") {
     warning(`${person.name} 已經報到過了`);
     return;
   }
   try {
     await participantsStore.checkIn(person.id);
-    showModal.value = false;
+    showManualModal.value = false;
     searchName.value = "";
     success(`${person.name} 報到成功！`);
   } catch {
@@ -165,10 +148,7 @@ const processCheckIn = async (person, method) => {
   }
 };
 
-// ===== 右側 tab（QR / 手動）=====
-const activeTab = ref("all"); // 'all' | 'qr' | 'manual'
-
-// ===== 取消報到 =====
+// 取消報到
 const cancelTarget = ref(null);
 const showCancelDialog = ref(false);
 
@@ -189,866 +169,464 @@ const confirmCancel = async () => {
     cancelTarget.value = null;
   }
 };
+
+const resetFilters = () => {
+  activeTab.value = "all";
+  filterType.value = "all";
+  filterName.value = "";
+  filterDateFrom.value = "";
+  filterDateTo.value = "";
+};
+
+const hasActiveFilters = computed(() =>
+  activeTab.value !== "all" || filterType.value !== "all" || !!filterName.value || !!filterDateFrom.value || !!filterDateTo.value
+);
 </script>
 
 <template>
   <div class="checkin-view">
-    <div class="unified-container">
-      <!-- 左側：統計與操作區 -->
-      <div class="left-panel">
-        <!-- 統計儀表板 -->
-        <div class="tech-card unified-stats">
-          <!-- 活動日期 -->
-          <div class="event-date-bar">
-            <span class="date-icon">📅</span>
-            <span class="date-text">{{ eventDateDisplay }}</span>
-          </div>
-
-          <!-- 日期區間篩選（多天活動才顯示） -->
-          <div v-if="isMultiDayEvent" class="date-filter-row">
-            <label class="date-filter-label">篩選日期</label>
-            <div class="date-range-inputs">
-              <input
-                type="date"
-                v-model="filterDateFrom"
-                class="date-filter-input"
-                :min="eventDateOptions[0]"
-                :max="filterDateTo || eventDateOptions[eventDateOptions.length - 1]"
-              />
-              <span class="date-range-sep">～</span>
-              <input
-                type="date"
-                v-model="filterDateTo"
-                class="date-filter-input"
-                :min="filterDateFrom || eventDateOptions[0]"
-                :max="eventDateOptions[eventDateOptions.length - 1]"
-              />
-            </div>
-          </div>
-
-          <!-- 圓形進度環 -->
-          <div class="circular-progress-container">
-            <svg viewBox="0 0 120 120" class="circular-ring">
-              <circle class="ring-bg" cx="60" cy="60" r="50" />
-              <circle
-                class="ring-fill"
-                cx="60" cy="60" r="50"
-                transform="rotate(-90 60 60)"
-                :stroke-dasharray="`${(checkInRate / 100) * 314.159} 314.159`"
-              />
-            </svg>
-            <div class="ring-center">
-              <div class="rate-value">{{ checkInRate }}%</div>
-              <div class="rate-label">報到率</div>
-            </div>
-          </div>
-
-          <!-- 數字統計 -->
-          <div class="mini-stats-row">
-            <div class="mini-stat-item">
-              <div class="mini-label">應到</div>
-              <div class="mini-value">{{ stats.total }}</div>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="mini-stat-item accent">
-              <div class="mini-label">已報到</div>
-              <div class="mini-value">{{ stats.checkedIn }}</div>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="mini-stat-item pending">
-              <div class="mini-label">未報到</div>
-              <div class="mini-value">{{ stats.total - stats.checkedIn }}</div>
-            </div>
-          </div>
+    <!-- 頂部統計列 -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-label">📅 {{ eventDateDisplay }}</div>
+      </div>
+      <div class="stat-group">
+        <div class="stat-item">
+          <span class="stat-value primary">{{ checkInRate }}%</span>
+          <span class="stat-label">報到率</span>
         </div>
-
-        <!-- 操作按鈕區 -->
-        <div class="action-section">
-          <button class="btn-secondary btn-full" @click="showModal = true">手動報到補錄</button>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-value">{{ stats.total }}</span>
+          <span class="stat-label">應到</span>
         </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-value accent">{{ stats.checkedIn }}</span>
+          <span class="stat-label">已報到</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-value warn">{{ stats.pending }}</span>
+          <span class="stat-label">未報到</span>
+        </div>
+      </div>
+      <button class="btn-manual" @click="showManualModal = true">手動報到</button>
+    </div>
 
-        <!-- 手動報到搜尋區（整合進左側面板） -->
-        <div v-if="showModal" class="manual-checkin-panel">
-          <div class="panel-header">
-            <div class="header-title">
-              <h3>手動報到搜尋</h3>
-            </div>
-            <button class="close-btn" @click="showModal = false">✕</button>
+    <!-- 主要內容：篩選 + 報到紀錄 -->
+    <div class="main-card">
+      <!-- 篩選列 -->
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="method-tabs">
+            <button :class="['tab-btn', activeTab === 'all' && 'active']" @click="activeTab = 'all'">全部</button>
+            <button :class="['tab-btn', activeTab === 'qr' && 'active']" @click="activeTab = 'qr'">QR 掃描</button>
+            <button :class="['tab-btn', activeTab === 'manual' && 'active']" @click="activeTab = 'manual'">手動補錄</button>
           </div>
-
-          <div class="panel-body">
-            <div class="search-wrapper">
-              <input
-                v-model="searchName"
-                class="input-rounded"
-                placeholder="輸入姓名或關鍵字..."
-                autofocus
-              />
-            </div>
-
-            <div class="list-container">
-              <p class="list-label">{{ searchName ? "搜尋結果" : "待報到建議名單" }}</p>
-
-              <div
-                v-for="p in searchName ? searchResult : pendingList"
-                :key="p.id"
-                class="person-row"
-              >
-                <div class="person-info">
-                  <span class="p-name">{{ p.name }}</span>
-                  <span class="p-phone">{{ p.phone }}</span>
-                </div>
-                <button class="btn-check-action" @click="processCheckIn(p, 'Manual')">
-                  點擊報到
-                </button>
-              </div>
-
-              <div v-if="searchName && searchResult.length === 0" class="no-result">
-                查無未報到名單
-              </div>
-            </div>
-          </div>
+          <span class="record-count">{{ logs.length }} 筆</span>
+        </div>
+        <div class="toolbar-right">
+          <input v-model="filterName" class="filter-input" placeholder="搜尋姓名..." />
+          <select v-model="filterType" class="filter-select">
+            <option value="all">全部類型</option>
+            <option value="VIP">VIP</option>
+            <option value="一般民眾">一般民眾</option>
+          </select>
+          <!-- 多天活動日期篩選 -->
+          <template v-if="isMultiDayEvent">
+            <input
+              type="date"
+              v-model="filterDateFrom"
+              class="filter-input date-input"
+              :min="eventDateOptions[0]"
+              :max="filterDateTo || eventDateOptions[eventDateOptions.length - 1]"
+            />
+            <span class="date-sep">～</span>
+            <input
+              type="date"
+              v-model="filterDateTo"
+              class="filter-input date-input"
+              :min="filterDateFrom || eventDateOptions[0]"
+              :max="eventDateOptions[eventDateOptions.length - 1]"
+            />
+          </template>
+          <button v-if="hasActiveFilters" class="btn-reset" @click="resetFilters">清除</button>
         </div>
       </div>
 
-      <!-- 右側：即時報到紀錄流 -->
-      <div class="right-panel">
-        <div class="tech-card logs-container">
-          <div class="card-header">
-            <h3 class="subtitle">即時報到紀錄</h3>
-            <div class="header-right">
-              <!-- Tab 切換 -->
-              <div class="method-tabs">
-                <button :class="['tab-btn', activeTab === 'all' ? 'active' : '']" @click="activeTab = 'all'">全部</button>
-                <button :class="['tab-btn', activeTab === 'qr' ? 'active' : '']" @click="activeTab = 'qr'">QR 掃描</button>
-                <button :class="['tab-btn', activeTab === 'manual' ? 'active' : '']" @click="activeTab = 'manual'">手動補錄</button>
+      <!-- 報到紀錄列表 -->
+      <div class="log-list">
+        <transition-group name="list">
+          <div v-for="log in logs" :key="log.id" class="log-item">
+            <div class="log-left">
+              <div class="log-name">
+                {{ log.name }}
+                <span :class="['type-badge', log.type === 'VIP' ? 'type-vip' : 'type-general']">
+                  {{ log.type }}
+                </span>
               </div>
-              <span class="record-count">共 {{ logs.length }} 筆</span>
+              <div class="log-meta">
+                <span class="log-time">{{ log.time }}</span>
+                <span class="log-separator">·</span>
+                <span :class="['log-method', log.method === 'QR Scan' ? 'method-qr' : 'method-manual']">
+                  {{ log.method === "QR Scan" ? "QR" : "手動" }}
+                </span>
+              </div>
             </div>
+            <button class="btn-cancel-checkin" @click="askCancelCheckIn(log)">取消報到</button>
           </div>
-
-          <!-- 篩選控制區 -->
-          <div class="filter-section">
-            <div class="filter-row">
-              <div class="filter-group">
-                <label class="filter-label">搜尋姓名</label>
-                <input v-model="filterName" class="filter-input" placeholder="輸入姓名..." />
-              </div>
-
-              <div class="filter-group">
-                <label class="filter-label">身份類型</label>
-                <select v-model="filterType" class="filter-select">
-                  <option value="all">全部</option>
-                  <option value="VIP">VIP</option>
-                  <option value="一般民眾">一般民眾</option>
-                </select>
-              </div>
-
-              <button
-                class="filter-reset-btn"
-                @click="
-                  activeTab = 'all';
-                  filterType = 'all';
-                  filterName = '';
-                  filterDateFrom = '';
-                  filterDateTo = '';
-                "
-                :disabled="activeTab === 'all' && filterType === 'all' && !filterName && !filterDateFrom && !filterDateTo"
-              >
-                清除篩選
-              </button>
-            </div>
-          </div>
-
-          <div class="log-list">
-            <transition-group name="list">
-              <div v-for="log in logs" :key="log.id" class="log-item">
-                <div class="log-left">
-                  <div class="log-name">
-                    {{ log.name }}
-                    <span :class="['type-badge', log.type === 'VIP' ? 'type-vip' : 'type-general']">
-                      {{ log.type }}
-                    </span>
-                  </div>
-                  <div class="log-meta">
-                    <span class="log-time">{{ log.time }}</span>
-                    <span class="log-separator">·</span>
-                    <span class="log-seat">{{ log.seat }}</span>
-                  </div>
-                </div>
-                <div class="log-right">
-                  <span
-                    :class="[
-                      'log-method',
-                      log.method === 'QR Scan' ? 'method-qr' : 'method-manual',
-                    ]"
-                  >
-                    {{ log.method === "QR Scan" ? "QR 掃描" : "手動補錄" }}
-                  </span>
-                  <button class="btn-cancel-checkin" @click="askCancelCheckIn(log)">取消報到</button>
-                </div>
-              </div>
-            </transition-group>
-            <div v-if="logs.length === 0" class="empty-state">等待報到數據中...</div>
-          </div>
-        </div>
+        </transition-group>
+        <div v-if="logs.length === 0" class="empty-state">等待報到數據中...</div>
       </div>
     </div>
 
-    <!-- 取消報到確認 Dialog -->
-    <Teleport to="body">
-      <div v-if="showCancelDialog" class="dialog-overlay" @click.self="showCancelDialog = false">
-        <div class="dialog-box">
-          <div class="dialog-icon">⚠️</div>
-          <h3 class="dialog-title">確認取消報到？</h3>
-          <p class="dialog-msg">
-            即將取消 <strong>{{ cancelTarget?.name }}</strong> 的報到紀錄，此操作將把狀態還原為「未報到」。
-          </p>
-          <div class="dialog-actions">
-            <button class="dialog-btn cancel" @click="showCancelDialog = false">返回</button>
-            <button class="dialog-btn confirm" @click="confirmCancel">確認取消</button>
+    <!-- 手動報到 Modal -->
+    <BaseModal v-model="showManualModal" title="手動報到" max-width="480px">
+      <div class="search-wrapper">
+        <input
+          v-model="searchName"
+          class="search-input"
+          placeholder="輸入姓名搜尋..."
+          autofocus
+        />
+      </div>
+      <p class="list-label">{{ searchName ? "搜尋結果" : "待報到名單（前5筆）" }}</p>
+      <div class="person-list">
+        <div
+          v-for="p in searchName ? searchResult : pendingList"
+          :key="p.id"
+          class="person-row"
+        >
+          <div class="person-info">
+            <span class="p-name">{{ p.name }}</span>
+            <span class="p-detail">{{ p.company }}{{ p.phone ? ` · ${p.phone}` : '' }}</span>
           </div>
+          <button class="btn-check-action" @click="processCheckIn(p)">報到</button>
+        </div>
+        <div v-if="searchName && searchResult.length === 0" class="no-result">
+          查無未報到名單
         </div>
       </div>
-    </Teleport>
+    </BaseModal>
+
+    <!-- 取消報到確認 -->
+    <BaseModal v-model="showCancelDialog" title="確認取消報到？" max-width="380px">
+      <p class="dialog-msg">
+        即將取消 <strong>{{ cancelTarget?.name }}</strong> 的報到紀錄，此操作將把狀態還原為「未報到」。
+      </p>
+      <template #footer>
+        <button class="btn-dialog cancel" @click="showCancelDialog = false">返回</button>
+        <button class="btn-dialog confirm" @click="confirmCancel">確認取消</button>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
 <style lang="scss" scoped>
-/* 頁面基本配置 */
 .checkin-view {
   padding: 24px;
-  background: #f8fafc;
-  min-height: 100vh;
-}
-
-/* 統一容器 - 左右分欄 */
-.unified-container {
-  display: grid;
-  grid-template-columns: 400px 1fr;
-  gap: 24px;
-  height: calc(100vh - 48px);
-}
-
-/* 左側面板 */
-.left-panel {
+  max-width: 1200px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-height: calc(100vh - 48px);
 }
 
-/* 統一統計區塊 */
-.unified-stats {
-  padding: 20px 24px;
-
-  /* 活動日期列 */
-  .event-date-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
-    padding: 8px 12px;
-    background: #f0f9ff;
-    border-radius: 10px;
-    border: 1px solid #bae6fd;
-
-    .date-icon {
-      font-size: 1rem;
-      flex-shrink: 0;
-    }
-
-    .date-text {
-      font-size: 0.88rem;
-      font-weight: 700;
-      color: #0369a1;
-      letter-spacing: 0.3px;
-    }
-  }
-
-  /* 日期篩選（多天活動） */
-  .date-filter-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 14px;
-
-    .date-filter-label {
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: #64748b;
-      white-space: nowrap;
-    }
-
-    .date-range-inputs {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex: 1;
-    }
-
-    .date-range-sep {
-      font-size: 0.85rem;
-      color: #94a3b8;
-      flex-shrink: 0;
-    }
-
-    .date-filter-input {
-      flex: 1;
-      padding: 6px 8px;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 8px;
-      font-size: 0.82rem;
-      outline: none;
-      background: white;
-      cursor: pointer;
-      min-width: 0;
-
-      &:focus {
-        border-color: #0ea5e9;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-      }
-    }
-  }
-
-  /* 圓形進度環 */
-  .circular-progress-container {
-    position: relative;
-    width: 160px;
-    height: 160px;
-    margin: 0 auto 20px;
-
-    .circular-ring {
-      width: 100%;
-      height: 100%;
-      overflow: visible;
-
-      .ring-bg {
-        fill: none;
-        stroke: #f1f5f9;
-        stroke-width: 12;
-      }
-
-      .ring-fill {
-        fill: none;
-        stroke: url(#ringGradient);
-        stroke-width: 12;
-        stroke-linecap: round;
-        transition: stroke-dasharray 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-        stroke: #0ea5e9;
-      }
-    }
-
-    .ring-center {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-
-      .rate-value {
-        font-size: 2rem;
-        font-weight: 800;
-        color: #0ea5e9;
-        line-height: 1;
-      }
-
-      .rate-label {
-        font-size: 0.72rem;
-        font-weight: 600;
-        color: #94a3b8;
-        margin-top: 4px;
-        letter-spacing: 0.5px;
-      }
-    }
-  }
-
-  /* 數字統計列 */
-  .mini-stats-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    padding-top: 16px;
-    border-top: 1px solid #f1f5f9;
-
-    .mini-stat-item {
-      flex: 1;
-      text-align: center;
-
-      .mini-label {
-        font-size: 0.72rem;
-        color: #94a3b8;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 6px;
-      }
-
-      .mini-value {
-        font-size: 1.6rem;
-        font-weight: 800;
-        color: #1e293b;
-      }
-
-      &.accent .mini-value {
-        color: #10b981;
-      }
-
-      &.pending .mini-value {
-        color: #f59e0b;
-      }
-    }
-
-    .stat-divider {
-      width: 1px;
-      height: 36px;
-      background: #e2e8f0;
-    }
-  }
-}
-
-/* 操作按鈕區 */
-.action-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-
-  .btn-full {
-    width: 100%;
-    justify-content: center;
-    gap: 8px;
-
-    .btn-icon {
-      font-size: 1.2rem;
-    }
-  }
-}
-
-/* 手動報到面板（嵌入左側） */
-.manual-checkin-panel {
+/* ── 頂部統計列 ── */
+.stats-bar {
   background: white;
   border-radius: 16px;
-  border: 2px solid #e2e8f0;
-  overflow: hidden;
-  flex: 1;
+  padding: 16px 24px;
+  border: 1px solid #e5e7eb;
   display: flex;
-  flex-direction: column;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  animation: slideDown 0.3s ease;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
 
-  .panel-header {
-    padding: 20px;
-    border-bottom: 1px solid #f1f5f9;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+.stat-group {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
 
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 
-      .icon {
-        font-size: 1.5rem;
-      }
-
-      h3 {
-        margin: 0;
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #0f172a;
-      }
-    }
-
-    .close-btn {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      border: none;
-      background: #f1f5f9;
-      color: #64748b;
-      font-size: 1.2rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      &:hover {
-        background: #e2e8f0;
-        color: #0f172a;
-        transform: rotate(90deg);
-      }
-    }
+  .stat-label {
+    font-size: 0.82rem;
+    color: #64748b;
+    font-weight: 600;
   }
 
-  .panel-body {
-    padding: 20px;
-    flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1;
+
+    &.primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    &.accent { color: #10b981; }
+    &.warn { color: #f59e0b; }
   }
 }
 
-/* 右側面板 - 報到紀錄流 */
-.right-panel {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+.stat-divider {
+  width: 1px;
+  height: 28px;
+  background: #e5e7eb;
+}
 
-  .logs-container {
-    padding: 0;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+.btn-manual {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
 
-    .card-header {
-      padding: 16px 24px;
-      border-bottom: 1px solid #f1f5f9;
-      flex-shrink: 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-
-      h3 {
-        font-size: 1.1rem;
-        font-weight: 700;
-        margin: 0;
-        color: #0f172a;
-      }
-
-      .header-right {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .method-tabs {
-        display: flex;
-        gap: 4px;
-        background: #f1f5f9;
-        border-radius: 8px;
-        padding: 3px;
-
-        .tab-btn {
-          padding: 5px 14px;
-          border-radius: 6px;
-          border: none;
-          background: transparent;
-          font-size: 0.82rem;
-          font-weight: 600;
-          color: #64748b;
-          cursor: pointer;
-          transition: all 0.2s;
-          white-space: nowrap;
-
-          &.active {
-            background: white;
-            color: #0f172a;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-          }
-
-          &:hover:not(.active) { color: #334155; }
-        }
-      }
-
-      .record-count {
-        font-size: 0.85rem;
-        color: #64748b;
-        font-weight: 600;
-        background: #f8fafc;
-        padding: 4px 12px;
-        border-radius: 6px;
-        border: 1px solid #e2e8f0;
-        white-space: nowrap;
-      }
-    }
-
-    .filter-section {
-      padding: 16px 24px;
-      background: #fafbfc;
-      border-bottom: 1px solid #f1f5f9;
-      flex-shrink: 0;
-
-      .filter-row {
-        display: grid;
-        grid-template-columns: 1fr 180px auto;
-        gap: 12px;
-        align-items: end;
-      }
-
-      .filter-group {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-
-        .filter-label {
-          font-size: 0.75rem;
-          font-weight: 600;
-          color: #64748b;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .filter-input,
-        .filter-select {
-          padding: 8px 12px;
-          border: 2px solid #e2e8f0;
-          border-radius: 8px;
-          font-size: 0.9rem;
-          outline: none;
-          transition: all 0.2s;
-          background: white;
-
-          &:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-          }
-        }
-
-        .filter-select {
-          cursor: pointer;
-
-          &:hover {
-            border-color: #cbd5e1;
-          }
-        }
-      }
-
-      .filter-reset-btn {
-        padding: 8px 16px;
-        background: white;
-        color: #64748b;
-        border: 2px solid #e2e8f0;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        white-space: nowrap;
-
-        &:hover:not(:disabled) {
-          background: #f8fafc;
-          border-color: #cbd5e1;
-          color: #475569;
-        }
-
-        &:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-      }
-    }
-
-    .log-list {
-      flex: 1;
-      overflow-y: auto;
-
-      &::-webkit-scrollbar {
-        width: 8px;
-      }
-
-      &::-webkit-scrollbar-track {
-        background: #f8fafc;
-      }
-
-      &::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 4px;
-
-        &:hover {
-          background: #94a3b8;
-        }
-      }
-    }
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   }
 }
 
-/* 通用卡片樣式 */
-.tech-card {
+/* ── 主卡片 ── */
+.main-card {
   background: white;
   border-radius: 16px;
   border: 1px solid #e5e7eb;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: box-shadow 0.3s;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+/* ── 工具列 ── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.method-tabs {
+  display: flex;
+  gap: 3px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 3px;
+
+  .tab-btn {
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+
+    &.active {
+      background: white;
+      color: #0f172a;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    &:hover:not(.active) { color: #334155; }
   }
 }
 
-/* 按鈕樣式 - 統一設計風格 */
-.btn-primary,
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  padding: 12px 24px;
-  border-radius: 12px;
-  font-size: 0.95rem;
+.record-count {
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 600;
+  background: #f8fafc;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.filter-input,
+.filter-select {
+  padding: 6px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  outline: none;
+  transition: all 0.2s;
+  background: white;
+
+  &:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+}
+
+.filter-input { width: 140px; }
+.filter-select { cursor: pointer; }
+.date-input { width: 130px; }
+.date-sep { color: #94a3b8; font-size: 0.85rem; }
+
+.btn-reset {
+  padding: 6px 14px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
+  transition: all 0.2s;
+  white-space: nowrap;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
+    background: #e2e8f0;
+    color: #475569;
   }
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+/* ── 報到紀錄列表 ── */
+.log-list {
+  flex: 1;
+  overflow-y: auto;
 
-  &:hover {
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: #f8fafc; }
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+    &:hover { background: #94a3b8; }
   }
 }
 
-.btn-secondary {
-  background: white;
-  color: #475569;
-  border: 2px solid #e2e8f0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-
-  &:hover {
-    border-color: #cbd5e1;
-    background: #f8fafc;
-  }
-}
-
-/* 報到紀錄項目 */
 .log-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 24px;
+  padding: 14px 20px;
   border-bottom: 1px solid #f8fafc;
+  transition: background 0.15s;
+
+  &:hover { background: #fafbfc; }
+}
+
+.log-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.log-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.type-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 5px;
+
+  &.type-vip {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+  }
+
+  &.type-general {
+    background: #e0e7ff;
+    color: #3730a3;
+    border: 1px solid #a5b4fc;
+  }
+}
+
+.log-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.log-time {
+  font-family: "Courier New", monospace;
+  font-weight: 600;
+}
+
+.log-separator { color: #cbd5e1; }
+
+.log-method {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+
+  &.method-qr {
+    background: #dbeafe;
+    color: #0284c7;
+  }
+
+  &.method-manual {
+    background: #f1f5f9;
+    color: #475569;
+  }
+}
+
+.btn-cancel-checkin {
+  padding: 5px 12px;
+  border-radius: 7px;
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #ef4444;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
 
   &:hover {
-    background: #fafbfc;
-  }
-
-  .log-left {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-
-    .log-name {
-      font-size: 1rem;
-      font-weight: 700;
-      color: #0f172a;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-
-      .type-badge {
-        display: inline-block;
-        font-size: 0.7rem;
-        font-weight: 600;
-        padding: 3px 10px;
-        border-radius: 6px;
-        letter-spacing: 0.3px;
-
-        &.type-vip {
-          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-          color: #92400e;
-          border: 1px solid #fcd34d;
-        }
-
-        &.type-general {
-          background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-          color: #3730a3;
-          border: 1px solid #a5b4fc;
-        }
-      }
-    }
-
-    .log-meta {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.85rem;
-      color: #64748b;
-
-      .log-time {
-        font-family: "Courier New", Courier, monospace;
-        font-weight: 600;
-      }
-
-      .log-separator {
-        color: #cbd5e1;
-      }
-
-      .log-seat {
-        font-weight: 600;
-        color: #475569;
-        background: #f1f5f9;
-        padding: 2px 8px;
-        border-radius: 4px;
-      }
-    }
-  }
-
-  .log-right {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-    .btn-cancel-checkin {
-      padding: 5px 12px;
-      border-radius: 7px;
-      border: 1px solid #fecaca;
-      background: #fff1f2;
-      color: #ef4444;
-      font-size: 0.78rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-
-      &:hover {
-        background: #fee2e2;
-        border-color: #fca5a5;
-      }
-    }
-
-    .log-method {
-      display: inline-block;
-      font-size: 0.8rem;
-      padding: 6px 16px;
-      border-radius: 8px;
-      font-weight: 600;
-      letter-spacing: 0.3px;
-
-      &.method-qr {
-        background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
-        color: #0284c7;
-        border: 1px solid #bae6fd;
-      }
-
-      &.method-manual {
-        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-        color: #475569;
-        border: 1px solid #cbd5e1;
-      }
-    }
+    background: #fee2e2;
+    border-color: #fca5a5;
   }
 }
 
@@ -1057,204 +635,181 @@ const confirmCancel = async () => {
   text-align: center;
   color: #cbd5e1;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
-/* 搜尋與列表樣式 */
+/* ── 手動報到 Modal 內容 ── */
 .search-wrapper {
-  .input-rounded {
+  margin-bottom: 16px;
+
+  .search-input {
     width: 100%;
     padding: 12px 16px;
     border: 2px solid #e2e8f0;
-    border-radius: 12px;
+    border-radius: 10px;
     font-size: 0.95rem;
-    transition: all 0.2s;
     outline: none;
+    transition: all 0.2s;
 
     &:focus {
       border-color: #667eea;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
-
-    &::placeholder {
-      color: #cbd5e1;
-    }
   }
 }
 
-.list-container {
+.list-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 10px;
+}
+
+.person-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-
-  .list-label {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin: 0;
-  }
-
-  .person-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px;
-    background: #f8fafc;
-    border-radius: 12px;
-    border: 2px solid transparent;
-    transition: all 0.2s;
-
-    &:hover {
-      background: white;
-      border-color: #667eea;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.12);
-    }
-
-    .person-info {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-
-      .p-name {
-        font-weight: 700;
-        color: #0f172a;
-        font-size: 0.95rem;
-      }
-
-      .p-phone {
-        font-size: 0.75rem;
-        color: #64748b;
-      }
-    }
-
-    .btn-check-action {
-      padding: 8px 16px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-      }
-
-      &:active {
-        transform: translateY(0);
-      }
-    }
-  }
-
-  .no-result {
-    padding: 40px;
-    text-align: center;
-    color: #cbd5e1;
-    font-weight: 600;
-  }
+  gap: 8px;
 }
 
-/* 取消報到 Dialog */
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
+.person-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  backdrop-filter: blur(2px);
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+
+  &:hover {
+    background: white;
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
+  }
 }
 
-.dialog-box {
-  background: white;
-  border-radius: 20px;
-  padding: 36px 32px 28px;
-  width: 380px;
-  max-width: 90vw;
-  text-align: center;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-  animation: dialogPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+.person-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 
-  .dialog-icon {
-    font-size: 2.8rem;
-    margin-bottom: 12px;
-  }
-
-  .dialog-title {
-    font-size: 1.2rem;
-    font-weight: 800;
+  .p-name {
+    font-weight: 700;
     color: #0f172a;
-    margin: 0 0 12px;
+    font-size: 0.95rem;
   }
 
-  .dialog-msg {
-    font-size: 0.9rem;
+  .p-detail {
+    font-size: 0.78rem;
     color: #64748b;
-    line-height: 1.6;
-    margin: 0 0 24px;
+  }
+}
 
-    strong { color: #0f172a; }
+.btn-check-action {
+  padding: 7px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  }
+}
+
+.no-result {
+  padding: 30px;
+  text-align: center;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+/* ── 取消報到確認 ── */
+.dialog-msg {
+  font-size: 0.9rem;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+  text-align: center;
+
+  strong { color: #0f172a; }
+}
+
+.btn-dialog {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+
+  &.cancel {
+    background: #f1f5f9;
+    color: #475569;
+    &:hover { background: #e2e8f0; }
   }
 
-  .dialog-actions {
-    display: flex;
+  &.confirm {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    &:hover { box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4); }
+  }
+}
+
+/* ── 動畫 ── */
+.list-enter-active { transition: all 0.4s ease; }
+.list-enter-from { opacity: 0; transform: translateX(-20px); }
+
+/* ── RWD ── */
+@media (max-width: 768px) {
+  .checkin-view { padding: 12px; }
+
+  .stats-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .stat-group {
+    justify-content: space-around;
+  }
+
+  .btn-manual { width: 100%; text-align: center; }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
     gap: 10px;
-
-    .dialog-btn {
-      flex: 1;
-      padding: 11px;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-      border: none;
-
-      &.cancel {
-        background: #f1f5f9;
-        color: #475569;
-        &:hover { background: #e2e8f0; }
-      }
-
-      &.confirm {
-        background: linear-gradient(135deg, #ef4444, #dc2626);
-        color: white;
-        box-shadow: 0 4px 12px rgba(239,68,68,0.3);
-        &:hover { box-shadow: 0 6px 16px rgba(239,68,68,0.4); transform: translateY(-1px); }
-      }
-    }
   }
-}
 
-@keyframes dialogPop {
-  from { opacity: 0; transform: scale(0.88); }
-  to   { opacity: 1; transform: scale(1); }
-}
+  .toolbar-left { justify-content: space-between; }
 
-/* 動畫效果 */
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
+  .toolbar-right {
+    flex-wrap: wrap;
+    gap: 6px;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .filter-input { flex: 1; min-width: 0; width: auto; }
+  .filter-select { flex: 1; min-width: 0; }
+  .date-input { flex: 1; min-width: 100px; width: auto; }
+
+  .log-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
-}
 
-.list-enter-active {
-  transition: all 0.5s ease;
-}
-
-.list-enter-from {
-  opacity: 0;
-  transform: translateX(-30px);
+  .btn-cancel-checkin { align-self: flex-end; }
 }
 </style>

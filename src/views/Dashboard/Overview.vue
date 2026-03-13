@@ -182,6 +182,9 @@
             {{ event.statusText }}
           </div>
         </div>
+        <div v-if="recentEvents.length === 0 && !eventsStore.isLoading" class="no-events">
+          目前沒有活動，請先建立活動
+        </div>
       </div>
     </div>
   </div>
@@ -192,13 +195,40 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
+import { useUserStore } from "@/stores/user";
+import { useCheckinStats } from "@/composables/useCheckinStats";
 
 const router = useRouter();
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
+const userStore = useUserStore();
+const { stats: checkinStats, dailyTrend, trendSummary } = useCheckinStats();
 
-const eventStats = ref({ total: 0, active: 0, participants: 0, checkedIn: 0 });
-const recentEvents = ref([]);
+const eventStats = computed(() => ({
+  total: eventsStore.events.length,
+  active: eventsStore.events.filter((e) => e.status === "active").length,
+  participants: checkinStats.value.total,
+  checkedIn: checkinStats.value.checkedIn,
+}));
+
+const recentEvents = computed(() => {
+  return [...eventsStore.events]
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+    .slice(0, 5)
+    .map((e) => {
+      const d = e.date ? new Date(e.date) : null;
+      return {
+        id: e.id,
+        name: e.name,
+        month: d ? `${d.getMonth() + 1}月` : "--",
+        day: d ? d.getDate() : "--",
+        location: e.location || "未設定地點",
+        participants: e.participantsCount || 0,
+        status: e.status || "upcoming",
+        statusText: e.statusText || "即將開始",
+      };
+    });
+});
 
 // ── 圖表設定 ───────────────────────────────────────────────
 const SVG_W = 800;
@@ -215,38 +245,11 @@ const ranges = [
 ];
 const selectedRange = ref(7);
 
-// 用實際 checkedIn 分佈產生每日資料
-const rawData = ref([]);
-
-const generateData = (days, totalCheckedIn) => {
-  const now = new Date();
-  const points = [];
-  // 用 beta 分佈概念：近期報到較多
-  let remaining = totalCheckedIn;
-  const weights = Array.from({ length: days }, (_, i) => Math.pow((i + 1) / days, 1.5));
-  const weightSum = weights.reduce((a, b) => a + b, 0);
-
-  for (let i = 0; i < days; i++) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - (days - 1 - i));
-    const share = Math.round((weights[i] / weightSum) * totalCheckedIn);
-    const jitter = Math.floor((Math.random() - 0.5) * share * 0.4);
-    const value = Math.max(0, Math.min(remaining, share + jitter));
-    remaining -= value;
-    points.push({ date: d, value: i === days - 1 ? value + remaining : value });
-  }
-  return points;
-};
-
-const chartData = computed(() => {
-  const total = eventStats.value.checkedIn || 0;
-  return generateData(selectedRange.value, total);
-});
-
-// 統計摘要
-const periodTotal = computed(() => chartData.value.reduce((s, p) => s + p.value, 0));
-const dailyAvg = computed(() => Math.round(periodTotal.value / selectedRange.value));
-const peakDay = computed(() => Math.max(...chartData.value.map((p) => p.value)));
+const chartData = dailyTrend(selectedRange);
+const summary = trendSummary(chartData, selectedRange);
+const periodTotal = computed(() => summary.value.periodTotal);
+const dailyAvg = computed(() => summary.value.dailyAvg);
+const peakDay = computed(() => summary.value.peakDay);
 
 // ── SVG 計算 ──────────────────────────────────────────────
 const maxVal = computed(() => Math.max(...chartData.value.map((p) => p.value), 1));
@@ -331,19 +334,22 @@ const hideTooltip = () => { tooltip.value.visible = false; };
 
 // ── 資料載入 ──────────────────────────────────────────────
 onMounted(async () => {
-  const stats = await participantsStore.fetchStatistics();
-  if (stats) {
-    eventStats.value = {
-      total: eventsStore.events.length,
-      active: 0,
-      participants: stats.total ?? 0,
-      checkedIn: stats.checked_in ?? 0,
-    };
-  }
+  const user = userStore.user;
+  await Promise.all([
+    eventsStore.fetchEvents({
+      userId: user?.id,
+      isSuperAdmin: userStore.isSuperAdmin,
+    }),
+    participantsStore.fetchParticipants({}),
+  ]);
 });
 
-const selectEvent = () => {
-  router.push("/admin/registration-setting");
+const selectEvent = (displayEvent) => {
+  const storeEvent = eventsStore.events.find((e) => e.id === displayEvent.id);
+  if (storeEvent) {
+    eventsStore.setCurrentEvent(storeEvent, userStore.user?.id);
+  }
+  router.push("/admin/checkin-history");
 };
 </script>
 
@@ -621,6 +627,77 @@ const selectEvent = () => {
     &.active { background: #d1fae5; color: #065f46; }
     &.upcoming { background: #dbeafe; color: #1e40af; }
     &.completed { background: #f3f4f6; color: #374151; }
+  }
+}
+
+.no-events {
+  text-align: center;
+  padding: 40px 20px;
+  color: #94a3b8;
+  font-size: 0.95rem;
+}
+
+/* ====== RWD ====== */
+@media (max-width: 768px) {
+  .dashboard-view {
+    padding: 16px;
+  }
+
+  .stats-bar {
+    flex-wrap: wrap;
+    padding: 20px;
+    gap: 16px;
+  }
+
+  .stat-divider {
+    display: none;
+  }
+
+  .stat-item {
+    flex: 1 1 40%;
+    min-width: 0;
+
+    .stat-value {
+      font-size: 1.6rem;
+    }
+  }
+
+  .chart-card {
+    padding: 16px;
+  }
+
+  .chart-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .chart-summary {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .recent-events-section {
+    padding: 16px;
+  }
+
+  .event-item {
+    .event-date {
+      width: 48px;
+      height: 48px;
+
+      .day { font-size: 1.2rem; }
+      .month { font-size: 0.7rem; }
+    }
+
+    .event-status {
+      display: none;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-item {
+    flex: 1 1 100%;
   }
 }
 </style>
