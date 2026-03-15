@@ -914,34 +914,4 @@ const getInitials = (name) => {
   }
 }
 
-/* 動畫 */
-.panel-slide-enter-active,
-.panel-slide-leave-active {
-  transition: all 0.3s ease;
-}
-
-.panel-slide-enter-from {
-  opacity: 0;
-
-  .edit-panel {
-    transform: translateX(100%);
-  }
-}
-
-.panel-slide-leave-to {
-  opacity: 0;
-
-  .edit-panel {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
 </style>
