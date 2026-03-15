@@ -5,6 +5,7 @@ import { useToast } from "@/composables/useToast";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import BasePanel from "@/components/shared/BasePanel.vue";
+import ConfirmDialog from "@/components/ConfirmDialog.vue";
 
 const { success, warning, error: showError } = useToast();
 const participantsStore = useParticipantsStore();
@@ -250,9 +251,18 @@ const editPanelOpen = computed({
   get: () => !!editingParticipant.value,
   set: (v) => { if (!v) editingParticipant.value = null; },
 });
-const deleteParticipant = async (participant) => {
-  if (!confirm("確定要刪除這位參與者嗎？")) return;
 
+// 確認刪除 dialog
+const confirmDialog = ref({ show: false, participant: null });
+
+const deleteParticipant = (participant) => {
+  confirmDialog.value = { show: true, participant };
+};
+
+const confirmDelete = async () => {
+  const participant = confirmDialog.value.participant;
+  confirmDialog.value = { show: false, participant: null };
+  if (!participant) return;
   try {
     await participantsStore.deleteParticipant(participant.id);
     success("刪除成功");
@@ -632,6 +642,15 @@ const toggleVIP = (participant) => {
         <button class="btn-save" @click="saveParticipant">儲存</button>
       </template>
     </BasePanel>
+
+    <ConfirmDialog
+      :show="confirmDialog.show"
+      title="刪除參與者"
+      :message="`確定要刪除「${confirmDialog.participant?.name}」嗎？此操作無法復原。`"
+      confirmText="確認刪除"
+      @confirm="confirmDelete"
+      @cancel="confirmDialog.show = false"
+    />
   </div>
 </template>
 

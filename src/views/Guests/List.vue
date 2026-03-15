@@ -4,6 +4,7 @@ import { useGuestsStore } from "@/stores/guests";
 import { useEventsStore } from "@/stores/events";
 import { useToast } from "@/composables/useToast";
 import BasePanel from "@/components/shared/BasePanel.vue";
+import ConfirmDialog from "@/components/ConfirmDialog.vue";
 
 const guestsStore = useGuestsStore();
 const eventsStore = useEventsStore();
@@ -68,8 +69,17 @@ const addGuest = async () => {
   }
 };
 
-const deleteGuest = async (guest) => {
-  if (!window.confirm(`確定要刪除貴賓 ${guest.name} 嗎？`)) return;
+// 確認刪除 dialog
+const confirmDialog = ref({ show: false, guest: null });
+
+const deleteGuest = (guest) => {
+  confirmDialog.value = { show: true, guest };
+};
+
+const confirmDelete = async () => {
+  const guest = confirmDialog.value.guest;
+  confirmDialog.value = { show: false, guest: null };
+  if (!guest) return;
   try {
     await guestsStore.deleteGuest(guest.id);
     if (editingGuest.value && editingGuest.value.id === guest.id) {
@@ -154,7 +164,24 @@ const getInitials = (name) => {
       </div>
     </div>
 
-    <div class="guests-list">
+    <!-- 空狀態 -->
+    <div v-if="filteredGuests.length === 0" class="empty-state">
+      <div class="empty-icon">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <h3>尚無貴賓資料</h3>
+      <p>點擊「新增貴賓」開始建立貴賓名單</p>
+      <button class="btn-add-guest" @click="addGuest">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        新增貴賓
+      </button>
+    </div>
+
+    <div v-else class="guests-list">
       <div
         v-for="guest in filteredGuests"
         :key="guest.id"
@@ -200,6 +227,16 @@ const getInitials = (name) => {
         </div>
       </div>
     </div>
+
+    <!-- 刪除確認彈窗 -->
+    <ConfirmDialog
+      :show="confirmDialog.show"
+      :title="`刪除貴賓`"
+      :message="`確定要刪除「${confirmDialog.guest?.name}」嗎？此操作無法復原。`"
+      confirmText="確認刪除"
+      @confirm="confirmDelete"
+      @cancel="confirmDialog.show = false"
+    />
 
     <!-- 右側滑出編輯面板 -->
     <BasePanel v-model="editPanelOpen" title="編輯貴賓資訊">
@@ -410,11 +447,59 @@ const getInitials = (name) => {
   }
 }
 
+/* 空狀態 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  gap: 12px;
+  text-align: center;
+
+  .empty-icon {
+    width: 96px;
+    height: 96px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a5b4fc;
+    margin-bottom: 8px;
+  }
+
+  h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  p {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0 0 8px 0;
+  }
+}
+
 /* 貴賓列表 */
 .guests-list {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 860px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .guest-item {
@@ -807,4 +892,56 @@ const getInitials = (name) => {
   }
 }
 
+/* 響應式 */
+@media (max-width: 640px) {
+  .control-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .filter-group {
+    flex-wrap: wrap;
+  }
+
+  .btn-add-guest {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .edit-panel {
+    max-width: 100%;
+  }
+}
+
+/* 動畫 */
+.panel-slide-enter-active,
+.panel-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.panel-slide-enter-from {
+  opacity: 0;
+
+  .edit-panel {
+    transform: translateX(100%);
+  }
+}
+
+.panel-slide-leave-to {
+  opacity: 0;
+
+  .edit-panel {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
 </style>

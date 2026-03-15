@@ -2,6 +2,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
+import fs from 'node:fs'
 
 export default defineConfig(({ mode }) => {
     return {
@@ -20,6 +21,11 @@ export default defineConfig(({ mode }) => {
             },
         },
         server: {
+            host: '0.0.0.0',
+            https: fs.existsSync('./localhost-cert.pem') ? {
+                key: fs.readFileSync('./localhost-key.pem'),
+                cert: fs.readFileSync('./localhost-cert.pem'),
+            } : undefined,
             proxy: {
                 // 開發環境將所有 /api/* 轉發到後端，避免 CORS 問題
                 // 若後端不在 localhost:8000，可建立 .env 並設定 VITE_API_BASE_URL

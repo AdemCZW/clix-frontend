@@ -644,22 +644,19 @@ const selectEvent = (displayEvent) => {
   }
 
   .stats-bar {
+    padding: 20px 16px;
     flex-wrap: wrap;
-    padding: 20px;
     gap: 16px;
+    justify-content: center;
+
+    .stat-item {
+      flex: 1 1 calc(50% - 24px);
+      min-width: 100px;
+    }
   }
 
   .stat-divider {
     display: none;
-  }
-
-  .stat-item {
-    flex: 1 1 40%;
-    min-width: 0;
-
-    .stat-value {
-      font-size: 1.6rem;
-    }
   }
 
   .chart-card {
@@ -668,6 +665,7 @@ const selectEvent = (displayEvent) => {
 
   .chart-header {
     flex-direction: column;
+    align-items: flex-start;
     gap: 12px;
   }
 
@@ -696,8 +694,30 @@ const selectEvent = (displayEvent) => {
 }
 
 @media (max-width: 480px) {
-  .stat-item {
-    flex: 1 1 100%;
+  .stats-bar {
+    .stat-item {
+      flex: 1 1 100%;
+    }
+  }
+
+  .range-tabs {
+    width: 100%;
+    display: flex;
+
+    .range-tab {
+      flex: 1;
+      text-align: center;
+    }
+  }
+
+  .event-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+
+    .event-status {
+      align-self: flex-start;
+    }
   }
 }
 </style>

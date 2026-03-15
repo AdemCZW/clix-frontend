@@ -3,19 +3,6 @@
     <Transition name="modal-fade">
       <div v-if="show" class="onboarding-overlay" @click.self="close">
         <div class="onboarding-modal">
-          <!-- 步驟指示器 -->
-          <div class="step-indicator">
-            <div
-              v-for="step in steps"
-              :key="step.id"
-              class="step-dot"
-              :class="{ active: currentStep === step.id, completed: step.id < currentStep }"
-            >
-              <span v-if="step.id < currentStep">✓</span>
-              <span v-else>{{ step.id }}</span>
-            </div>
-          </div>
-
           <!-- 步驟內容 -->
           <div class="step-content">
             <!-- 選擇模式：選擇現有活動 或 建立新活動 -->
@@ -23,11 +10,6 @@
 
               <!-- 選擇既有活動 -->
               <template v-if="!showCreateForm">
-                <div class="step-header">
-                  <h2>選擇要管理的活動</h2>
-                  <p>請選擇您要管理的活動，或建立一個新活動</p>
-                </div>
-
                 <div class="form-group">
                   <label>現有活動</label>
                   <div v-if="eventsStore.isLoading" class="no-events">
@@ -279,11 +261,6 @@ const userStore = useUserStore();
 const eventsStore = useEventsStore();
 
 const currentStep = ref(1);
-const steps = [
-  { id: 1, title: "建立系列" },
-  { id: 2, title: "建立活動" },
-  { id: 3, title: "完成設定" },
-];
 
 const seriesForm = ref({
   name: "",
@@ -431,39 +408,12 @@ watch(
   flex-direction: column;
 }
 
-.step-indicator {
-  display: flex;
-  justify-content: center;
-  padding: 30px 20px 20px;
-  gap: 20px;
-
-  .step-dot {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #e5e7eb;
-    color: #6b7280;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    transition: all 0.3s ease;
-
-    &.active {
-      background: #3b82f6;
-      color: white;
-    }
-
-    &.completed {
-      background: #10b981;
-      color: white;
-    }
-  }
-}
 
 .step-content {
   padding: 0 40px 20px;
   flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .step-section {
@@ -668,6 +618,7 @@ watch(
   display: flex;
   justify-content: space-between;
   gap: 15px;
+  flex-shrink: 0;
 }
 
 .btn-primary {
@@ -706,6 +657,44 @@ watch(
   }
 }
 
+/* 響應式 */
+@media (max-width: 540px) {
+  .onboarding-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 20px 20px 0 0;
+    align-self: flex-end;
+  }
+
+  .onboarding-overlay {
+    align-items: flex-end;
+  }
+
+  .step-content {
+    padding: 0 20px 16px;
+  }
+
+  .modal-footer {
+    padding: 16px 20px 24px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .step-section .step-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 12px 16px;
+    font-size: 0.9rem;
+  }
+}
+
 /* 動畫 */
 .modal-fade-enter-active,
 .modal-fade-leave-active {
@@ -722,5 +711,17 @@ watch(
 .modal-fade-leave-to {
   opacity: 0;
   transform: scale(0.9) translateY(20px);
+}
+
+@media (max-width: 540px) {
+  .modal-fade-enter-from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+
+  .modal-fade-leave-to {
+    opacity: 0;
+    transform: translateY(40px);
+  }
 }
 </style>

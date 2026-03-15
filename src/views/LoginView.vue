@@ -51,7 +51,6 @@ const handleLogin = async () => {
     </div>
 
     <div class="login-wrapper">
-      <!-- 登入卡片 -->
       <div class="login-card">
       <div class="card-header">
         <div class="logo">
@@ -114,7 +113,6 @@ const handleLogin = async () => {
         <p class="footer-text">© 2026 Event System. All rights reserved.</p>
       </div>
       </div>
-
     </div>
   </div>
 </template>
@@ -408,6 +406,5 @@ const handleLogin = async () => {
   .logo .system-title {
     font-size: 1.5rem;
   }
-
 }
 </style>
