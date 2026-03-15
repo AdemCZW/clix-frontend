@@ -63,104 +63,82 @@
     </div>
 
     <!-- 建立活動彈窗 -->
-    <Teleport to="body">
-      <Transition name="modal-fade">
-        <div v-if="showCreateModal" class="modal-overlay" @click.self="showCreateModal = false">
-          <div class="modal-card">
-            <div class="modal-header">
-              <h3>建立新活動</h3>
-              <button class="btn-close" @click="showCreateModal = false">✕</button>
-            </div>
-            <div class="modal-body">
-              <div class="form-group">
-                <label>活動名稱 *</label>
-                <input type="text" v-model="newEvent.name" placeholder="請輸入活動名稱" />
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>開始日期 *</label>
-                  <input type="date" v-model="newEvent.date" />
-                </div>
-                <div class="form-group">
-                  <label>結束日期</label>
-                  <input type="date" v-model="newEvent.endDate" />
-                </div>
-              </div>
-              <div class="form-group">
-                <label>活動時間 *</label>
-                <input type="time" v-model="newEvent.time" />
-              </div>
-              <div class="form-group">
-                <label>活動地點 *</label>
-                <input type="text" v-model="newEvent.location" placeholder="請輸入活動地點" />
-              </div>
-              <div class="form-group">
-                <label>詳細地址</label>
-                <input type="text" v-model="newEvent.address" placeholder="請輸入詳細地址（選填）" />
-              </div>
-              <div class="form-group">
-                <label>報名人數上限 *</label>
-                <input type="number" v-model="newEvent.maxParticipants" min="1" max="9999" placeholder="預設500，可自訂" />
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button class="btn-cancel" @click="showCreateModal = false">取消</button>
-              <button class="btn-confirm" @click="createEvent">建立活動</button>
-            </div>
-          </div>
+    <BaseModal v-model="showCreateModal" title="建立新活動">
+      <div class="form-group">
+        <label>活動名稱 *</label>
+        <input type="text" v-model="newEvent.name" placeholder="請輸入活動名稱" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>開始日期 *</label>
+          <input type="date" v-model="newEvent.date" />
         </div>
-      </Transition>
-    </Teleport>
+        <div class="form-group">
+          <label>結束日期</label>
+          <input type="date" v-model="newEvent.endDate" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>活動時間 *</label>
+        <input type="time" v-model="newEvent.time" />
+      </div>
+      <div class="form-group">
+        <label>活動地點 *</label>
+        <input type="text" v-model="newEvent.location" placeholder="請輸入活動地點" />
+      </div>
+      <div class="form-group">
+        <label>詳細地址</label>
+        <input type="text" v-model="newEvent.address" placeholder="請輸入詳細地址（選填）" />
+      </div>
+      <div class="form-group">
+        <label>報名人數上限 *</label>
+        <input type="number" v-model="newEvent.maxParticipants" min="1" max="9999" placeholder="預設500，可自訂" />
+      </div>
+      <template #footer>
+        <button class="btn-cancel" @click="showCreateModal = false">取消</button>
+        <button class="btn-confirm" @click="createEvent">建立活動</button>
+      </template>
+    </BaseModal>
 
     <!-- 右側編輯活動面板 -->
-    <Teleport to="body">
-      <Transition name="panel-slide">
-        <div v-if="editingEvent" class="edit-panel-overlay" @click.self="closeEditPanel">
-          <div class="edit-panel">
-            <div class="panel-header">
-              <h3>編輯活動資訊</h3>
-              <button class="btn-close" @click="closeEditPanel">✕</button>
-            </div>
-            <div class="panel-body">
-              <div class="form-group">
-                <label>活動名稱 *</label>
-                <input type="text" v-model="editingEvent.name" class="panel-input" placeholder="請輸入活動名稱" />
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>開始日期 *</label>
-                  <input type="date" v-model="editingEvent.date" class="panel-input" />
-                </div>
-                <div class="form-group">
-                  <label>結束日期</label>
-                  <input type="date" v-model="editingEvent.endDate" class="panel-input" />
-                </div>
-              </div>
-              <div class="form-group">
-                <label>活動時間 *</label>
-                <input type="time" v-model="editingEvent.time" class="panel-input" />
-              </div>
-              <div class="form-group">
-                <label>活動地點 *</label>
-                <input type="text" v-model="editingEvent.location" class="panel-input" placeholder="請輸入活動地點" />
-              </div>
-              <div class="form-group">
-                <label>詳細地址</label>
-                <input type="text" v-model="editingEvent.address" class="panel-input" placeholder="請輸入詳細地址（選填）" />
-              </div>
-              <div class="form-group">
-                <label>報名人數上限 *</label>
-                <input type="number" v-model="editingEvent.maxParticipants" min="1" max="9999" placeholder="預設500，可自訂" class="panel-input" />
-              </div>
-            </div>
-            <div class="panel-footer">
-              <button class="btn-panel-cancel" @click="closeEditPanel">取消</button>
-              <button class="btn-panel-save" @click="saveEditEvent">儲存變更</button>
-            </div>
+    <BasePanel v-model="editPanelOpen" title="編輯活動資訊">
+      <template v-if="editingEvent">
+        <div class="form-group">
+          <label>活動名稱 *</label>
+          <input type="text" v-model="editingEvent.name" placeholder="請輸入活動名稱" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>開始日期 *</label>
+            <input type="date" v-model="editingEvent.date" />
+          </div>
+          <div class="form-group">
+            <label>結束日期</label>
+            <input type="date" v-model="editingEvent.endDate" />
           </div>
         </div>
-      </Transition>
-    </Teleport>
+        <div class="form-group">
+          <label>活動時間 *</label>
+          <input type="time" v-model="editingEvent.time" />
+        </div>
+        <div class="form-group">
+          <label>活動地點 *</label>
+          <input type="text" v-model="editingEvent.location" placeholder="請輸入活動地點" />
+        </div>
+        <div class="form-group">
+          <label>詳細地址</label>
+          <input type="text" v-model="editingEvent.address" placeholder="請輸入詳細地址（選填）" />
+        </div>
+        <div class="form-group">
+          <label>報名人數上限 *</label>
+          <input type="number" v-model="editingEvent.maxParticipants" min="1" max="9999" placeholder="預設500，可自訂" />
+        </div>
+      </template>
+      <template #footer>
+        <button class="btn-panel-cancel" @click="closeEditPanel">取消</button>
+        <button class="btn-panel-save" @click="saveEditEvent">儲存變更</button>
+      </template>
+    </BasePanel>
   </div>
 </template>
 
@@ -171,6 +149,8 @@ import { useUserStore } from "@/stores/user";
 import { useEventsStore } from "@/stores/events";
 import { useToast } from "@/composables/useToast";
 import { apiRequest } from "@/utils/api";
+import BaseModal from "@/components/shared/BaseModal.vue";
+import BasePanel from "@/components/shared/BasePanel.vue";
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -190,6 +170,10 @@ const isEventExpired = (event) => {
 
 // 右側編輯面板
 const editingEvent = ref(null);
+const editPanelOpen = computed({
+  get: () => !!editingEvent.value,
+  set: (v) => { if (!v) editingEvent.value = null; },
+});
 
 const openEditPanel = (event) => {
   editingEvent.value = {
@@ -612,147 +596,75 @@ const createEvent = async () => {
   }
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  backdrop-filter: blur(4px);
-}
-
-.modal-card {
-  background: white;
-  border-radius: 20px;
-  width: 90%;
-  max-width: 500px;
-  overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-}
-
-.modal-header {
-  padding: 24px 28px;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  h3 {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #0f172a;
-    margin: 0;
-  }
-
-  .btn-close {
-    background: transparent;
-    border: none;
-    font-size: 1.5rem;
-    color: #475569;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-      color: #0f172a;
-      transform: rotate(90deg);
-    }
-  }
-}
-
-.modal-body {
-  padding: 28px;
-
-  .form-row {
-    display: flex;
-    gap: 12px;
-
-    .form-group {
-      flex: 1;
-    }
-  }
-
-  .form-group {
-    margin-bottom: 20px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-
-    label {
-      display: block;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #0f172a;
-      margin-bottom: 8px;
-    }
-
-    input {
-      width: 100%;
-      padding: 12px 16px;
-      border: 1px solid #e5e7eb;
-      border-radius: 10px;
-      font-size: 0.95rem;
-      transition: all 0.3s;
-
-      &:focus {
-        outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-      }
-    }
-  }
-}
-
-.modal-footer {
-  padding: 20px 28px;
-  border-top: 1px solid #e5e7eb;
+// 表單共用樣式
+.form-row {
   display: flex;
   gap: 12px;
-  justify-content: flex-end;
 
-  button {
-    padding: 10px 24px;
-    border-radius: 10px;
+  .form-group {
+    flex: 1;
+  }
+}
+
+.form-group {
+  margin-bottom: 20px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  label {
+    display: block;
+    font-size: 0.9rem;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
+    color: #0f172a;
+    margin-bottom: 8px;
   }
 
-  .btn-cancel {
-    background: white;
+  input {
+    width: 100%;
+    padding: 12px 16px;
     border: 1px solid #e5e7eb;
-    color: #475569;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    transition: all 0.3s;
 
-    &:hover {
-      background: #f8fafc;
-    }
-  }
-
-  .btn-confirm {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    border: none;
-    color: white;
-
-    &:hover {
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    &:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
   }
 }
 
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: all 0.3s ease;
+.btn-cancel {
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  background: white;
+  border: 1px solid #e5e7eb;
+  color: #475569;
+  transition: all 0.3s;
+
+  &:hover {
+    background: #f8fafc;
+  }
 }
 
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-  transform: scale(0.9);
+.btn-confirm {
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border: none;
+  color: white;
+  transition: all 0.3s;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
 }
 
 /* 過期活動卡片樣式 */
@@ -778,168 +690,33 @@ const createEvent = async () => {
   }
 }
 
-/* 右側編輯面板 */
-.edit-panel-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(4px);
-  display: flex;
-  justify-content: flex-end;
-  z-index: 9999;
-}
-
-.edit-panel {
-  width: 480px;
-  max-width: 90vw;
-  height: 100%;
+.btn-panel-cancel {
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
   background: white;
-  display: flex;
-  flex-direction: column;
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
-  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  color: #475569;
+  transition: all 0.2s;
 
-  .panel-header {
-    padding: 24px 28px;
-    border-bottom: 1px solid #e5e7eb;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-shrink: 0;
-
-    h3 {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: #0f172a;
-      margin: 0;
-    }
-
-    .btn-close {
-      background: transparent;
-      border: none;
-      font-size: 1.4rem;
-      color: #475569;
-      cursor: pointer;
-      transition: all 0.2s;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-
-      &:hover {
-        background: #f1f5f9;
-        color: #0f172a;
-        transform: rotate(90deg);
-      }
-    }
-  }
-
-  .panel-body {
-    padding: 28px;
-    flex: 1;
-
-    .form-row {
-      display: flex;
-      gap: 12px;
-
-      .form-group {
-        flex: 1;
-      }
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-
-      label {
-        display: block;
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: #0f172a;
-        margin-bottom: 8px;
-      }
-
-      .panel-input {
-        width: 100%;
-        padding: 11px 14px;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        font-size: 0.95rem;
-        transition: all 0.2s;
-        box-sizing: border-box;
-
-        &:focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-      }
-    }
-  }
-
-  .panel-footer {
-    padding: 20px 28px;
-    border-top: 1px solid #e5e7eb;
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    flex-shrink: 0;
-
-    .btn-panel-cancel {
-      padding: 10px 24px;
-      border-radius: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      background: white;
-      border: 1px solid #e5e7eb;
-      color: #475569;
-      transition: all 0.2s;
-
-      &:hover {
-        background: #f8fafc;
-      }
-    }
-
-    .btn-panel-save {
-      padding: 10px 24px;
-      border-radius: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      border: none;
-      color: white;
-      transition: all 0.2s;
-
-      &:hover {
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-      }
-    }
+  &:hover {
+    background: #f8fafc;
   }
 }
 
-/* 右側面板滑入動畫 */
-.panel-slide-enter-active,
-.panel-slide-leave-active {
-  transition: all 0.3s ease;
-}
+.btn-panel-save {
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border: none;
+  color: white;
+  transition: all 0.2s;
 
-.panel-slide-enter-from {
-  opacity: 0;
-
-  .edit-panel {
-    transform: translateX(100%);
-  }
-}
-
-.panel-slide-leave-to {
-  opacity: 0;
-
-  .edit-panel {
-    transform: translateX(100%);
+  &:hover {
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
   }
 }
 
@@ -950,8 +727,38 @@ const createEvent = async () => {
 }
 
 @media (max-width: 768px) {
+  .events-view {
+    padding: 16px;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .search-box {
+    max-width: none;
+  }
+
+  .filter-tabs {
+    flex-wrap: wrap;
+  }
+
   .events-grid {
     grid-template-columns: 1fr;
+  }
+
+  .event-card .card-content .card-actions {
+    flex-wrap: wrap;
+
+    .btn-action {
+      flex: 1 1 calc(50% - 4px);
+      min-width: 0;
+      text-align: center;
+      padding: 8px 8px;
+      font-size: 0.8rem;
+    }
   }
 }
 </style>

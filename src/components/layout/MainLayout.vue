@@ -13,6 +13,8 @@ const userStore = useUserStore();
 const eventsStore = useEventsStore();
 const { success } = useToast();
 
+const sidebarOpen = ref(false);
+
 // 初始化用戶狀態與上次選擇的活動
 userStore.checkAuth();
 eventsStore.initFromStorage(userStore.user?.id);
@@ -59,6 +61,7 @@ const navigateTo = (path) => {
   } else {
     router.push(path);
   }
+  sidebarOpen.value = false;
 };
 
 const handleOnboardingComplete = (data) => {
@@ -80,7 +83,12 @@ const handleLogout = async () => {
 
 <template>
   <div class="admin-layout">
-    <aside class="sidebar">
+    <!-- 手機版遮罩 -->
+    <Transition name="overlay-fade">
+      <div v-if="sidebarOpen" class="sidebar-overlay" @click="sidebarOpen = false"></div>
+    </Transition>
+
+    <aside class="sidebar" :class="{ open: sidebarOpen }">
       <div class="sidebar-header">
         <div class="logo-box"></div>
         <h2 class="system-name">報到系統</h2>
@@ -126,6 +134,11 @@ const handleLogout = async () => {
 
     <main class="content-area">
       <header class="content-header">
+        <button class="hamburger-btn" @click="sidebarOpen = !sidebarOpen">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </button>
         <div class="header-actions">
           <!-- <EventSwitcher /> -->
           <div class="current-user" v-if="userStore.user">
@@ -372,5 +385,79 @@ const handleLogout = async () => {
 .page-fade-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+/* 漢堡按鈕 — 桌機隱藏 */
+.hamburger-btn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  flex-direction: column;
+  gap: 5px;
+
+  .hamburger-line {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--text-main);
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+}
+
+/* 遮罩 — 桌機隱藏 */
+.sidebar-overlay {
+  display: none;
+}
+
+.overlay-fade-enter-active,
+.overlay-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.overlay-fade-enter-from,
+.overlay-fade-leave-to {
+  opacity: 0;
+}
+
+/* ====== 手機版 ≤ 768px ====== */
+@media (max-width: 768px) {
+  .hamburger-btn {
+    display: flex;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: none;
+
+    &.open {
+      transform: translateX(0);
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+  }
+
+  .content-header {
+    justify-content: space-between;
+  }
+
+  .view-port {
+    padding: 12px;
+  }
 }
 </style>

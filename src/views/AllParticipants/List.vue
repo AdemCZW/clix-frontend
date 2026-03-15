@@ -550,4 +550,57 @@ tbody {
   opacity: 1;
   max-height: 2000px;
 }
+
+/* ====== RWD ====== */
+@media (max-width: 768px) {
+  .all-participants-view {
+    padding: 16px;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .filter-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .filter-select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .manager-groups {
+    grid-template-columns: 1fr;
+  }
+
+  .manager-section {
+    padding: 16px;
+  }
+
+  .manager-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .event-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .event-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  table {
+    table-layout: auto;
+    min-width: 500px;
+  }
+}
 </style>

@@ -115,159 +115,119 @@
     </div>
 
     <!-- 新增管理者 Modal -->
-    <Teleport to="body">
-      <Transition name="modal-fade">
-        <div v-if="showAddAdminModal" class="modal-overlay" @click.self="showAddAdminModal = false">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h3 class="modal-title">新增管理者帳戶</h3>
-              <button class="btn-close" @click="showAddAdminModal = false">×</button>
-            </div>
-            <div class="modal-body">
-              <div class="form-group">
-                <label class="form-label">Email</label>
-                <input
-                  v-model="newAdmin.email"
-                  type="email"
-                  class="form-input"
-                  placeholder="example@company.com"
-                />
-              </div>
-              <div class="form-group">
-                <label class="form-label">密碼</label>
-                <input
-                  v-model="newAdmin.password"
-                  type="password"
-                  class="form-input"
-                  placeholder="設定登入密碼"
-                />
-              </div>
-              <div class="form-group">
-                <label class="form-label">確認密碼</label>
-                <input
-                  v-model="newAdmin.confirmPassword"
-                  type="password"
-                  class="form-input"
-                  placeholder="再次輸入密碼"
-                />
-              </div>
-              <div class="form-group">
-                <label class="form-label">員工配額</label>
-                <input
-                  v-model.number="newAdmin.staffQuota"
-                  type="number"
-                  class="form-input"
-                  placeholder="可建立員工帳戶數量"
-                  min="1"
-                />
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button class="btn-secondary" @click="showAddAdminModal = false">取消</button>
-              <button class="btn-primary" @click="submitAddAdmin">確認新增</button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <BaseModal v-model="showAddAdminModal" title="新增管理者帳戶">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input
+          v-model="newAdmin.email"
+          type="email"
+          class="form-input"
+          placeholder="example@company.com"
+        />
+      </div>
+      <div class="form-group">
+        <label class="form-label">密碼</label>
+        <input
+          v-model="newAdmin.password"
+          type="password"
+          class="form-input"
+          placeholder="設定登入密碼"
+        />
+      </div>
+      <div class="form-group">
+        <label class="form-label">確認密碼</label>
+        <input
+          v-model="newAdmin.confirmPassword"
+          type="password"
+          class="form-input"
+          placeholder="再次輸入密碼"
+        />
+      </div>
+      <div class="form-group">
+        <label class="form-label">員工配額</label>
+        <input
+          v-model.number="newAdmin.staffQuota"
+          type="number"
+          class="form-input"
+          placeholder="可建立員工帳戶數量"
+          min="1"
+        />
+      </div>
+      <template #footer>
+        <button class="btn-secondary" @click="showAddAdminModal = false">取消</button>
+        <button class="btn-primary" @click="submitAddAdmin">確認新增</button>
+      </template>
+    </BaseModal>
 
     <!-- 新增員工 Modal -->
-    <Teleport to="body">
-      <Transition name="modal-fade">
-        <div v-if="showAddStaffModal" class="modal-overlay" @click.self="showAddStaffModal = false">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h3 class="modal-title">新增員工帳戶</h3>
-              <button class="btn-close" @click="showAddStaffModal = false">×</button>
-            </div>
-            <div class="modal-body">
-              <div class="form-group">
-                <label class="form-label">所屬管理者</label>
-                <div class="selected-manager-display">
-                  {{ selectedAdmin.email }}
-                  <span class="quota-info">
-                    ({{ getStaffCountByAdmin(selectedAdminId) }}/{{ selectedAdmin.staffQuota }})
-                  </span>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">員工帳號</label>
-                <div class="auto-id-display">
-                  <span class="id-prefix">ST</span>
-                  <span class="id-number">##### (系統自動產生)</span>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">密碼</label>
-                <input
-                  v-model="newStaff.password"
-                  type="password"
-                  class="form-input"
-                  placeholder="設定登入密碼"
-                />
-              </div>
-              <div class="form-group">
-                <label class="form-label">確認密碼</label>
-                <input
-                  v-model="newStaff.confirmPassword"
-                  type="password"
-                  class="form-input"
-                  placeholder="再次輸入密碼"
-                />
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button class="btn-secondary" @click="showAddStaffModal = false">取消</button>
-              <button class="btn-primary" @click="addStaff">確認新增</button>
-            </div>
-          </div>
+    <BaseModal v-model="showAddStaffModal" title="新增員工帳戶">
+      <div class="form-group">
+        <label class="form-label">所屬管理者</label>
+        <div class="selected-manager-display">
+          {{ selectedAdmin.email }}
+          <span class="quota-info">
+            ({{ getStaffCountByAdmin(selectedAdminId) }}/{{ selectedAdmin.staffQuota }})
+          </span>
         </div>
-      </Transition>
-    </Teleport>
+      </div>
+      <div class="form-group">
+        <label class="form-label">員工帳號</label>
+        <div class="auto-id-display">
+          <span class="id-prefix">ST</span>
+          <span class="id-number">##### (系統自動產生)</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">密碼</label>
+        <input
+          v-model="newStaff.password"
+          type="password"
+          class="form-input"
+          placeholder="設定登入密碼"
+        />
+      </div>
+      <div class="form-group">
+        <label class="form-label">確認密碼</label>
+        <input
+          v-model="newStaff.confirmPassword"
+          type="password"
+          class="form-input"
+          placeholder="再次輸入密碼"
+        />
+      </div>
+      <template #footer>
+        <button class="btn-secondary" @click="showAddStaffModal = false">取消</button>
+        <button class="btn-primary" @click="addStaff">確認新增</button>
+      </template>
+    </BaseModal>
 
     <!-- 調整配額 Modal -->
-    <Teleport to="body">
-      <Transition name="modal-fade">
-        <div
-          v-if="showEditQuotaModal"
-          class="modal-overlay"
-          @click.self="showEditQuotaModal = false"
-        >
-          <div class="modal-content">
-            <div class="modal-header">
-              <h3 class="modal-title">調整員工配額</h3>
-              <button class="btn-close" @click="showEditQuotaModal = false">×</button>
-            </div>
-            <div class="modal-body">
-              <div class="form-group">
-                <label class="form-label">管理者</label>
-                <div class="info-display">{{ editingAdmin?.email }}</div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">目前使用數</label>
-                <div class="info-display">
-                  {{ editingAdmin ? getStaffCountByAdmin(editingAdmin.id) : 0 }} 位員工
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">新配額</label>
-                <input
-                  v-model.number="editQuotaValue"
-                  type="number"
-                  class="form-input"
-                  :min="editingAdmin ? getStaffCountByAdmin(editingAdmin.id) : 0"
-                  placeholder="不可低於目前使用數"
-                />
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button class="btn-secondary" @click="showEditQuotaModal = false">取消</button>
-              <button class="btn-primary" @click="saveQuota">確認修改</button>
-            </div>
-          </div>
+    <BaseModal v-model="showEditQuotaModal" title="調整員工配額">
+      <div class="form-group">
+        <label class="form-label">管理者</label>
+        <div class="info-display">{{ editingAdmin?.email }}</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">目前使用數</label>
+        <div class="info-display">
+          {{ editingAdmin ? getStaffCountByAdmin(editingAdmin.id) : 0 }} 位員工
         </div>
-      </Transition>
-    </Teleport>
+      </div>
+      <div class="form-group">
+        <label class="form-label">新配額</label>
+        <input
+          v-model.number="editQuotaValue"
+          type="number"
+          class="form-input"
+          :min="editingAdmin ? getStaffCountByAdmin(editingAdmin.id) : 0"
+          placeholder="不可低於目前使用數"
+        />
+      </div>
+      <template #footer>
+        <button class="btn-secondary" @click="showEditQuotaModal = false">取消</button>
+        <button class="btn-primary" @click="saveQuota">確認修改</button>
+      </template>
+    </BaseModal>
   </div>
   <div v-else class="no-permission">
     <p>您沒有權限檢視此頁面</p>
@@ -280,6 +240,7 @@ import { useAdminAccountsStore } from "@/stores/adminAccounts";
 import { useUserStore } from "@/stores/user";
 import { storeToRefs } from "pinia";
 import { useToast } from "@/composables/useToast";
+import BaseModal from "@/components/shared/BaseModal.vue";
 
 const { success, error, warning } = useToast();
 
@@ -870,79 +831,6 @@ const copyToClipboard = (text) => {
   font-size: 18px;
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 20px;
-  width: 100%;
-  max-width: 520px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-}
-
-.modal-header {
-  padding: 28px 28px 20px 28px;
-  border-bottom: 2px solid #f1f5f9;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.modal-title {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-}
-
-.btn-close {
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: #f1f5f9;
-  border-radius: 8px;
-  font-size: 24px;
-  color: #475569;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s;
-
-  &:hover {
-    background: #e2e8f0;
-    color: #334155;
-    transform: rotate(90deg);
-  }
-}
-
-.modal-body {
-  padding: 28px;
-}
-
-.modal-footer {
-  padding: 20px 28px 28px 28px;
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  border-top: 2px solid #f1f5f9;
-}
-
 .form-group {
   margin-bottom: 24px;
 
@@ -1033,17 +921,6 @@ const copyToClipboard = (text) => {
   font-weight: 600;
 }
 
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: all 0.3s ease;
-}
-
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-  transform: scale(0.9);
-}
-
 .loading-overlay {
   position: fixed;
   inset: 0;
@@ -1060,6 +937,49 @@ const copyToClipboard = (text) => {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     font-weight: 600;
     color: #374151;
+  }
+}
+
+/* ====== RWD ====== */
+@media (max-width: 768px) {
+  .account-view {
+    padding: 16px;
+  }
+
+  .two-panel-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .left-panel {
+    padding: 16px;
+  }
+
+  .admin-list {
+    max-height: 300px;
+  }
+
+  .right-panel {
+    padding: 16px;
+    min-height: auto;
+  }
+
+  .staff-table {
+    thead th {
+      padding: 10px 12px;
+      font-size: 0.75rem;
+    }
+
+    tbody tr td {
+      padding: 12px;
+      font-size: 0.8rem;
+    }
+  }
+
+  .account-id-cell {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 }
 </style>

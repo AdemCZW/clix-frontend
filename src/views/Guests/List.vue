@@ -3,6 +3,7 @@ import { reactive, ref, computed, onMounted } from "vue";
 import { useGuestsStore } from "@/stores/guests";
 import { useEventsStore } from "@/stores/events";
 import { useToast } from "@/composables/useToast";
+import BasePanel from "@/components/shared/BasePanel.vue";
 
 const guestsStore = useGuestsStore();
 const eventsStore = useEventsStore();
@@ -12,6 +13,11 @@ const activityOptions = ref(["所有活動"]);
 const selectedActivity = ref("所有活動");
 const sortBy = ref("newest");
 const editingGuest = ref(null);
+
+const editPanelOpen = computed({
+  get: () => !!editingGuest.value,
+  set: (v) => { if (!v) editingGuest.value = null; },
+});
 
 // 直接使用 store 的 reactive guests 陣列
 const guests = guestsStore.guests;
@@ -196,141 +202,128 @@ const getInitials = (name) => {
     </div>
 
     <!-- 右側滑出編輯面板 -->
-    <Teleport to="body">
-      <Transition name="panel-slide">
-        <div v-if="editingGuest" class="edit-panel-overlay" @click.self="closeEditPanel">
-          <div class="edit-panel">
-            <div class="panel-header">
-              <h3>編輯貴賓資訊</h3>
-              <button class="btn-close" @click="closeEditPanel">✕</button>
-            </div>
-
-            <div class="panel-body">
-              <div class="avatar-upload-section">
-                <label
-                  class="avatar-upload-large"
-                  :style="
-                    editingGuest.avatar ? { backgroundImage: `url(${editingGuest.avatar})` } : {}
-                  "
-                >
-                  <input
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    @change="onAvatarChange($event, editingGuest)"
-                  />
-                  <div v-if="!editingGuest.avatar" class="upload-placeholder">
-                    <svg
-                      viewBox="0 0 24 24"
-                      width="32"
-                      height="32"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path
-                        d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
-                      ></path>
-                      <circle cx="12" cy="13" r="4"></circle>
-                    </svg>
-                    <span>上傳頭像</span>
-                  </div>
-                  <div v-else class="change-overlay">
-                    <span>更換照片</span>
-                  </div>
-                </label>
-              </div>
-
-              <div class="form-section">
-                <h4 class="section-title">基本資訊</h4>
-
-                <div class="form-field">
-                  <label>姓名 *</label>
-                  <input
-                    v-model="editingGuest.name"
-                    placeholder="請輸入姓名"
-                    class="input-styled"
-                  />
-                </div>
-
-                <div class="form-field">
-                  <label>公司</label>
-                  <input
-                    v-model="editingGuest.company"
-                    placeholder="請輸入公司名稱"
-                    class="input-styled"
-                  />
-                </div>
-
-                <div class="form-field">
-                  <label>職稱</label>
-                  <input
-                    v-model="editingGuest.title"
-                    placeholder="請輸入職稱"
-                    class="input-styled"
-                  />
-                </div>
-
-                <div class="form-field">
-                  <label>簡介</label>
-                  <textarea
-                    v-model="editingGuest.bio"
-                    placeholder="請輸入個人簡介"
-                    class="textarea-styled"
-                    rows="3"
-                  ></textarea>
-                </div>
-
-                <div class="form-field">
-                  <label>參加活動</label>
-                  <select v-model="editingGuest.activity" class="select-styled full-width">
-                    <option v-for="opt in activityOptions.slice(1)" :key="opt" :value="opt">
-                      {{ opt }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="form-section">
-                <h4 class="section-title">聯絡資訊</h4>
-
-                <div class="form-field">
-                  <label>電子信箱</label>
-                  <input
-                    v-model="editingGuest.email"
-                    type="email"
-                    placeholder="請輸入信箱"
-                    class="input-styled"
-                  />
-                </div>
-
-                <div class="form-field">
-                  <label>聯絡電話</label>
-                  <input
-                    v-model="editingGuest.phone"
-                    type="tel"
-                    placeholder="請輸入電話"
-                    class="input-styled"
-                  />
-                </div>
-              </div>
-
-              <div class="form-section">
-                <div class="meta-info">
-                  <span class="meta-label">加入時間</span>
-                  <span class="meta-value">{{ formatDate(editingGuest.createdAt) }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="panel-footer">
-              <button class="btn-delete-guest" @click="deleteGuest(editingGuest)">刪除貴賓</button>
-              <button class="btn-save" @click="closeEditPanel">儲存</button>
-            </div>
+    <BasePanel v-model="editPanelOpen" title="編輯貴賓資訊">
+      <div class="avatar-upload-section">
+        <label
+          class="avatar-upload-large"
+          :style="
+            editingGuest.avatar ? { backgroundImage: `url(${editingGuest.avatar})` } : {}
+          "
+        >
+          <input
+            type="file"
+            accept="image/*"
+            hidden
+            @change="onAvatarChange($event, editingGuest)"
+          />
+          <div v-if="!editingGuest.avatar" class="upload-placeholder">
+            <svg
+              viewBox="0 0 24 24"
+              width="32"
+              height="32"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+              ></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+            <span>上傳頭像</span>
           </div>
+          <div v-else class="change-overlay">
+            <span>更換照片</span>
+          </div>
+        </label>
+      </div>
+
+      <div class="form-section">
+        <h4 class="section-title">基本資訊</h4>
+
+        <div class="form-field">
+          <label>姓名 *</label>
+          <input
+            v-model="editingGuest.name"
+            placeholder="請輸入姓名"
+            class="input-styled"
+          />
         </div>
-      </Transition>
-    </Teleport>
+
+        <div class="form-field">
+          <label>公司</label>
+          <input
+            v-model="editingGuest.company"
+            placeholder="請輸入公司名稱"
+            class="input-styled"
+          />
+        </div>
+
+        <div class="form-field">
+          <label>職稱</label>
+          <input
+            v-model="editingGuest.title"
+            placeholder="請輸入職稱"
+            class="input-styled"
+          />
+        </div>
+
+        <div class="form-field">
+          <label>簡介</label>
+          <textarea
+            v-model="editingGuest.bio"
+            placeholder="請輸入個人簡介"
+            class="textarea-styled"
+            rows="3"
+          ></textarea>
+        </div>
+
+        <div class="form-field">
+          <label>參加活動</label>
+          <select v-model="editingGuest.activity" class="select-styled full-width">
+            <option v-for="opt in activityOptions.slice(1)" :key="opt" :value="opt">
+              {{ opt }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h4 class="section-title">聯絡資訊</h4>
+
+        <div class="form-field">
+          <label>電子信箱</label>
+          <input
+            v-model="editingGuest.email"
+            type="email"
+            placeholder="請輸入信箱"
+            class="input-styled"
+          />
+        </div>
+
+        <div class="form-field">
+          <label>聯絡電話</label>
+          <input
+            v-model="editingGuest.phone"
+            type="tel"
+            placeholder="請輸入電話"
+            class="input-styled"
+          />
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="meta-info">
+          <span class="meta-label">加入時間</span>
+          <span class="meta-value">{{ formatDate(editingGuest.createdAt) }}</span>
+        </div>
+      </div>
+
+      <template #footer>
+        <button class="btn-delete-guest" @click="deleteGuest(editingGuest)">刪除貴賓</button>
+        <button class="btn-save" @click="editPanelOpen = false">儲存</button>
+      </template>
+    </BasePanel>
   </div>
 </template>
 
@@ -593,73 +586,6 @@ const getInitials = (name) => {
   }
 }
 
-/* 右側編輯面板 */
-.edit-panel-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(4px);
-  display: flex;
-  justify-content: flex-end;
-  z-index: 9999;
-}
-
-.edit-panel {
-  width: 100%;
-  max-width: 480px;
-  height: 100%;
-  background: white;
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
-  display: flex;
-  flex-direction: column;
-  animation: slideIn 0.3s ease-out;
-}
-
-.panel-header {
-  padding: 24px;
-  border-bottom: 1px solid var(--border-light, #e5e7eb);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-
-  h3 {
-    margin: 0;
-    font-size: 1.3rem;
-    font-weight: 800;
-    color: var(--deep-dark, #0f172a);
-  }
-
-  .btn-close {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: none;
-    background: #f1f5f9;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    color: #64748b;
-    transition: all 0.3s;
-
-    &:hover {
-      background: #fee2e2;
-      color: #ef4444;
-      transform: rotate(90deg);
-    }
-  }
-}
-
-.panel-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
-}
 
 .avatar-upload-section {
   display: flex;
@@ -836,13 +762,6 @@ const getInitials = (name) => {
   }
 }
 
-.panel-footer {
-  padding: 20px 24px;
-  border-top: 1px solid var(--border-light, #e5e7eb);
-  display: flex;
-  gap: 12px;
-  background: var(--bg-soft, #f8fafc);
-}
 
 .btn-delete-guest {
   flex: 1;
@@ -888,34 +807,4 @@ const getInitials = (name) => {
   }
 }
 
-/* 動畫 */
-.panel-slide-enter-active,
-.panel-slide-leave-active {
-  transition: all 0.3s ease;
-}
-
-.panel-slide-enter-from {
-  opacity: 0;
-
-  .edit-panel {
-    transform: translateX(100%);
-  }
-}
-
-.panel-slide-leave-to {
-  opacity: 0;
-
-  .edit-panel {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
 </style>
