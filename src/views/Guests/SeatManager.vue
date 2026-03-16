@@ -1,11 +1,14 @@
 <script setup>
-import { reactive, ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import draggable from "vuedraggable";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
+import { useSeatsStore } from "@/stores/seats";
+
 
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
+const seatsStore = useSeatsStore();
 
 // 當前專案和活動資訊
 const currentProject = computed(() => eventsStore.currentEvent?.name || "—");
@@ -23,38 +26,13 @@ const allParticipants = computed(() =>
   })),
 );
 
-// 設定初始行列數 (Row 為排，Col 為每排幾人)
-const layout = reactive({ rows: 3, cols: 5 });
-
-// 動態生成座位資料
-const activitySeats = reactive({
-  act_01: Array.from({ length: 15 }, (_, i) => ({
-    id: `s-${i}`,
-    label: `座-${i + 1}`,
-    attendee: [],
-  })),
-});
+// 從 seats store 取得 layout 和 activitySeats
+const layout = seatsStore.layout;
+const activitySeats = seatsStore.activitySeats;
 
 // 新增座位邏輯
-const addRow = () => {
-  layout.rows++;
-  const newCount = layout.rows * layout.cols;
-  const currentSeats = activitySeats[currentActivityId.value];
-  while (currentSeats.length < newCount) {
-    const i = currentSeats.length;
-    currentSeats.push({ id: `s-${Date.now()}-${i}`, label: `座-${i + 1}`, attendee: [] });
-  }
-};
-
-const addCol = () => {
-  layout.cols++;
-  const newCount = layout.rows * layout.cols;
-  const currentSeats = activitySeats[currentActivityId.value];
-  while (currentSeats.length < newCount) {
-    const i = currentSeats.length;
-    currentSeats.push({ id: `s-${Date.now()}-${i}`, label: `座-${i + 1}`, attendee: [] });
-  }
-};
+const addRow = () => seatsStore.addRow(currentActivityId.value);
+const addCol = () => seatsStore.addCol(currentActivityId.value);
 
 // 待分配名單連動
 const unassignedList = ref([]);
@@ -86,6 +64,12 @@ onMounted(async () => {
     updateUnassignedList();
   }
 });
+
+// 即時監控 — 在新分頁開啟獨立頁面
+const openMonitor = () => {
+  const url = window.location.href.replace(/#.*$/, "") + "#/seat-monitor";
+  window.open(url, "seat-monitor", "noopener");
+};
 
 // 換位歷史紀錄
 const swapHistory = ref([]);
@@ -349,6 +333,9 @@ const seatSize = computed(() => {
         <div class="card-header-flex">
           <h3 class="card-subtitle">座位配置圖</h3>
           <div class="grid-controls">
+            <button @click="openMonitor" class="btn-mini-tag monitor-btn">
+              📡 即時監控
+            </button>
             <button @click="showHistory = !showHistory" class="btn-mini-tag history-btn">
               📋 歷史紀錄 <span class="history-count">{{ swapHistory.length }}</span>
             </button>
@@ -507,6 +494,7 @@ const seatSize = computed(() => {
     <Transition name="fade">
       <div v-if="showHistory" class="overlay" @click="showHistory = false"></div>
     </Transition>
+
   </div>
 </template>
 
@@ -1054,6 +1042,21 @@ const seatSize = computed(() => {
   }
 }
 
+/* 即時監控按鈕 */
+.monitor-btn {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border-color: #334155;
+  color: #38bdf8;
+
+  &:hover {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: #7dd3fc;
+    border-color: #38bdf8;
+    box-shadow: 0 2px 8px rgba(56, 189, 248, 0.35);
+    transform: translateY(-1px);
+  }
+}
+
 /* 歷史紀錄樣式 */
 .history-btn {
   position: relative;
@@ -1311,5 +1314,73 @@ const seatSize = computed(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* ===== RWD 手機版 ===== */
+@media (max-width: 768px) {
+  .activity-selector-section {
+    margin-bottom: 12px;
+  }
+
+  .activity-info {
+    flex-direction: column;
+    gap: 8px;
+
+    .info-item {
+      padding: 8px 14px;
+      font-size: 0.85rem;
+    }
+  }
+
+  .seating-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .guest-list-card {
+    .drag-area {
+      max-height: 180px;
+    }
+  }
+
+  .seat-map-card {
+    min-height: unset;
+  }
+
+  .seat-map-container {
+    max-height: 55vh;
+    min-height: 280px;
+  }
+
+  .card-header-flex {
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+
+    h3 {
+      flex: 1 0 100%;
+    }
+  }
+
+  .grid-controls {
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .btn-mini-tag {
+    font-size: 0.78rem;
+    padding: 5px 10px;
+  }
+
+  .history-sidebar {
+    width: 100vw;
+    max-width: 100vw;
+  }
+
+  .person-card {
+    padding: 10px 12px;
+    .p-name { font-size: 0.88rem; }
+  }
 }
 </style>

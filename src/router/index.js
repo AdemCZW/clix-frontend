@@ -140,6 +140,14 @@ const router = createRouter({
                 import ('../views/Badges/PrintStation.vue'),
             meta: { requiresAuth: false }
         },
+        // ===== 即時座位監控（獨立全螢幕頁面，可新分頁開啟）=====
+        {
+            path: '/seat-monitor',
+            name: 'SeatMonitor',
+            component: () =>
+                import ('../views/Guests/SeatMonitorPage.vue'),
+            meta: { requiresAuth: false }
+        },
         // ===== 公開報名頁面（不需登入）=====
         {
             path: '/r/:shortLink',

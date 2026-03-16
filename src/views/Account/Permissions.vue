@@ -323,7 +323,7 @@ const submitAddAdmin = async () => {
   }
 
   try {
-    await adminStore.createManager(
+    await adminStore.addAdmin(
       newAdmin.value.email,
       newAdmin.value.password,
       newAdmin.value.staffQuota,

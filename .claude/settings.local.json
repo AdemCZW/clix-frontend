@@ -5,7 +5,27 @@
       "Bash(git add docs/ src/components/onboarding/OnboardingModal.vue src/router/index.js src/views/Dashboard/Overview.vue src/views/Guests/SeatManager.vue src/views/LoginView.vue src/views/Badges/Printer.vue)",
       "Bash(git commit:*)",
       "Bash(git push origin main)",
-      "Bash(git add docs/ src/views/CheckIn/MobileScanner.vue)"
+      "Bash(git add docs/ src/views/CheckIn/MobileScanner.vue)",
+      "Bash(npx vite build)",
+      "Bash(ipconfig getifaddr en0)",
+      "Bash(ipconfig getifaddr en1)",
+      "Bash(lsof -iTCP -sTCP:LISTEN -n -P)",
+      "Bash(kill 96320)",
+      "Bash(lsof -iTCP:5173 -sTCP:LISTEN -n -P)",
+      "Bash(mkcert --version)",
+      "Bash(brew install mkcert)",
+      "Bash(mkcert -install)",
+      "Bash(mkcert -key-file localhost-key.pem -cert-file localhost-cert.pem 172.20.10.3 localhost 127.0.0.1)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(echo \"declare module ''vue3-print-nb'';\")",
+      "Bash(git fetch origin)",
+      "Bash(git pull origin main)",
+      "Bash(git stash push -m \"local ui changes\" -- src/ vite.config.js docs/index.html)",
+      "Bash(git stash pop)",
+      "Bash(git add src/views/LoginView.vue src/views/Dashboard/Overview.vue src/views/Guests/List.vue src/views/Participants/List.vue src/views/Badges/Printer.vue docs/index.html)",
+      "Bash(git add docs/index.html)",
+      "Bash(git add src/components/ConfirmDialog.vue src/components/onboarding/OnboardingModal.vue vite.config.js docs/)",
+      "Bash(git add src/views/Guests/List.vue docs/)"
     ]
   }
 }

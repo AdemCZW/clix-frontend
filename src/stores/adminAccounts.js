@@ -78,8 +78,25 @@ export const useAdminAccountsStore = defineStore('adminAccounts', () => {
             body: JSON.stringify({ email, password, staff_quota: staffQuota }),
         })
         if (!res.ok) {
-            const err = await res.json()
-            const msg = (err.email && err.email[0]) || err.detail || '新增管理者失敗'
+            let msg = '新增管理者失敗'
+            try {
+                const err = await res.json()
+                // 依序嘗試常見後端錯誤欄位
+                if (err.detail) {
+                    msg = err.detail
+                } else {
+                    const allMsgs = []
+                    for (const [field, val] of Object.entries(err)) {
+                        const text = Array.isArray(val) ? val[0] : val
+                        if (field === 'non_field_errors') {
+                            allMsgs.unshift(text)
+                        } else {
+                            allMsgs.push(`${field}：${text}`)
+                        }
+                    }
+                    if (allMsgs.length) msg = allMsgs.join('；')
+                }
+            } catch { /* 非 JSON 回應，保留預設訊息 */ }
             throw new Error(msg)
         }
         const data = await res.json()
@@ -116,8 +133,24 @@ export const useAdminAccountsStore = defineStore('adminAccounts', () => {
             body: JSON.stringify({ manager: managerId, password }),
         })
         if (!res.ok) {
-            const err = await res.json()
-            const msg = err.detail || (err.password && err.password[0]) || '新增員工失敗'
+            let msg = '新增員工失敗'
+            try {
+                const err = await res.json()
+                if (err.detail) {
+                    msg = err.detail
+                } else {
+                    const allMsgs = []
+                    for (const [field, val] of Object.entries(err)) {
+                        const text = Array.isArray(val) ? val[0] : val
+                        if (field === 'non_field_errors') {
+                            allMsgs.unshift(text)
+                        } else {
+                            allMsgs.push(`${field}：${text}`)
+                        }
+                    }
+                    if (allMsgs.length) msg = allMsgs.join('；')
+                }
+            } catch { /* 非 JSON 回應，保留預設訊息 */ }
             throw new Error(msg)
         }
         const data = await res.json()
