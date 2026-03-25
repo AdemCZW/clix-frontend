@@ -239,7 +239,7 @@
   </Teleport>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue";
 import { useUserStore } from "@/stores/user";
 import { useEventsStore } from "@/stores/events";
@@ -275,7 +275,7 @@ const eventForm = ref({
 });
 
 // 選擇模式的狀態
-const selectedEvent = ref(null);
+const selectedEvent = ref<import('@/types').Event | null>(null);
 
 // 建立新活動子表單
 const showCreateForm = ref(false);
@@ -296,8 +296,8 @@ const createAndSelect = async () => {
       location:  createForm.location,
     });
     emit('complete', { event: created });
-  } catch (err) {
-    alert(err.message || '建立活動失敗');
+  } catch (err: unknown) {
+    alert((err as Error).message || '建立活動失敗');
   } finally {
     isCreating.value = false;
   }

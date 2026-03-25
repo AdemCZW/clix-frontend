@@ -123,7 +123,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { reactive, ref, onMounted } from "vue";
 import { useToast } from "@/composables/useToast";
 import { apiRequest } from "@/utils/api";
@@ -169,8 +169,8 @@ onMounted(async () => {
     const res = await apiRequest("/api/organizer-info/");
     if (!res.ok) throw new Error(await parseApiError(res, "載入主辦單位資訊失敗"));
     mapFromApi(await res.json());
-  } catch (err) {
-    toastError(err.message || "載入失敗");
+  } catch (err: unknown) {
+    toastError((err as Error).message || "載入失敗");
   } finally {
     loading.value = false;
   }
@@ -198,8 +198,8 @@ const saveCompanyInfo = async () => {
     if (!res.ok) throw new Error(await parseApiError(res, "儲存失敗"));
     mapFromApi(await res.json());
     success("主辦單位資訊已儲存！");
-  } catch (err) {
-    toastError(err.message || "儲存失敗，請稍後再試");
+  } catch (err: unknown) {
+    toastError((err as Error).message || "儲存失敗，請稍後再試");
   } finally {
     saving.value = false;
   }

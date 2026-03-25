@@ -190,7 +190,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useParticipantsStore } from "@/stores/participants";
@@ -313,12 +313,12 @@ const xLabels = computed(() => {
 
 // Tooltip
 const tooltip = ref({ visible: false, x: 0, y: 0, date: "", value: 0 });
-const chartWrap = ref(null);
+const chartWrap = ref<HTMLDivElement | null>(null);
 
 const showTooltip = (pt, _i, evt) => {
   const rect = chartWrap.value?.getBoundingClientRect();
   if (!rect) return;
-  const svgEl = chartWrap.value.querySelector("svg");
+  const svgEl = chartWrap.value!.querySelector("svg")!;
   const svgRect = svgEl.getBoundingClientRect();
   const scaleX = svgRect.width / SVG_W;
   const scaleY = svgRect.height / SVG_H;

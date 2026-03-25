@@ -1,10 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useToast } from "@/composables/useToast";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { useCheckinStats } from "@/composables/useCheckinStats";
 import BaseModal from "@/components/shared/BaseModal.vue";
+import type { Participant } from "@/types";
 
 const { success, warning } = useToast();
 const participantsStore = useParticipantsStore();
@@ -30,7 +31,7 @@ watch(
       return;
     }
     try {
-      await participantsStore.fetchParticipants({ event: event.id });
+      await participantsStore.fetchParticipants({ event: String(event.id) });
     } catch { /* silent */ }
   },
   { immediate: true }
@@ -56,7 +57,7 @@ const eventDateOptions = computed(() => {
   if (!e?.date) return [];
   const start = new Date(e.date);
   const end = e.endDate && e.endDate !== e.date ? new Date(e.endDate) : new Date(e.date);
-  const dates = [];
+  const dates: string[] = [];
   const d = new Date(start);
   while (d <= end) {
     dates.push(d.toISOString().slice(0, 10));
@@ -133,7 +134,7 @@ const pendingList = computed(() => {
   return participantsStore.participants.filter((p) => p.status !== "已報到").slice(0, 5);
 });
 
-const processCheckIn = async (person) => {
+const processCheckIn = async (person: Participant) => {
   if (person.status === "已報到") {
     warning(`${person.name} 已經報到過了`);
     return;
@@ -149,10 +150,10 @@ const processCheckIn = async (person) => {
 };
 
 // 取消報到
-const cancelTarget = ref(null);
+const cancelTarget = ref<{ id: number; name: string } | null>(null);
 const showCancelDialog = ref(false);
 
-const askCancelCheckIn = (log) => {
+const askCancelCheckIn = (log: { id: number; name: string }) => {
   cancelTarget.value = log;
   showCancelDialog.value = true;
 };

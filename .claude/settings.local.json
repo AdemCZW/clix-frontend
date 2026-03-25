@@ -25,7 +25,11 @@
       "Bash(git add src/views/LoginView.vue src/views/Dashboard/Overview.vue src/views/Guests/List.vue src/views/Participants/List.vue src/views/Badges/Printer.vue docs/index.html)",
       "Bash(git add docs/index.html)",
       "Bash(git add src/components/ConfirmDialog.vue src/components/onboarding/OnboardingModal.vue vite.config.js docs/)",
-      "Bash(git add src/views/Guests/List.vue docs/)"
+      "Bash(git add src/views/Guests/List.vue docs/)",
+      "Bash(git fetch:*)",
+      "Bash(gh repo:*)",
+      "Bash(gh api:*)",
+      "Bash(git stash:*)"
     ]
   }
 }

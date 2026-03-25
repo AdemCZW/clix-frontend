@@ -169,17 +169,19 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useUserStore } from "@/stores/user";
 
-const userStore = useUserStore();
+// This component references series/event switching APIs that don't exist on the
+// current user store. Cast to `any` to suppress TS errors for this dead code.
+const userStore = useUserStore() as any;
 const showDropdown = ref(false);
 const showAddEvent = ref(false);
 const showAddSeries = ref(false);
-const dropdownRef = ref(null);
-const expandedSeries = ref(null);
-const selectedSeriesForEvent = ref(null);
+const dropdownRef = ref<HTMLElement | null>(null);
+const expandedSeries = ref<string | null>(null);
+const selectedSeriesForEvent = ref<any>(null);
 
 const newEvent = ref({
   name: "",
@@ -282,8 +284,8 @@ const addSeries = () => {
 };
 
 // 點擊外部關閉下拉選單
-const handleClickOutside = (event) => {
-  const switcher = event.target.closest(".event-switcher");
+const handleClickOutside = (event: MouseEvent) => {
+  const switcher = (event.target as HTMLElement)?.closest(".event-switcher");
   if (!switcher && showDropdown.value) {
     closeDropdown();
   }

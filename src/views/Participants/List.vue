@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import * as XLSX from "xlsx";
 import { useToast } from "@/composables/useToast";
@@ -6,6 +6,7 @@ import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import BasePanel from "@/components/shared/BasePanel.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
+import type { Participant } from "@/types";
 
 const { success, warning, error: showError } = useToast();
 const participantsStore = useParticipantsStore();
@@ -15,7 +16,7 @@ const eventsStore = useEventsStore();
 onMounted(async () => {
   const eventId = eventsStore.currentEvent?.id;
   try {
-    await participantsStore.fetchParticipants(eventId ? { event: eventId } : {});
+    await participantsStore.fetchParticipants(eventId ? { event: String(eventId) } : {});
   } catch (err) {
     showError("無法載入參與者資料");
   }
@@ -34,7 +35,7 @@ watch(
   async (newEvent) => {
     if (newEvent?.id) {
       try {
-        await participantsStore.fetchParticipants({ event: newEvent.id });
+        await participantsStore.fetchParticipants({ event: String(newEvent.id) });
       } catch {
         showError("無法載入參與者資料");
       }
@@ -45,8 +46,8 @@ watch(
 );
 
 // 點擊外部關閉匯出選單
-const handleClickOutside = (event) => {
-  const exportDropdown = event.target.closest(".export-dropdown");
+const handleClickOutside = (event: MouseEvent) => {
+  const exportDropdown = (event.target as HTMLElement).closest(".export-dropdown");
   if (!exportDropdown && showExportMenu.value) {
     showExportMenu.value = false;
   }
@@ -72,7 +73,7 @@ const generalCount = computed(
 );
 
 // 編輯面板狀態
-const editingParticipant = ref(null);
+const editingParticipant = ref<Participant | null>(null);
 
 // 【核心過濾邏輯】依據標籤 + 搜尋 + 狀態
 const filteredList = computed(() => {
@@ -91,8 +92,8 @@ const isExporting = ref(false);
 const showExportMenu = ref(false);
 
 // 匯出指定範圍的資料
-const exportData = (exportType) => {
-  let dataToExport = [];
+const exportData = (exportType: string) => {
+  let dataToExport: Participant[] = [];
   let fileName = "";
 
   switch (exportType) {
@@ -162,30 +163,30 @@ const handleExport = () => {
 };
 
 // 匯入 Excel 邏輯
-const fileInput = ref(null);
-const triggerImport = () => fileInput.value.click();
-const handleImport = async (e) => {
-  const file = e.target.files[0];
+const fileInput = ref<HTMLInputElement | null>(null);
+const triggerImport = () => fileInput.value!.click();
+const handleImport = async (e: Event) => {
+  const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
 
   const reader = new FileReader();
   reader.onload = async (event) => {
-    const data = new Uint8Array(event.target.result);
+    const data = new Uint8Array((event.target as FileReader).result as ArrayBuffer);
     const workbook = XLSX.read(data, { type: "array" });
     const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
-    const sanitizedData = rawData.map((item) => ({
-      name: item["姓名"] || item["Name"] || "", // 空字串讓後端驗證
-      company: item["單位"] || item["公司"] || "",
-      title: item["職稱"] || "",
-      phone: item["電話"] || "",
-      email: item["Email"] || "",
-      type: item["身分"] || "一般民眾",
-      status: item["報到狀態"] || "未報到",
+    const sanitizedData = rawData.map((item: Record<string, unknown>) => ({
+      name: (item["姓名"] as string) || (item["Name"] as string) || "",
+      company: (item["單位"] as string) || (item["公司"] as string) || "",
+      title: (item["職稱"] as string) || "",
+      phone: (item["電話"] as string) || "",
+      email: (item["Email"] as string) || "",
+      type: (item["身分"] as string) || "一般民眾",
+      status: (item["報到狀態"] as string) || "未報到",
     }));
 
     try {
-      const result = await participantsStore.importParticipants(sanitizedData, eventsStore.currentEvent?.id);
+      const result = await participantsStore.importParticipants(sanitizedData, eventsStore.currentEvent?.id ?? 0);
 
       // 根據匯入模式顯示不同訊息
       if (result.mode === "bulk") {
@@ -205,9 +206,9 @@ const handleImport = async (e) => {
             // 格式化錯誤訊息
             const errorDetails = result.errors
               .slice(0, 5)
-              .map((err) => {
-                const errorMsg = Object.entries(err.errors)
-                  .map(([field, messages]) => `${field}: ${messages.join(", ")}`)
+              .map((err: Record<string, unknown>) => {
+                const errorMsg = Object.entries(err.errors as Record<string, string[]>)
+                  .map(([field, messages]: [string, string[]]) => `${field}: ${messages.join(", ")}`)
                   .join("; ");
                 return `第 ${err.index} 筆 - ${errorMsg}`;
               })
@@ -230,17 +231,17 @@ const handleImport = async (e) => {
       } else {
         success(`成功匯入 ${result.success} 筆，失敗 ${result.failed} 筆`);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("匯入異常:", err);
-      showError("匯入失敗：" + (err.message || "請檢查檔案格式或網路連線"));
+      showError("匯入失敗：" + ((err as Error).message || "請檢查檔案格式或網路連線"));
     } finally {
-      e.target.value = "";
+      (e.target as HTMLInputElement).value = "";
     }
   };
   reader.readAsArrayBuffer(file);
 };
 
-const openEditPanel = (participant) => {
+const openEditPanel = (participant: Participant) => {
   editingParticipant.value = { ...participant };
 };
 
@@ -253,9 +254,10 @@ const editPanelOpen = computed({
 });
 
 // 確認刪除 dialog
-const confirmDialog = ref({ show: false, participant: null });
+const confirmDialog = ref<{ show: boolean; participant: Participant | null }>({ show: false, participant: null });
 
-const deleteParticipant = (participant) => {
+const deleteParticipant = (participant: Participant | null) => {
+  if (!participant) return;
   confirmDialog.value = { show: true, participant };
 };
 
@@ -283,9 +285,9 @@ const saveParticipant = async () => {
       name, company, title, phone, email, type, status,
     });
     // 更新 editingParticipant 以反映後端最新資料（含 qrCodeUrl）
-    editingParticipant.value = { ...editingParticipant.value, ...updated };
+    editingParticipant.value = { ...editingParticipant.value, ...(updated as Participant) };
     success("更新成功");
-  } catch (err) {
+  } catch (err: unknown) {
     showError("更新失敗");
   }
 };
@@ -306,15 +308,15 @@ const addParticipant = async () => {
   };
   try {
     const created = await participantsStore.createParticipant(newParticipant);
-    editingParticipant.value = { ...created };
+    editingParticipant.value = { ...(created as Participant) };
     success("新增成功，請編輯詳細資料");
-  } catch (err) {
-    showError("新增失敗: " + (err.message || "未知錯誤"));
+  } catch (err: unknown) {
+    showError("新增失敗: " + ((err as Error).message || "未知錯誤"));
   }
 };
 
 // 格式化建立時間
-const formatDate = (isoString) => {
+const formatDate = (isoString: string) => {
   if (!isoString) return "—";
   const d = new Date(isoString);
   return d.toLocaleString("zh-TW", {
@@ -328,8 +330,8 @@ const formatDate = (isoString) => {
 
 // VIP 勾選管理（本地狀態）
 const selectedVIPIds = ref(new Set());
-const isVIPSelected = (id) => selectedVIPIds.value.has(id);
-const toggleVIP = (participant) => {
+const isVIPSelected = (id: number) => selectedVIPIds.value.has(id);
+const toggleVIP = (participant: Participant) => {
   const s = new Set(selectedVIPIds.value);
   if (s.has(participant.id)) {
     s.delete(participant.id);
@@ -535,105 +537,107 @@ const toggleVIP = (participant) => {
 
     <!-- 右側滑出編輯面板 -->
     <BasePanel v-model="editPanelOpen" title="編輯參與者資訊">
-      <div class="form-section">
-        <h4 class="section-title">基本資訊</h4>
+      <template v-if="editingParticipant">
+        <div class="form-section">
+          <h4 class="section-title">基本資訊</h4>
 
-        <div class="form-field">
-          <label>姓名 *</label>
-          <input
-            v-model="editingParticipant.name"
-            placeholder="請輸入姓名"
-            class="input-styled"
-          />
+          <div class="form-field">
+            <label>姓名 *</label>
+            <input
+              v-model="editingParticipant.name"
+              placeholder="請輸入姓名"
+              class="input-styled"
+            />
+          </div>
+
+          <div class="form-field">
+            <label>公司單位</label>
+            <input
+              v-model="editingParticipant.company"
+              placeholder="請輸入公司名稱"
+              class="input-styled"
+            />
+          </div>
+
+          <div class="form-field">
+            <label>職稱</label>
+            <input
+              v-model="editingParticipant.title"
+              placeholder="請輸入職稱"
+              class="input-styled"
+            />
+          </div>
+
+          <div class="form-field">
+            <label>身分</label>
+            <select v-model="editingParticipant.type" class="select-styled">
+              <option value="VIP">貴賓 VIP</option>
+              <option value="一般民眾">一般民眾</option>
+            </select>
+          </div>
         </div>
 
-        <div class="form-field">
-          <label>公司單位</label>
-          <input
-            v-model="editingParticipant.company"
-            placeholder="請輸入公司名稱"
-            class="input-styled"
-          />
+        <div class="form-section">
+          <h4 class="section-title">聯絡資訊</h4>
+
+          <div class="form-field">
+            <label>電子信箱</label>
+            <input
+              v-model="editingParticipant.email"
+              type="email"
+              placeholder="請輸入信箱"
+              class="input-styled"
+            />
+          </div>
+
+          <div class="form-field">
+            <label>聯絡電話</label>
+            <input
+              v-model="editingParticipant.phone"
+              type="tel"
+              placeholder="請輸入電話"
+              class="input-styled"
+            />
+          </div>
         </div>
 
-        <div class="form-field">
-          <label>職稱</label>
-          <input
-            v-model="editingParticipant.title"
-            placeholder="請輸入職稱"
-            class="input-styled"
-          />
+        <div class="form-section">
+          <h4 class="section-title">報到狀態</h4>
+
+          <div class="form-field">
+            <label>狀態</label>
+            <select v-model="editingParticipant.status" class="select-styled">
+              <option value="已報到">已報到</option>
+              <option value="未報到">未報到</option>
+            </select>
+          </div>
         </div>
 
-        <div class="form-field">
-          <label>身分</label>
-          <select v-model="editingParticipant.type" class="select-styled">
-            <option value="VIP">貴賓 VIP</option>
-            <option value="一般民眾">一般民眾</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <h4 class="section-title">聯絡資訊</h4>
-
-        <div class="form-field">
-          <label>電子信箱</label>
-          <input
-            v-model="editingParticipant.email"
-            type="email"
-            placeholder="請輸入信箱"
-            class="input-styled"
-          />
+        <!-- 來源資訊（唯讀） -->
+        <div class="form-section">
+          <h4 class="section-title">來源資訊</h4>
+          <div class="form-field">
+            <label>所屬活動</label>
+            <div class="readonly-value">{{ editingParticipant.eventName || '—' }}</div>
+          </div>
+          <div class="form-field">
+            <label>建立時間</label>
+            <div class="readonly-value">{{ formatDate(editingParticipant.createdAt) }}</div>
+          </div>
         </div>
 
-        <div class="form-field">
-          <label>聯絡電話</label>
-          <input
-            v-model="editingParticipant.phone"
-            type="tel"
-            placeholder="請輸入電話"
-            class="input-styled"
-          />
+        <!-- QR Code 區塊 -->
+        <div class="form-section" v-if="editingParticipant.qrCodeUrl">
+          <h4 class="section-title">專屬報到 QR Code</h4>
+          <div class="qr-display">
+            <img :src="editingParticipant.qrCodeUrl" alt="QR Code" class="qr-image" />
+            <p class="qr-token">{{ editingParticipant.checkInToken }}</p>
+            <a :href="editingParticipant.qrCodeUrl" download="qrcode.png" class="btn-download-qr">
+              ⬇ 下載 QR Code
+            </a>
+          </div>
         </div>
-      </div>
-
-      <div class="form-section">
-        <h4 class="section-title">報到狀態</h4>
-
-        <div class="form-field">
-          <label>狀態</label>
-          <select v-model="editingParticipant.status" class="select-styled">
-            <option value="已報到">已報到</option>
-            <option value="未報到">未報到</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- 來源資訊（唯讀） -->
-      <div class="form-section">
-        <h4 class="section-title">來源資訊</h4>
-        <div class="form-field">
-          <label>所屬活動</label>
-          <div class="readonly-value">{{ editingParticipant.eventName || '—' }}</div>
-        </div>
-        <div class="form-field">
-          <label>建立時間</label>
-          <div class="readonly-value">{{ formatDate(editingParticipant.createdAt) }}</div>
-        </div>
-      </div>
-
-      <!-- QR Code 區塊 -->
-      <div class="form-section" v-if="editingParticipant.qrCodeUrl">
-        <h4 class="section-title">專屬報到 QR Code</h4>
-        <div class="qr-display">
-          <img :src="editingParticipant.qrCodeUrl" alt="QR Code" class="qr-image" />
-          <p class="qr-token">{{ editingParticipant.checkInToken }}</p>
-          <a :href="editingParticipant.qrCodeUrl" download="qrcode.png" class="btn-download-qr">
-            ⬇ 下載 QR Code
-          </a>
-        </div>
-      </div>
+      </template>
 
       <template #footer>
         <button class="btn-delete-participant" @click="deleteParticipant(editingParticipant)">

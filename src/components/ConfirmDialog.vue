@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 defineProps({
   show: Boolean,
   title: { type: String, default: "確認操作" },

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
@@ -18,8 +18,8 @@ const mobileTab = ref('seats');
 
 const now = ref(new Date());
 const refreshing = ref(false);
-let clockTimer = null;
-let refreshTimer = null;
+let clockTimer: ReturnType<typeof setInterval> | null = null;
+let refreshTimer: ReturnType<typeof setInterval> | null = null;
 
 // 即時時鐘
 onMounted(() => {
@@ -30,8 +30,8 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  clearInterval(clockTimer);
-  clearInterval(refreshTimer);
+  if (clockTimer) clearInterval(clockTimer);
+  if (refreshTimer) clearInterval(refreshTimer);
 });
 
 const timeStr = computed(() =>
@@ -47,7 +47,7 @@ const doRefresh = async () => {
   refreshing.value = true;
   try {
     const eventId = eventsStore.currentEvent?.id;
-    if (eventId) await participantsStore.fetchParticipants({ event: eventId });
+    if (eventId) await participantsStore.fetchParticipants({ event: String(eventId) });
   } finally {
     refreshing.value = false;
   }
@@ -85,18 +85,18 @@ const seatStats = computed(() => {
 const recentCheckins = computed(() =>
   [...participantsStore.participants]
     .filter((p) => p.status === "已報到" && p.updatedAt)
-    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 30)
 );
 
-const formatTime = (isoStr) => {
+const formatTime = (isoStr: string) => {
   if (!isoStr) return "—";
   return new Date(isoStr).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 };
 
-const formatRelative = (isoStr) => {
+const formatRelative = (isoStr: string) => {
   if (!isoStr) return "";
-  const diff = Math.floor((Date.now() - new Date(isoStr)) / 1000);
+  const diff = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
   if (diff < 60) return `${diff} 秒前`;
   if (diff < 3600) return `${Math.floor(diff / 60)} 分鐘前`;
   return `${Math.floor(diff / 3600)} 小時前`;

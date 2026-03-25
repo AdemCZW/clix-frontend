@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import draggable from "vuedraggable";
@@ -6,6 +6,7 @@ import { useRegistrationFormFieldsStore } from "@/stores/registrationFormFields"
 import { useRegistrationPagesStore } from "@/stores/registrationPages";
 import { useEventsStore } from "@/stores/events";
 import { useToast } from "@/composables/useToast";
+import type { FormField, FieldType } from "@/types";
 
 const route = useRoute();
 const router = useRouter();
@@ -15,15 +16,15 @@ const eventsStore = useEventsStore();
 const { success: toastSuccess, error: toastError } = useToast();
 
 const newFieldLabel = ref("");
-const newFieldType = ref("text");
-const pageId = ref(null);
+const newFieldType = ref<FieldType>("text");
+const pageId = ref<number | null>(null);
 const isInitializing = ref(false);
 
 // 使用本地 ref 作為 draggable 資料來源，載入完成後明確賦值以確保 Vue 正確更新
-const fields = ref([]);
+const fields = ref<FormField[]>([]);
 
 // --- 取得頁面 ID 並載入欄位 ---
-async function loadForEvent(event) {
+async function loadForEvent(event: { id?: number; name?: string } | null) {
   // #region agent log
   fetch('http://127.0.0.1:7609/ingest/596a70c9-8187-4c67-9e17-fadd7ea35fcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9b3802'},body:JSON.stringify({sessionId:'9b3802',location:'Config.vue:loadForEvent:entry',message:'loadForEvent called',data:{eventId:event?.id,eventName:event?.name},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
   // #endregion
@@ -36,7 +37,7 @@ async function loadForEvent(event) {
     if (!page) page = await pagesStore.createPage(event.id);
     await fieldsStore.fetchFields(page.id);
     pageId.value = page.id;
-    const storeFields = fieldsStore.fields?.value ?? fieldsStore.fields ?? [];
+    const storeFields: FormField[] = Array.isArray(fieldsStore.fields) ? fieldsStore.fields : [];
     fields.value = Array.isArray(storeFields) ? storeFields.map((f) => ({
       ...f,
       options: Array.isArray(f.options) ? f.options.map((o) => ({ ...o })) : [],
@@ -46,7 +47,7 @@ async function loadForEvent(event) {
     // #endregion
   } catch (err) {
     // #region agent log
-    fetch('http://127.0.0.1:7609/ingest/596a70c9-8187-4c67-9e17-fadd7ea35fcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9b3802'},body:JSON.stringify({sessionId:'9b3802',location:'Config.vue:loadForEvent:catch',message:'loadForEvent failed',data:{error:String(err?.message||err)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7609/ingest/596a70c9-8187-4c67-9e17-fadd7ea35fcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9b3802'},body:JSON.stringify({sessionId:'9b3802',location:'Config.vue:loadForEvent:catch',message:'loadForEvent failed',data:{error:String((err as Error)?.message||err)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
     // #endregion
     toastError("載入欄位設定失敗");
   } finally {
@@ -59,12 +60,12 @@ watch(
   () => [route.name, route.query.eventId, eventsStore.currentEvent?.id],
   async ([name, queryEventId, storeEventId]) => {
     if (name !== "FormFields") return;
-    const eventId = Number(queryEventId) || storeEventId;
+    const eventId = Number(queryEventId) || Number(storeEventId);
     if (!eventId) {
       router.push("/admin/events");
       return;
     }
-    await loadForEvent({ id: eventId });
+    await loadForEvent({ id: eventId as number });
   },
   { immediate: true }
 );
@@ -75,8 +76,8 @@ const saveFields = async () => {
   try {
     await fieldsStore.bulkSave(pageId.value, [...fields.value]);
     toastSuccess("欄位設定已儲存");
-  } catch (err) {
-    toastError(err.message || "儲存失敗");
+  } catch (err: unknown) {
+    toastError((err as Error).message || "儲存失敗");
   }
 };
 
@@ -87,18 +88,19 @@ const addField = () => {
   fields.value.push({
     id: null,
     label: newFieldLabel.value,
-    field_type: newFieldType.value,
+    field_type: newFieldType.value as FieldType,
     is_required: false,
     is_fixed: false,
     is_hidden: false,
+    order: fields.value.length,
     options: needsOptions ? [{ text: "", order: 0 }] : [],
   });
   newFieldLabel.value = "";
 };
 
-const removeField = (index) => fields.value.splice(index, 1);
-const addOption = (field) => field.options.push({ text: "", order: field.options.length });
-const removeOption = (field, optIndex) => field.options.splice(optIndex, 1);
+const removeField = (index: number) => fields.value.splice(index, 1);
+const addOption = (field: FormField) => field.options.push({ text: "", order: field.options.length });
+const removeOption = (field: FormField, optIndex: number) => field.options.splice(optIndex, 1);
 const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 </script>
 

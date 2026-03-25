@@ -1,10 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import { reactive, ref, computed, onMounted } from "vue";
 import { useGuestsStore } from "@/stores/guests";
 import { useEventsStore } from "@/stores/events";
 import { useToast } from "@/composables/useToast";
 import BasePanel from "@/components/shared/BasePanel.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
+import type { Guest } from "@/types";
 
 const guestsStore = useGuestsStore();
 const eventsStore = useEventsStore();
@@ -13,7 +14,7 @@ const { success, error } = useToast();
 const activityOptions = ref(["所有活動"]);
 const selectedActivity = ref("所有活動");
 const sortBy = ref("newest");
-const editingGuest = ref(null);
+const editingGuest = ref<Guest | null>(null);
 
 const editPanelOpen = computed({
   get: () => !!editingGuest.value,
@@ -29,20 +30,20 @@ onMounted(async () => {
   if (event && event.id) {
     try {
       await guestsStore.fetchGuests(event.id);
-    } catch (err) {
-      error(err.message || "載入貴賓列表失敗");
+    } catch (err: unknown) {
+      error((err as Error).message || "載入貴賓列表失敗");
     }
   }
 });
 
-const formatDate = (dateStr) => dateStr || "--";
+const formatDate = (dateStr: string | undefined) => dateStr || "--";
 
 const filteredGuests = computed(() => {
   let result = [...guests];
   if (selectedActivity.value !== "所有活動")
     result = result.filter((g) => g.activity === selectedActivity.value);
   if (sortBy.value === "name") result.sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
-  else result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  else result.sort((a, b) => new Date(String(b.createdAt || 0)).getTime() - new Date(String(a.createdAt || 0)).getTime());
   return result;
 });
 
@@ -64,15 +65,15 @@ const addGuest = async () => {
     });
     editingGuest.value = newGuest;
     success("貴賓已建立，請填寫詳細資料");
-  } catch (err) {
-    error(err.message || "新增貴賓失敗");
+  } catch (err: unknown) {
+    error((err as Error).message || "新增貴賓失敗");
   }
 };
 
 // 確認刪除 dialog
-const confirmDialog = ref({ show: false, guest: null });
+const confirmDialog = ref<{ show: boolean; guest: Guest | null }>({ show: false, guest: null });
 
-const deleteGuest = (guest) => {
+const deleteGuest = (guest: Guest | null) => {
   confirmDialog.value = { show: true, guest };
 };
 
@@ -86,12 +87,12 @@ const confirmDelete = async () => {
       editingGuest.value = null;
     }
     success("貴賓已刪除");
-  } catch (err) {
-    error(err.message || "刪除貴賓失敗");
+  } catch (err: unknown) {
+    error((err as Error).message || "刪除貴賓失敗");
   }
 };
 
-const openEditPanel = (guest) => {
+const openEditPanel = (guest: Guest) => {
   editingGuest.value = guest;
 };
 
@@ -100,7 +101,7 @@ const closeEditPanel = () => {
 };
 
 // 儲存貴賓編輯（自動觸發）
-const saveGuest = async (guest) => {
+const saveGuest = async (guest: Guest | null) => {
   if (!guest || !guest.id) return;
   try {
     await guestsStore.updateGuest(guest.id, {
@@ -112,23 +113,23 @@ const saveGuest = async (guest) => {
       bio: guest.bio,
     });
     success("貴賓資料已儲存");
-  } catch (err) {
-    error(err.message || "儲存失敗");
+  } catch (err: unknown) {
+    error((err as Error).message || "儲存失敗");
   }
 };
 
-const onAvatarChange = (e, guest) => {
-  const file = e.target.files[0];
+const onAvatarChange = (e: Event, guest: Guest) => {
+  const file = (e.target as HTMLInputElement).files?.[0];
   if (file) {
     const reader = new FileReader();
     reader.onload = (event) => {
-      guest.avatar = event.target.result;
+      guest.avatar = (event.target as FileReader).result;
     };
     reader.readAsDataURL(file);
   }
 };
 
-const getInitials = (name) => {
+const getInitials = (name: string) => {
   if (!name) return "?";
   return name.charAt(0).toUpperCase();
 };
@@ -240,6 +241,7 @@ const getInitials = (name) => {
 
     <!-- 右側滑出編輯面板 -->
     <BasePanel v-model="editPanelOpen" title="編輯貴賓資訊">
+      <template v-if="editingGuest">
       <div class="avatar-upload-section">
         <label
           class="avatar-upload-large"
@@ -308,7 +310,7 @@ const getInitials = (name) => {
         <div class="form-field">
           <label>簡介</label>
           <textarea
-            v-model="editingGuest.bio"
+            v-model="(editingGuest as any).bio"
             placeholder="請輸入個人簡介"
             class="textarea-styled"
             rows="3"
@@ -317,7 +319,7 @@ const getInitials = (name) => {
 
         <div class="form-field">
           <label>參加活動</label>
-          <select v-model="editingGuest.activity" class="select-styled full-width">
+          <select v-model="(editingGuest as any).activity" class="select-styled full-width">
             <option v-for="opt in activityOptions.slice(1)" :key="opt" :value="opt">
               {{ opt }}
             </option>
@@ -352,9 +354,10 @@ const getInitials = (name) => {
       <div class="form-section">
         <div class="meta-info">
           <span class="meta-label">加入時間</span>
-          <span class="meta-value">{{ formatDate(editingGuest.createdAt) }}</span>
+          <span class="meta-value">{{ formatDate(editingGuest.createdAt as string | undefined) }}</span>
         </div>
       </div>
+      </template>
 
       <template #footer>
         <button class="btn-delete-guest" @click="deleteGuest(editingGuest)">刪除貴賓</button>

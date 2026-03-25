@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
@@ -29,11 +29,11 @@ const handleLogin = async () => {
     if (result.success) {
       success("登入成功！");
       localStorage.removeItem("current_event");
-      const redirect = router.currentRoute.value.query.redirect;
+      const redirect = router.currentRoute.value.query.redirect as string | undefined;
       router.push(redirect || "/admin/dashboard");
     }
-  } catch (err) {
-    error(err.message || "登入失敗，請檢查您的帳號密碼");
+  } catch (err: unknown) {
+    error((err as Error).message || "登入失敗，請檢查您的帳號密碼");
   } finally {
     loading.value = false;
   }

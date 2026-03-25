@@ -159,7 +159,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
@@ -168,6 +168,18 @@ import { useToast } from "@/composables/useToast";
 import { apiRequest } from "@/utils/api";
 import BaseModal from "@/components/shared/BaseModal.vue";
 import BasePanel from "@/components/shared/BasePanel.vue";
+import type { Event } from "@/types";
+
+interface EventEditForm {
+  id: number;
+  name: string;
+  date: string;
+  endDate: string;
+  time: string;
+  location: string;
+  address: string;
+  maxParticipants: number;
+}
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -180,19 +192,19 @@ const showCreateModal = ref(false);
 
 // 活動過期判斷
 const today = new Date().toISOString().slice(0, 10);
-const isEventExpired = (event) => {
+const isEventExpired = (event: Event) => {
   const endDate = event.endDate || event.date;
   return !!endDate && endDate < today;
 };
 
 // 右側編輯面板
-const editingEvent = ref(null);
+const editingEvent = ref<EventEditForm | null>(null);
 const editPanelOpen = computed({
   get: () => !!editingEvent.value,
   set: (v) => { if (!v) editingEvent.value = null; },
 });
 
-const openEditPanel = (event) => {
+const openEditPanel = (event: Event) => {
   editingEvent.value = {
     id: event.id,
     name: event.name,
@@ -201,7 +213,7 @@ const openEditPanel = (event) => {
     time: event.time || "",
     location: event.location || "",
     address: event.address || "",
-    maxParticipants: event.maxParticipants || 500,
+    maxParticipants: (event as Event & { maxParticipants?: number }).maxParticipants || 500,
   };
 };
 
@@ -224,8 +236,8 @@ const saveEditEvent = async () => {
     }
     success("活動已更新");
     closeEditPanel();
-  } catch (err) {
-    error(err.message || "更新失敗");
+  } catch (err: unknown) {
+    error((err as Error).message || "更新失敗");
   }
 };
 
@@ -288,27 +300,27 @@ onMounted(async () => {
         }
       } catch { /* silent */ }
     }
-  } catch (err) {
-    error(err.message || "載入活動列表失敗");
+  } catch (err: unknown) {
+    error((err as Error).message || "載入活動列表失敗");
   }
 });
 
-const selectEvent = (event) => {
+const selectEvent = (event: Event) => {
   eventsStore.setCurrentEvent(event, userStore.user?.id);
   router.push("/admin/registration-setting");
 };
 
-const selectEventForFormFields = (event) => {
+const selectEventForFormFields = (event: Event) => {
   eventsStore.setCurrentEvent(event, userStore.user?.id);
   router.push({ path: "/admin/form-fields", query: { eventId: event.id } });
 };
 
-const editEvent = (event) => {
+const editEvent = (event: Event) => {
   eventsStore.setCurrentEvent(event, userStore.user?.id);
   router.push("/admin/registration-setting");
 };
 
-const viewDetails = (event) => {
+const viewDetails = (event: Event) => {
   eventsStore.setCurrentEvent(event, userStore.user?.id);
   router.push("/admin/registration-setting");
 };
@@ -334,8 +346,8 @@ const createEvent = async () => {
     // 切換到新活動並前往設定頁
     eventsStore.setCurrentEvent(created, userStore.user?.id);
     router.push("/admin/registration-setting");
-  } catch (err) {
-    error(err.message || "建立活動失敗");
+  } catch (err: unknown) {
+    error((err as Error).message || "建立活動失敗");
   }
 };
 </script>

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import QRCodeLib from "qrcode";
@@ -8,14 +8,22 @@ const slot = computed(() => String(route.params.slot || "1"));
 const eventId = computed(() => String(route.query.event || ""));
 
 // QR Code 圖片生成
-const qrDataUrls = ref({});
-async function ensureQr(token) {
+const qrDataUrls = ref<Record<string, string>>({});
+async function ensureQr(token: string) {
   if (!token || qrDataUrls.value[token]) return;
   qrDataUrls.value[token] = await QRCodeLib.toDataURL(token, { width: 80, margin: 1 });
 }
 
 // 預覽用：保留最後一筆列印資料（列印後不清空，方便確認）
-const lastPrint = ref(null);
+interface PrintData {
+  id: number;
+  name: string;
+  company: string;
+  title: string;
+  checkInToken: string;
+}
+
+const lastPrint = ref<PrintData | null>(null);
 
 // 從 localStorage 讀取管理頁面儲存的版面設計
 function loadTemplate() {
@@ -25,7 +33,15 @@ function loadTemplate() {
   } catch { return null; }
 }
 
-const templateElements = ref(loadTemplate() || [
+interface TemplateElement {
+  id: string;
+  key: string;
+  x: number;
+  y: number;
+  style: { fontSize: number; fontWeight: string; color: string };
+}
+
+const templateElements = ref<TemplateElement[]>(loadTemplate() || [
   { id: "t1", key: "name",    x: 12, y: 80,  style: { fontSize: 26, fontWeight: "900", color: "#1e293b" } },
   { id: "t2", key: "company", x: 12, y: 116, style: { fontSize: 13, fontWeight: "400", color: "#64748b" } },
   { id: "t3", key: "code",    x: 248, y: 10, style: { fontSize: 12, fontWeight: "400", color: "#cbd5e1" } },
@@ -34,10 +50,16 @@ const logoUrl = ref(localStorage.getItem("badge_logo") || "");
 
 // ===== WebSocket =====
 const wsStatus = ref("disconnected");
-const wsCurrentPrint = ref(null);
+interface LogEntry {
+  name: string;
+  company: string;
+  time: string;
+}
+
+const wsCurrentPrint = ref<PrintData | null>(null);
 const wsPrinting = ref(false);
-const wsLog = ref([]);
-let wsInstance = null;
+const wsLog = ref<LogEntry[]>([]);
+let wsInstance: WebSocket | null = null;
 
 const sessionId = computed(() =>
   eventId.value ? `print-${eventId.value}-station-${slot.value}` : null,
@@ -83,13 +105,13 @@ function reconnect() {
   setTimeout(connectWebSocket, 500);
 }
 
-async function handleWsPrint(raw) {
-  const p = {
-    id: raw.id,
-    name: raw.name || "",
-    company: raw.company || "",
-    title: raw.title || "",
-    checkInToken: raw.check_in_token,
+async function handleWsPrint(raw: Record<string, unknown>) {
+  const p: PrintData = {
+    id: raw.id as number,
+    name: (raw.name as string) || "",
+    company: (raw.company as string) || "",
+    title: (raw.title as string) || "",
+    checkInToken: raw.check_in_token as string,
   };
   await ensureQr(p.checkInToken);
   lastPrint.value = p;

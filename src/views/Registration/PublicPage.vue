@@ -1,11 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePublicRegisterStore } from '@/stores/participants'
 
 const route = useRoute()
 const store = usePublicRegisterStore()
-const shortLink = route.params.shortLink
+const shortLink = route.params.shortLink as string
 
 const form = reactive({
   name: '',
@@ -17,8 +17,8 @@ const form = reactive({
 })
 
 // 動態自定義欄位的值，key 為欄位 id
-const dynamicValues = reactive({})
-const formErrors = ref({})
+const dynamicValues = reactive<Record<string, string>>({})
+const formErrors = ref<Record<string, string>>({})
 const submitting = ref(false)
 const showForm = ref(false)
 
@@ -27,10 +27,10 @@ const pageData = computed(() => store.page)
 
 // 取得非隱藏、非固定的自定義欄位（相容 snake_case 與 camelCase）
 const customFields = computed(() => {
-  const fields = pageData.value?.form_fields || []
+  const fields = pageData.value?.formFields || []
   return fields.filter((f) => {
-    const hidden = f.is_hidden ?? f.isHidden ?? false
-    const fixed  = f.is_fixed  ?? f.isFixed  ?? false
+    const hidden = f.is_hidden ?? false
+    const fixed  = f.is_fixed  ?? false
     return !hidden && !fixed
   })
 })
@@ -38,7 +38,8 @@ const customFields = computed(() => {
 // 當自定義欄位載入後，初始化 dynamicValues
 watch(customFields, (fields) => {
   fields.forEach((f) => {
-    if (dynamicValues[f.id] === undefined) dynamicValues[f.id] = ''
+    const key = String(f.id ?? f.label)
+    if (dynamicValues[key] === undefined) dynamicValues[key] = ''
   })
 }, { immediate: true })
 
@@ -48,16 +49,17 @@ onMounted(() => {
 })
 
 const validate = () => {
-  const errs = {}
+  const errs: Record<string, string> = {}
   if (!form.name.trim()) errs.name = '請填寫姓名'
   if (!form.email.trim()) errs.email = '請填寫電子郵件'
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = '電子郵件格式不正確'
   if (!form.phone.trim()) errs.phone = '請填寫聯絡電話'
   // 驗證自定義必填欄位
   customFields.value.forEach((f) => {
-    const required = f.is_required ?? f.required ?? false
-    if (required && !String(dynamicValues[f.id] ?? '').trim()) {
-      errs[`custom_${f.id}`] = `請填寫${f.label}`
+    const required = f.is_required ?? false
+    const key = String(f.id ?? f.label)
+    if (required && !String(dynamicValues[key] ?? '').trim()) {
+      errs[`custom_${key}`] = `請填寫${f.label}`
     }
   })
   formErrors.value = errs
@@ -69,10 +71,11 @@ const handleSubmit = async () => {
   submitting.value = true
   try {
     // 組合自定義欄位值
-    const customData = {}
+    const customData: Record<string, string> = {}
     customFields.value.forEach((f) => {
-      if (dynamicValues[f.id] !== undefined && dynamicValues[f.id] !== '') {
-        customData[f.label] = dynamicValues[f.id]
+      const key = String(f.id ?? f.label)
+      if (dynamicValues[key] !== undefined && dynamicValues[key] !== '') {
+        customData[f.label] = dynamicValues[key]
       }
     })
     await store.submitRegistration(shortLink, {
@@ -90,6 +93,12 @@ const handleSubmit = async () => {
     submitting.value = false
   }
 }
+
+// 報名狀態（目前為佔位實作，可接入後端資料）
+const participantsCount = computed(() => 0)
+const maxParticipants = computed(() => '∞')
+const isFull = computed(() => false)
+const statusText = computed(() => '報名中')
 
 const openForm = () => { showForm.value = true }
 const backToInfo = () => { showForm.value = false }
@@ -125,26 +134,26 @@ const formatDate = (date, endDate, time) => {
       <h2 class="success-title">報名成功！</h2>
       <p class="success-sub">{{ store.submittedParticipant.name }}，感謝您的報名，期待與您相見！</p>
 
-      <div v-if="store.submittedParticipant.qr_code_url" class="qr-card">
+      <div v-if="store.submittedParticipant.qrCodeUrl" class="qr-card">
         <p class="qr-hint">現場出示此 QR Code 掃描報到</p>
         <div class="qr-img-wrap">
-          <img :src="store.submittedParticipant.qr_code_url" alt="QR Code" />
+          <img :src="store.submittedParticipant.qrCodeUrl" alt="QR Code" />
         </div>
-        <p class="qr-token">{{ store.submittedParticipant.check_in_token }}</p>
+        <p class="qr-token">{{ store.submittedParticipant.checkInToken }}</p>
       </div>
 
       <div class="reminder-box" v-if="pageData">
-        <div class="reminder-row" v-if="pageData.event_date">
+        <div class="reminder-row" v-if="pageData.eventDate">
           <span class="r-icon">📅</span>
-          <span>{{ formatDate(pageData.event_date, pageData.event_end_date, pageData.event_time) }}</span>
+          <span>{{ formatDate(pageData.eventDate, (pageData as any).eventEndDate, (pageData as any).eventTime) }}</span>
         </div>
-        <div class="reminder-row" v-if="pageData.event_location">
+        <div class="reminder-row" v-if="pageData.eventLocation">
           <span class="r-icon">📍</span>
-          <span>{{ pageData.event_location }}</span>
+          <span>{{ pageData.eventLocation }}</span>
         </div>
-        <div class="reminder-row" v-if="pageData.event_address">
+        <div class="reminder-row" v-if="(pageData as any).eventAddress">
           <span class="r-icon">🗺️</span>
-          <span>{{ pageData.event_address }}</span>
+          <span>{{ (pageData as any).eventAddress }}</span>
         </div>
       </div>
     </div>
@@ -164,13 +173,13 @@ const formatDate = (date, endDate, time) => {
         <!-- Event Header -->
         <div class="event-header">
           <span class="p-tag">UPCOMING EVENT</span>
-          <h1 class="p-title">{{ pageData.event_name }}</h1>
+          <h1 class="p-title">{{ pageData.eventName }}</h1>
           <div class="p-badges">
-            <span v-if="pageData.event_date">
-              📅 {{ formatDate(pageData.event_date, pageData.event_end_date, pageData.event_time) }}
+            <span v-if="pageData.eventDate">
+              📅 {{ formatDate(pageData.eventDate, (pageData as any).eventEndDate, (pageData as any).eventTime) }}
             </span>
-            <span v-if="pageData.event_location">📍 {{ pageData.event_location }}</span>
-            <span v-if="pageData.event_address">🗺️ {{ pageData.event_address }}</span>
+            <span v-if="pageData.eventLocation">📍 {{ pageData.eventLocation }}</span>
+            <span v-if="(pageData as any).eventAddress">🗺️ {{ (pageData as any).eventAddress }}</span>
             <span class="badge-count">
               👥 {{ participantsCount }} / {{ maxParticipants }}
             </span>
@@ -184,7 +193,7 @@ const formatDate = (date, endDate, time) => {
         </div>
 
         <!-- Rich text content -->
-        <div v-if="pageData.main_content" class="p-main-body-render" v-html="pageData.main_content"></div>
+        <div v-if="pageData.mainContent" class="p-main-body-render" v-html="pageData.mainContent"></div>
 
       </div><!-- /.float-card -->
 
@@ -194,8 +203,8 @@ const formatDate = (date, endDate, time) => {
           <div class="footer-info">
             <span class="f-title">立即報名參加</span>
             <span class="f-date">
-              <template v-if="pageData.event_date">📅 {{ formatDate(pageData.event_date, pageData.event_end_date, pageData.event_time) }}</template>
-              <template v-if="pageData.event_location">　📍 {{ pageData.event_location }}</template>
+              <template v-if="pageData.eventDate">📅 {{ formatDate(pageData.eventDate, (pageData as any).eventEndDate, (pageData as any).eventTime) }}</template>
+              <template v-if="pageData.eventLocation">　📍 {{ pageData.eventLocation }}</template>
             </span>
           </div>
           <button class="btn-apply" @click="openForm" :disabled="isFull">
@@ -210,7 +219,7 @@ const formatDate = (date, endDate, time) => {
     <div v-else-if="pageData && showForm" class="form-view">
       <div class="form-view-header">
         <button class="back-btn" @click="backToInfo">← 返回活動介紹</button>
-        <span class="form-view-ename">{{ pageData.event_name }}</span>
+        <span class="form-view-ename">{{ pageData.eventName }}</span>
       </div>
       <div class="form-wrap">
         <div class="form-wrap-header">
@@ -253,36 +262,36 @@ const formatDate = (date, endDate, time) => {
           </div>
 
           <!-- 自定義欄位 -->
-          <template v-for="field in customFields" :key="field.id">
-            <div class="field-group" :class="{ 'has-error': formErrors[`custom_${field.id}`] }">
+          <template v-for="field in customFields" :key="field.id ?? field.label">
+            <div class="field-group" :class="{ 'has-error': formErrors[`custom_${String(field.id ?? field.label)}`] }">
               <label>
                 {{ field.label }}
-                <span v-if="field.is_required || field.required" class="required">*</span>
+                <span v-if="field.is_required" class="required">*</span>
               </label>
               <select
                 v-if="field.field_type === 'select' || field.field_type === 'radio'"
-                v-model="dynamicValues[field.id]"
+                v-model="dynamicValues[String(field.id ?? field.label)]"
                 class="custom-select"
               >
                 <option value="">請選擇...</option>
-                <option v-for="opt in (field.options || [])" :key="opt.order ?? opt.id" :value="opt.text">
+                <option v-for="opt in (field.options || [])" :key="opt.order" :value="opt.text">
                   {{ opt.text }}
                 </option>
               </select>
               <textarea
                 v-else-if="field.field_type === 'textarea'"
-                v-model="dynamicValues[field.id]"
+                v-model="dynamicValues[String(field.id ?? field.label)]"
                 :placeholder="`請輸入${field.label}`"
                 class="custom-textarea"
                 rows="3"
               ></textarea>
               <input
                 v-else
-                v-model="dynamicValues[field.id]"
+                v-model="dynamicValues[String(field.id ?? field.label)]"
                 :type="field.field_type || 'text'"
                 :placeholder="`請輸入${field.label}`"
               />
-              <span class="field-error">{{ formErrors[`custom_${field.id}`] }}</span>
+              <span class="field-error">{{ formErrors[`custom_${String(field.id ?? field.label)}`] }}</span>
             </div>
           </template>
 

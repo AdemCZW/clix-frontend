@@ -121,12 +121,19 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import jsQR from "jsqr";
 import { API_BASE_URL } from "@/utils/api";
 import { useEventsStore } from "@/stores/events";
+
+interface ScannedInfo {
+  name: string
+  company: string
+  title: string
+  checkinTime: string
+}
 
 const route = useRoute();
 const router = useRouter();
@@ -151,22 +158,22 @@ const eventId = computed(() =>
   String(route.query.event || eventsStore.currentEvent?.id || "")
 );
 const isScanning = ref(false);
-const videoElement = ref(null);
+const videoElement = ref<HTMLVideoElement | null>(null);
 const showResult = ref(false);
 const resultType = ref("success"); // 'success' | 'error'
-const scannedData = ref(null);       // 顯示用
-const currentParticipant = ref(null); // 原始 API 資料（傳送給站台用）
+const scannedData = ref<ScannedInfo | null>(null);       // 顯示用
+const currentParticipant = ref<Record<string, unknown> | null>(null); // 原始 API 資料（傳送給站台用）
 const errorMessage = ref("");
 const todayCheckins = ref(0);
 const totalCheckins = ref(0);
-const sendingStation = ref(null);
+const sendingStation = ref<number | null>(null);
 const sendPhase = ref("idle"); // 'idle' | 'sending' | 'sent' | 'error'
 const sendError = ref("");
 
-let stream = null;
-let animationId = null;
-let canvas = null;
-let canvasContext = null;
+let stream: MediaStream | null = null;
+let animationId: number | null = null;
+let canvas: HTMLCanvasElement | null = null;
+let canvasContext: CanvasRenderingContext2D | null = null;
 
 const startScanning = async () => {
   try {
@@ -190,7 +197,7 @@ const startScanning = async () => {
     isScanning.value = true;
 
     // 等待下一個 tick 確保 DOM 已更新
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise<void>((resolve) => setTimeout(resolve, 100));
 
     // 將串流綁定到 video 元素
     if (videoElement.value) {
@@ -198,10 +205,10 @@ const startScanning = async () => {
       videoElement.value.srcObject = stream;
 
       // 等待 video 載入
-      await new Promise((resolve) => {
-        videoElement.value.onloadedmetadata = () => {
+      await new Promise<void>((resolve) => {
+        videoElement.value!.onloadedmetadata = () => {
           console.log("Video metadata 已載入");
-          videoElement.value.play();
+          videoElement.value!.play();
           resolve();
         };
       });
@@ -217,27 +224,28 @@ const startScanning = async () => {
       console.error("videoElement.value 是 null");
       throw new Error("無法找到 video 元素");
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("無法啟動相機:", error);
 
+    const err = error as Error & { name?: string };
     let errorMsg = "無法啟動相機";
     let helpText = "";
 
-    if (error.name === "NotAllowedError") {
+    if (err.name === "NotAllowedError") {
       errorMsg = "相機權限被拒絕";
       helpText = "請在手機設定中開啟瀏覽器的相機權限，或點擊網址列的鎖頭圖示允許相機存取";
-    } else if (error.name === "NotFoundError") {
+    } else if (err.name === "NotFoundError") {
       errorMsg = "找不到相機設備";
       helpText = "請確認您的裝置有相機功能";
-    } else if (error.name === "NotReadableError") {
+    } else if (err.name === "NotReadableError") {
       errorMsg = "相機正被其他應用程式使用";
       helpText = "請關閉其他使用相機的 App 後重試";
-    } else if (error.name === "SecurityError") {
+    } else if (err.name === "SecurityError") {
       errorMsg = "安全性錯誤";
       helpText = "請確認使用 HTTPS 連線開啟此頁面";
-    } else if (error.message) {
-      errorMsg = error.message;
-      helpText = "建議使用 Chrome 或 Safari 瀏覽器開啟\n\n詳細錯誤：" + error.toString();
+    } else if (err.message) {
+      errorMsg = err.message;
+      helpText = "建議使用 Chrome 或 Safari 瀏覽器開啟\n\n詳細錯誤：" + String(error);
     }
 
     errorMessage.value = helpText ? `${errorMsg}\n\n${helpText}` : errorMsg;
@@ -270,7 +278,7 @@ const tick = () => {
   animationId = requestAnimationFrame(tick);
 };
 
-const onScanSuccess = (decodedText) => {
+const onScanSuccess = (decodedText: string) => {
   // 停止掃描後呼叫後端驗證（check_in_token 是純字串，不需 JSON.parse）
   stopScanning();
   validateCheckin(decodedText.trim());
@@ -297,7 +305,7 @@ const stopScanning = () => {
   }
 };
 
-const validateCheckin = async (token) => {
+const validateCheckin = async (token: string) => {
   try {
     const accessToken = localStorage.getItem("access_token");
     const res = await fetch(`${API_BASE_URL}/api/participants/checkin_by_token/`, {
@@ -351,7 +359,7 @@ const validateCheckin = async (token) => {
   showResult.value = true;
 };
 
-const sendToStation = async (slot) => {
+const sendToStation = async (slot: number) => {
   if (!currentParticipant.value) return;
   sendingStation.value = slot;
   sendPhase.value = "sending";
@@ -364,7 +372,7 @@ const sendToStation = async (slot) => {
     .replace(/^http/, "ws");
 
   try {
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const token = localStorage.getItem("access_token") || "";
       const tokenParam = token ? `?token=${token}` : "";
       const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/${tokenParam}`);
@@ -377,8 +385,8 @@ const sendToStation = async (slot) => {
       ws.onerror = () => { clearTimeout(timeout); reject(new Error(`無法連接站台 ${slot}`)); };
     });
     sendPhase.value = "sent";
-  } catch (err) {
-    sendError.value = err.message;
+  } catch (err: unknown) {
+    sendError.value = (err as Error).message;
     sendPhase.value = "error";
   }
 };
@@ -409,8 +417,9 @@ const testCamera = async () => {
     errorMessage.value = `✅ 相機權限正常！\n\n找到 ${videoDevices.length} 個相機設備\n\n${videoDevices.map((d, i) => `相機 ${i + 1}: ${d.label || "未命名"}`).join("\n")}\n\n請點擊「啟動掃描器」開始使用`;
     resultType.value = "success";
     showResult.value = true;
-  } catch (error) {
-    errorMessage.value = `❌ 相機測試失敗\n\n錯誤類型: ${error.name}\n錯誤訊息: ${error.message}\n\n請確認：\n1. 已允許相機權限\n2. 使用 Chrome 或 Safari\n3. 相機未被其他 App 占用`;
+  } catch (error: unknown) {
+    const err = error as Error & { name?: string };
+    errorMessage.value = `❌ 相機測試失敗\n\n錯誤類型: ${err.name}\n錯誤訊息: ${err.message}\n\n請確認：\n1. 已允許相機權限\n2. 使用 Chrome 或 Safari\n3. 相機未被其他 App 占用`;
     resultType.value = "error";
     showResult.value = true;
   }

@@ -1,19 +1,20 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import jsQR from "jsqr";
 import { apiRequest } from "@/utils/api";
+import type { Participant } from "@/types";
 
 const route = useRoute();
 const eventId = computed(() => String(route.query.event || ""));
 
 // ===== 相機掃描 =====
 const isScanning   = ref(false);
-const videoElement = ref(null);
-let stream      = null;
-let animationId = null;
-let canvas      = null;
-let canvasCtx   = null;
+const videoElement = ref<HTMLVideoElement | null>(null);
+let stream: MediaStream | null      = null;
+let animationId: number | null = null;
+let canvas: HTMLCanvasElement | null      = null;
+let canvasCtx: CanvasRenderingContext2D | null   = null;
 
 const startScanning = async () => {
   try {
@@ -21,16 +22,16 @@ const startScanning = async () => {
       video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
     });
     isScanning.value = true;
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise<void>((r) => setTimeout(r, 100));
     if (videoElement.value) {
       videoElement.value.srcObject = stream;
-      await new Promise((r) => { videoElement.value.onloadedmetadata = () => { videoElement.value.play(); r(); }; });
+      await new Promise<void>((r) => { videoElement.value!.onloadedmetadata = () => { videoElement.value!.play(); r(); }; });
       canvas    = document.createElement("canvas");
       canvasCtx = canvas.getContext("2d");
       tick();
     }
-  } catch (err) {
-    scanError.value = err.name === "NotAllowedError" ? "請允許相機權限" : (err.message || "無法啟動相機");
+  } catch (err: unknown) {
+    scanError.value = (err as Error).name === "NotAllowedError" ? "請允許相機權限" : ((err as Error).message || "無法啟動相機");
   }
 };
 
@@ -58,9 +59,16 @@ const stopScanning = () => {
 // phase: 'scan' | 'loading' | 'result' | 'sending' | 'sent' | 'error'
 const phase           = ref("scan");
 const scanError       = ref("");
-const currentParticipant = ref(null); // raw API response participant object
+interface ParticipantData {
+  name?: string
+  company?: string
+  title?: string
+  type?: string
+  [key: string]: unknown
+}
+const currentParticipant = ref<ParticipantData | null>(null); // raw API response participant object
 const apiError        = ref("");
-const sendingStation  = ref(null);
+const sendingStation  = ref<number | null>(null);
 const sendError       = ref("");
 
 const onScanSuccess = async (rawToken) => {
@@ -96,8 +104,8 @@ const onScanSuccess = async (rawToken) => {
     const data = await res.json();
     currentParticipant.value = data.participant || data;
     phase.value = "result";
-  } catch (err) {
-    apiError.value = err.message;
+  } catch (err: unknown) {
+    apiError.value = (err as Error).message;
     phase.value = "error";
   }
 };
@@ -119,17 +127,17 @@ const sendToStation = async (slot) => {
   const participantSnapshot = { ...currentParticipant.value };
 
   try {
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const token = localStorage.getItem("access_token") || "";
       const tokenParam = token ? `?token=${token}` : "";
       const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/${tokenParam}`);
 
       let settled = false;
-      let connectTimeout = null;
-      let ackTimeout = null;
+      let connectTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
+      let ackTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
 
       // 唯一的 settle 入口，防止重複 resolve/reject
-      const settle = (ok, err) => {
+      const settle = (ok: boolean, err?: Error) => {
         if (settled) return;
         settled = true;
         clearTimeout(connectTimeout);
@@ -170,8 +178,8 @@ const sendToStation = async (slot) => {
       };
     });
     phase.value = "sent";
-  } catch (err) {
-    sendError.value = err.message;
+  } catch (err: unknown) {
+    sendError.value = (err as Error).message;
     phase.value = "error";
   }
 };
@@ -224,7 +232,7 @@ onUnmounted(() => stopScanning());
     </div>
 
     <!-- ===== 報到成功 → 選站台 ===== -->
-    <div class="phase-result" v-else-if="phase === 'result'">
+    <div class="phase-result" v-else-if="phase === 'result' && currentParticipant">
       <div class="check-badge">✓</div>
       <h2 class="result-title">報到成功</h2>
 

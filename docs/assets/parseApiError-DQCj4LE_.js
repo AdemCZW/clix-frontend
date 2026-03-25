@@ -1,0 +1,1 @@
+async function e(e,t){let n=t||`請求失敗 (${e.status})`;try{let t=await e.json();return t.detail||t.message||JSON.stringify(t)}catch{return n}}export{e as t};

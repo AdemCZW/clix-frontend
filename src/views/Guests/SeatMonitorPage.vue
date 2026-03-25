@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import LiveSeatMonitor from "@/components/LiveSeatMonitor.vue";
 
 const handleClose = () => {

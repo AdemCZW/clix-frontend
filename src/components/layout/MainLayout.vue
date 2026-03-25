@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useUserStore } from "@/stores/user";
@@ -17,7 +17,7 @@ const sidebarOpen = ref(false);
 
 // 初始化用戶狀態與上次選擇的活動
 userStore.checkAuth();
-eventsStore.initFromStorage(userStore.user?.id);
+if (userStore.user?.id) eventsStore.initFromStorage(userStore.user.id);
 
 // 進入時載入後端活動列表
 onMounted(async () => {

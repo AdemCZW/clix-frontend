@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { reactive, ref, onMounted, computed } from "vue";
 // 引入 Quill 編輯器元件與樣式
 import { QuillEditor } from "@vueup/vue-quill";
@@ -11,6 +11,7 @@ import { useRegistrationPagesStore } from "@/stores/registrationPages";
 import { useUserStore } from "@/stores/user";
 import { useToast } from "@/composables/useToast";
 import { useRouter } from "vue-router";
+import type { Guest, Participant } from "@/types";
 
 // 使用 stores
 const guestsStore = useGuestsStore();
@@ -22,14 +23,15 @@ const router = useRouter();
 const { success: toastSuccess, error: toastError } = useToast();
 
 // 目前報名頁的 ID，以及儲存/載入狀態
-const pageId = ref(null);
+const pageId = ref<number | null>(null);
 const saving = ref(false);
 const loading = ref(false);
 
 // 合併兩個來源的特邀貴賓資料（Set 去重，O(n)）
-const allSelectedGuests = computed(() => {
-  const seen = new Set();
-  return [...guestsStore.selectedGuests, ...participantsStore.selectedVIPs].filter((g) => {
+const allSelectedGuests = computed<(Guest | Participant)[]>(() => {
+  const seen = new Set<number>();
+  const combined: (Guest | Participant)[] = [...guestsStore.selectedGuests, ...participantsStore.selectedVIPs];
+  return combined.filter((g) => {
     if (seen.has(g.id)) return false;
     seen.add(g.id);
     return true;
@@ -37,9 +39,17 @@ const allSelectedGuests = computed(() => {
 });
 
 // 表單資料（對應報名頁設定欄位）
-const form = reactive({
-  bannerFile: null,       // File 物件（上傳用）
-  bannerPreview: null,    // 預覽 URL（base64 或後端 URL）
+const form = reactive<{
+  bannerFile: File | null;
+  bannerPreview: string | null;
+  mainContent: string;
+  emailSubject: string;
+  emailSenderName: string;
+  emailContent: string;
+  enableAutoSend: boolean;
+}>({
+  bannerFile: null,
+  bannerPreview: null,
   mainContent: "",
   emailSubject: "",
   emailSenderName: "",
@@ -56,7 +66,7 @@ const isPublished = ref(false);
 const customSlug = ref("");
 
 // 從 shortLink（可能是完整 URL 或純 slug）提取純 slug
-const extractSlug = (link) => {
+const extractSlug = (link: string) => {
   if (!link) return "";
   if (link.startsWith("http")) {
     const match = link.match(/\/r\/(.+?)(?:\?|$)/);
@@ -79,9 +89,9 @@ const urlBase = computed(() => {
 const isPreviewOpen = ref(false);
 const previewMode = ref("desktop");
 const showToast = ref(false);
-const viewingGuest = ref(null);
-const myQuill = ref(null);
-const emailQuill = ref(null);
+const viewingGuest = ref<(Guest | Participant) | null>(null);
+const myQuill = ref<InstanceType<typeof QuillEditor> | null>(null);
+const emailQuill = ref<InstanceType<typeof QuillEditor> | null>(null);
 
 // 編輯器工具列配置
 const editorOptions = {
@@ -113,8 +123,9 @@ const emailEditorOptions = {
 };
 
 // 插入動態標籤
-const insertTag = (tag) => {
-  const quill = myQuill.value.getQuill();
+const insertTag = (tag: string) => {
+  const quill = myQuill.value?.getQuill();
+  if (!quill) return;
   const range = quill.getSelection(true);
   if (range) {
     quill.insertText(range.index, tag);
@@ -122,8 +133,9 @@ const insertTag = (tag) => {
   }
 };
 
-const insertEmailTag = (tag) => {
-  const quill = emailQuill.value.getQuill();
+const insertEmailTag = (tag: string) => {
+  const quill = emailQuill.value?.getQuill();
+  if (!quill) return;
   const range = quill.getSelection(true);
   if (range) {
     quill.insertText(range.index, tag);
@@ -166,21 +178,21 @@ onMounted(async () => {
     form.emailContent     = page.emailContent;
     form.enableAutoSend   = page.enableAutoSend;
     form.bannerPreview    = page.banner || null;
-  } catch (err) {
-    toastError(err.message || "載入報名頁設定失敗");
+  } catch (err: unknown) {
+    toastError((err as Error).message || "載入報名頁設定失敗");
   } finally {
     loading.value = false;
   }
 });
 
 // ── Banner 選擇 ────────────────────────────────────────────────────────────
-const onFileChange = (e, type) => {
-  const file = e.target.files[0];
+const onFileChange = (e: Event, type: string) => {
+  const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
   if (type === "banner") form.bannerFile = file;
   const reader = new FileReader();
   reader.onload = (ev) => {
-    if (type === "banner") form.bannerPreview = ev.target.result;
+    if (type === "banner") form.bannerPreview = (ev.target as FileReader).result as string | null;
   };
   reader.readAsDataURL(file);
 };
@@ -204,11 +216,11 @@ const saveDraft = async () => {
     form.bannerFile = null; // 上傳後清除，避免重複送出
     // 更新 preview 為後端回傳的正式 URL（確保顯示 server 上的圖片）
     if (saved && saved.banner) {
-      form.bannerPreview = saved.banner;
+      form.bannerPreview = saved.banner as string;
     }
     toastSuccess("活動設定已儲存");
-  } catch (err) {
-    toastError(err.message || "儲存失敗");
+  } catch (err: unknown) {
+    toastError((err as Error).message || "儲存失敗");
   } finally {
     saving.value = false;
   }
@@ -237,8 +249,8 @@ const confirmPublish = async () => {
     toastSuccess("活動報名頁已發布！");
     showToast.value = true;
     setTimeout(() => { showToast.value = false; }, 2500);
-  } catch (err) {
-    toastError(err.message || "發布失敗");
+  } catch (err: unknown) {
+    toastError((err as Error).message || "發布失敗");
   } finally {
     saving.value = false;
   }
@@ -252,8 +264,8 @@ const handleUnpublish = async () => {
     const page = await pagesStore.unpublish(pageId.value);
     isPublished.value = page.isPublished;
     toastSuccess("已取消發布，存為草稿");
-  } catch (err) {
-    toastError(err.message || "取消發布失敗");
+  } catch (err: unknown) {
+    toastError((err as Error).message || "取消發布失敗");
   } finally {
     saving.value = false;
   }
@@ -270,8 +282,8 @@ const saveCustomSlug = async () => {
     shortLink.value = updated.shortLink;
     customSlug.value = extractSlug(updated.shortLink);
     toastSuccess("報名連結已更新");
-  } catch (err) {
-    toastError(err.message || "更新連結失敗");
+  } catch (err: unknown) {
+    toastError((err as Error).message || "更新連結失敗");
   }
 };
 
@@ -294,7 +306,7 @@ const copyLink = () => {
 };
 
 // ── 貴賓詳細資訊 ──────────────────────────────────────────────────────────
-const openGuestDetail = (guest) => {
+const openGuestDetail = (guest: Guest | Participant) => {
   viewingGuest.value = guest;
 };
 
@@ -584,9 +596,9 @@ const closeGuestDetail = () => {
               <div class="detail-avatar-section">
                 <div class="detail-avatar">
                   <div
-                    v-if="viewingGuest.avatar"
+                    v-if="(viewingGuest as any).avatar"
                     class="avatar-img"
-                    :style="{ backgroundImage: `url(${viewingGuest.avatar})` }"
+                    :style="{ backgroundImage: `url(${(viewingGuest as any).avatar})` }"
                   ></div>
                   <span v-else class="avatar-initial-large">{{ viewingGuest.name.charAt(0) }}</span>
                 </div>
@@ -614,7 +626,7 @@ const closeGuestDetail = () => {
                 </div>
                 <div class="detail-field full-width">
                   <label>簡介</label>
-                  <div class="detail-value">{{ viewingGuest.bio || "未填寫" }}</div>
+                  <div class="detail-value">{{ (viewingGuest as any).bio || "未填寫" }}</div>
                 </div>
               </div>
             </div>

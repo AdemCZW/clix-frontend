@@ -3,7 +3,7 @@
     <div class="search-box">
       <input
         :value="modelValue"
-        @input="$emit('update:modelValue', $event.target.value)"
+        @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
         type="text"
         :placeholder="placeholder"
         class="search-input"
@@ -15,7 +15,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 defineProps({
   modelValue: { type: String, default: "" },
   placeholder: { type: String, default: "搜尋..." },

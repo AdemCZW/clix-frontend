@@ -1,9 +1,39 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import draggable from "vuedraggable";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { useSeatsStore } from "@/stores/seats";
+import type { ParticipantType, Seat } from "@/types";
+
+interface SeatPerson {
+  id: number;
+  serial: string;
+  name: string;
+  company: string;
+  type: ParticipantType;
+}
+
+type HistoryRecordType = 'swap' | 'move' | 'assign' | 'remove';
+
+interface HistoryRecord {
+  id: number;
+  timestamp: Date;
+  time: string;
+  type: HistoryRecordType;
+  description?: string;
+  person?: string;
+  personType?: ParticipantType;
+  person1?: string;
+  person2?: string;
+  person1Type?: ParticipantType;
+  person2Type?: ParticipantType;
+  seat?: string;
+  seat1?: string;
+  seat2?: string;
+  fromSeat?: string;
+  toSeat?: string;
+}
 
 
 const participantsStore = useParticipantsStore();
@@ -16,13 +46,13 @@ const currentActivity = computed(() => eventsStore.currentEvent?.name || "—");
 const currentActivityId = ref("act_01");
 
 // 賓客名單（從 store 載入）
-const allParticipants = computed(() =>
+const allParticipants = computed<SeatPerson[]>(() =>
   participantsStore.participants.map((p, i) => ({
     id: p.id,
     serial: String(i + 1).padStart(3, "0"),
     name: p.name,
     company: p.company || "",
-    type: p.type || "一般民眾",
+    type: (p.type || "一般民眾") as ParticipantType,
   })),
 );
 
@@ -35,22 +65,22 @@ const addRow = () => seatsStore.addRow(currentActivityId.value);
 const addCol = () => seatsStore.addCol(currentActivityId.value);
 
 // 待分配名單連動
-const unassignedList = ref([]);
+const unassignedList = ref<SeatPerson[]>([]);
 const updateUnassignedList = () => {
   const currentSeats = activitySeats[currentActivityId.value];
-  const seatedIds = currentSeats.filter((s) => s.attendee.length > 0).map((s) => s.attendee[0].id);
+  const seatedIds = currentSeats.filter((s: Seat) => s.attendee.length > 0).map((s: Seat) => (s.attendee[0] as SeatPerson).id);
   unassignedList.value = allParticipants.value.filter((p) => !seatedIds.includes(p.id));
 };
 
 // 分離貴賓和一般民眾
-const vipList = computed(() => unassignedList.value.filter((p) => p.type === "VIP"));
-const attendeeList = computed(() =>
+const vipList = computed<SeatPerson[]>(() => unassignedList.value.filter((p) => p.type === "VIP"));
+const attendeeList = computed<SeatPerson[]>(() =>
   unassignedList.value.filter((p) => p.type !== "VIP"),
 );
 
 // 切換顯示類型
 const guestViewType = ref("VIP"); // 'VIP' 或 'Attendee'
-const currentGuestList = computed(() => {
+const currentGuestList = computed<SeatPerson[]>(() => {
   return guestViewType.value === "VIP" ? vipList.value : attendeeList.value;
 });
 
@@ -60,7 +90,7 @@ watch(allParticipants, () => updateUnassignedList());
 onMounted(async () => {
   const event = eventsStore.currentEvent;
   if (event?.id) {
-    await participantsStore.fetchParticipants({ event: event.id });
+    await participantsStore.fetchParticipants({ event: String(event.id) });
     updateUnassignedList();
   }
 });
@@ -72,10 +102,10 @@ const openMonitor = () => {
 };
 
 // 換位歷史紀錄
-const swapHistory = ref([]);
+const swapHistory = ref<HistoryRecord[]>([]);
 const showHistory = ref(false);
 
-const addToHistory = (record) => {
+const addToHistory = (record: Omit<HistoryRecord, 'id' | 'timestamp' | 'time'>) => {
   const timestamp = new Date();
   swapHistory.value.unshift({
     id: Date.now(),
@@ -94,21 +124,21 @@ const addToHistory = (record) => {
 };
 
 // 取得人員類型（用於歷史記錄）
-const getPersonType = (personName) => {
-  const person = allParticipants.find((p) => p.name === personName);
+const getPersonType = (personName: string) => {
+  const person = allParticipants.value.find((p) => p.name === personName);
   return person ? person.type : null;
 };
 
 // 從左側拖曳到座位的邏輯
-const onSeatAdd = (evt, targetSeat) => {
+const onSeatAdd = (evt: unknown, targetSeat: Seat) => {
   // 如果座位已有人，將原本的人放回待分配名單
   if (targetSeat.attendee.length > 1) {
-    const oldPerson = targetSeat.attendee[0];
+    const oldPerson = targetSeat.attendee[0] as SeatPerson;
     targetSeat.attendee.splice(0, 1);
     unassignedList.value.push(oldPerson);
 
     // 記錄到歷史
-    const newPerson = targetSeat.attendee[0];
+    const newPerson = targetSeat.attendee[0] as SeatPerson;
     addToHistory({
       type: "assign",
       person: newPerson.name,
@@ -118,7 +148,7 @@ const onSeatAdd = (evt, targetSeat) => {
     });
   } else if (targetSeat.attendee.length === 1) {
     // 新分配
-    const newPerson = targetSeat.attendee[0];
+    const newPerson = targetSeat.attendee[0] as SeatPerson;
     addToHistory({
       type: "assign",
       person: newPerson.name,
@@ -131,9 +161,9 @@ const onSeatAdd = (evt, targetSeat) => {
 };
 
 // 點選換位邏輯（只用於座位之間的換位）
-const selectedSeat = ref(null);
+const selectedSeat = ref<Seat | null>(null);
 
-const selectSeat = (seat) => {
+const selectSeat = (seat: Seat) => {
   // 如果點選同一個座位，取消選取
   if (selectedSeat.value === seat) {
     selectedSeat.value = null;
@@ -154,8 +184,8 @@ const selectSeat = (seat) => {
   const toSeat = seat;
 
   // 取得兩個座位的人員
-  const fromPerson = fromSeat.attendee[0];
-  const toPerson = toSeat.attendee.length > 0 ? toSeat.attendee[0] : null;
+  const fromPerson = fromSeat.attendee[0] as SeatPerson;
+  const toPerson = toSeat.attendee.length > 0 ? toSeat.attendee[0] as SeatPerson : null;
 
   // 互換
   fromSeat.attendee = toPerson ? [toPerson] : [];
@@ -189,9 +219,9 @@ const selectSeat = (seat) => {
   updateUnassignedList();
 };
 
-const handleRemove = (seat) => {
+const handleRemove = (seat: Seat) => {
   if (seat.attendee.length > 0) {
-    const person = seat.attendee[0];
+    const person = seat.attendee[0] as SeatPerson;
     seat.attendee.splice(0, 1);
     unassignedList.value.push(person);
 
@@ -210,18 +240,19 @@ const handleRemove = (seat) => {
 };
 
 // 座位地圖拖曳平移功能
-const mapContainer = ref(null);
+const mapContainer = ref<HTMLElement | null>(null);
 const isDraggingMap = ref(false);
 const mapStartPos = ref({ x: 0, y: 0 });
 const mapScrollPos = ref({ left: 0, top: 0 });
 
-const onMapMouseDown = (e) => {
+const onMapMouseDown = (e: MouseEvent) => {
   // 只在直接點擊地圖容器時啟動拖曳，不包括座位元素
-  if (e.target.closest(".seat-item") || e.target.closest(".stage-banner")) {
+  if ((e.target as HTMLElement).closest(".seat-item") || (e.target as HTMLElement).closest(".stage-banner")) {
     return;
   }
   isDraggingMap.value = true;
   mapStartPos.value = { x: e.clientX, y: e.clientY };
+  if (!mapContainer.value) return;
   mapScrollPos.value = {
     left: mapContainer.value.scrollLeft,
     top: mapContainer.value.scrollTop,
@@ -229,8 +260,8 @@ const onMapMouseDown = (e) => {
   mapContainer.value.style.cursor = "grabbing";
 };
 
-const onMapMouseMove = (e) => {
-  if (!isDraggingMap.value) return;
+const onMapMouseMove = (e: MouseEvent) => {
+  if (!isDraggingMap.value || !mapContainer.value) return;
   e.preventDefault();
   const dx = e.clientX - mapStartPos.value.x;
   const dy = e.clientY - mapStartPos.value.y;
@@ -372,7 +403,7 @@ const seatSize = computed(() => {
                 class="drop-zone"
                 :class="{
                   'is-filled': seat.attendee.length > 0,
-                  'is-vip': seat.attendee.length > 0 && seat.attendee[0].type === 'VIP',
+                  'is-vip': seat.attendee.length > 0 && (seat.attendee[0] as any).type === 'VIP',
                   'is-selected': selectedSeat === seat,
                 }"
                 :style="{ width: `${seatSize.width}px`, height: `${seatSize.height}px` }"

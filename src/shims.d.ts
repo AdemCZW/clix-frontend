@@ -1,0 +1,6 @@
+declare module 'vue3-print-nb'
+declare module 'qrcode'
+declare module 'jsqr'
+declare module 'xlsx'
+declare module 'vue-quill'
+declare module 'vuedraggable'

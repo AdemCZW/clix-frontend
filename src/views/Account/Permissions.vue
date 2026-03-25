@@ -53,7 +53,7 @@
             v-if="selectedAdmin"
             class="btn-primary"
             @click="showAddStaffModal = true"
-            :disabled="!canAddStaff(selectedAdminId)"
+            :disabled="!canAddStaff(selectedAdminId!)"
           >
             <span class="btn-icon">+</span>
             新增員工
@@ -67,7 +67,7 @@
             <button
               class="btn-primary"
               @click="showAddStaffModal = true"
-              :disabled="!canAddStaff(selectedAdminId)"
+              :disabled="!canAddStaff(selectedAdminId!)"
             >
               新增第一個員工
             </button>
@@ -164,9 +164,9 @@
       <div class="form-group">
         <label class="form-label">所屬管理者</label>
         <div class="selected-manager-display">
-          {{ selectedAdmin.email }}
+          {{ selectedAdmin?.email }}
           <span class="quota-info">
-            ({{ getStaffCountByAdmin(selectedAdminId) }}/{{ selectedAdmin.staffQuota }})
+            ({{ getStaffCountByAdmin(selectedAdminId!) }}/{{ selectedAdmin?.staffQuota }})
           </span>
         </div>
       </div>
@@ -205,12 +205,12 @@
     <BaseModal v-model="showEditQuotaModal" title="調整員工配額">
       <div class="form-group">
         <label class="form-label">管理者</label>
-        <div class="info-display">{{ editingAdmin?.email }}</div>
+        <div class="info-display">{{ editingAdmin?.email ?? '' }}</div>
       </div>
       <div class="form-group">
         <label class="form-label">目前使用數</label>
         <div class="info-display">
-          {{ editingAdmin ? getStaffCountByAdmin(editingAdmin.id) : 0 }} 位員工
+          {{ editingAdmin ? getStaffCountByAdmin(editingAdmin!.id) : 0 }} 位員工
         </div>
       </div>
       <div class="form-group">
@@ -219,7 +219,7 @@
           v-model.number="editQuotaValue"
           type="number"
           class="form-input"
-          :min="editingAdmin ? getStaffCountByAdmin(editingAdmin.id) : 0"
+          :min="editingAdmin ? getStaffCountByAdmin(editingAdmin!.id) : 0"
           placeholder="不可低於目前使用數"
         />
       </div>
@@ -234,13 +234,14 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useAdminAccountsStore } from "@/stores/adminAccounts";
 import { useUserStore } from "@/stores/user";
 import { storeToRefs } from "pinia";
 import { useToast } from "@/composables/useToast";
 import BaseModal from "@/components/shared/BaseModal.vue";
+import type { Manager } from "@/types";
 
 const { success, error, warning } = useToast();
 
@@ -253,12 +254,12 @@ const { adminAccounts, staffAccounts, loading } = storeToRefs(adminStore);
 onMounted(async () => {
   try {
     await Promise.all([adminStore.fetchManagers(), adminStore.fetchStaff()]);
-  } catch (err) {
-    error(err.message || "載入資料失敗");
+  } catch (err: unknown) {
+    error((err as Error).message || "載入資料失敗");
   }
 });
 
-const selectedAdminId = ref(null);
+const selectedAdminId = ref<number | null>(null);
 
 const showAddAdminModal = ref(false);
 const showAddStaffModal = ref(false);
@@ -276,13 +277,13 @@ const newStaff = ref({
   confirmPassword: "",
 });
 
-const editingAdmin = ref(null);
+const editingAdmin = ref<Manager | null>(null);
 const editQuotaValue = ref(0);
 
 const getStaffCountByAdmin = adminStore.getStaffCountByAdmin;
 const canAddStaff = adminStore.canAddStaff;
 
-const selectAdmin = (adminId) => {
+const selectAdmin = (adminId: number) => {
   selectedAdminId.value = adminId;
 };
 
@@ -331,8 +332,8 @@ const submitAddAdmin = async () => {
     showAddAdminModal.value = false;
     newAdmin.value = { email: "", password: "", confirmPassword: "", staffQuota: 5 };
     success("管理者帳戶已建立");
-  } catch (err) {
-    error(err.message);
+  } catch (err: unknown) {
+    error((err as Error).message);
   }
 };
 
@@ -371,14 +372,15 @@ const addStaff = async () => {
     success(`員工帳號已建立！帳號：${newStaffAccount.accountId}`);
     showAddStaffModal.value = false;
     newStaff.value = { password: "", confirmPassword: "" };
-  } catch (err) {
-    error(err.message);
+  } catch (err: unknown) {
+    error((err as Error).message);
   }
 };
 
-const deleteAdmin = async (adminId) => {
+const deleteAdmin = async (adminId: number) => {
   const staffCount = getStaffCountByAdmin(adminId);
   const admin = adminAccounts.value.find((a) => a.id === adminId);
+  if (!admin) return;
 
   let confirmMessage = "";
   if (staffCount > 0) {
@@ -393,23 +395,24 @@ const deleteAdmin = async (adminId) => {
     await adminStore.deleteAdmin(adminId);
     success("管理者已刪除");
     if (selectedAdminId.value === adminId) selectedAdminId.value = null;
-  } catch (err) {
-    error(err.message);
+  } catch (err: unknown) {
+    error((err as Error).message);
   }
 };
 
-const deleteStaff = async (staffId) => {
+const deleteStaff = async (staffId: number) => {
   const staff = staffAccounts.value.find((s) => s.id === staffId);
+  if (!staff) return;
   if (!window.confirm(`確定要刪除員工帳號 ${staff.accountId} 嗎？`)) return;
 
   try {
     await adminStore.deleteStaff(staffId);
     success("員工帳號已刪除");
-  } catch (err) {
-    error(err.message);
+  } catch (err: unknown) {
+    error((err as Error).message);
   }
 };
-const openEditQuotaModal = (admin) => {
+const openEditQuotaModal = (admin: Manager) => {
   editingAdmin.value = admin;
   editQuotaValue.value = admin.staffQuota;
   showEditQuotaModal.value = true;
@@ -418,7 +421,7 @@ const openEditQuotaModal = (admin) => {
 const saveQuota = async () => {
   if (!editingAdmin.value) return;
 
-  const currentUsage = getStaffCountByAdmin(editingAdmin.value.id);
+  const currentUsage = getStaffCountByAdmin(editingAdmin.value!.id);
 
   if (editQuotaValue.value < currentUsage) {
     warning(`新配額不可低於目前使用數 (${currentUsage})`);
@@ -426,16 +429,16 @@ const saveQuota = async () => {
   }
 
   try {
-    await adminStore.updateAdminQuota(editingAdmin.value.id, editQuotaValue.value);
+    await adminStore.updateAdminQuota(editingAdmin.value!.id, editQuotaValue.value);
     success("配額已更新");
     showEditQuotaModal.value = false;
     editingAdmin.value = null;
-  } catch (err) {
-    error(err.message);
+  } catch (err: unknown) {
+    error((err as Error).message);
   }
 };
 
-const copyToClipboard = (text) => {
+const copyToClipboard = (text: string) => {
   navigator.clipboard.writeText(text).then(() => {
     success("帳號已複製到剪貼簿");
   });

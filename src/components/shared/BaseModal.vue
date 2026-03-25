@@ -19,7 +19,7 @@
   </Teleport>
 </template>
 
-<script setup>
+<script setup lang="ts">
 defineProps({
   modelValue: { type: Boolean, required: true },
   title: { type: String, default: "" },

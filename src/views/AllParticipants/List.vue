@@ -104,24 +104,40 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import * as XLSX from "xlsx";
 import { useAdminAccountsStore } from "@/stores/adminAccounts";
 import { useParticipantsStore } from "@/stores/participants";
 import { storeToRefs } from "pinia";
+import type { Participant } from "@/types";
+
+interface LocalEvent {
+  id: number;
+  name: string;
+  date: string;
+  managerId: number;
+  participants: (Participant & { checkedIn: boolean; registeredAt: string })[];
+}
+
+interface ManagerGroup {
+  id: number;
+  email: string;
+  events: LocalEvent[];
+  totalParticipants: number;
+}
 
 const adminStore = useAdminAccountsStore();
 const participantsStore = useParticipantsStore();
 const { adminAccounts } = storeToRefs(adminStore);
 
 const searchKeyword = ref("");
-const selectedManager = ref("");
-const selectedEvent = ref("");
-const expandedEvents = ref([]);
+const selectedManager = ref<number | "">("");
+const selectedEvent = ref<number | "">("");
+const expandedEvents = ref<number[]>([]);
 
 // 活動資料（從全部參與者資料重建）
-const events = ref([]);
+const events = ref<LocalEvent[]>([]);
 
 onMounted(async () => {
   // 確保管理者列表已載入
@@ -131,8 +147,8 @@ onMounted(async () => {
 
   // 拉取全部參與者（不限活動），並重建成以活動為單位的資料結構
   const all = await participantsStore.fetchParticipants({});
-  const eventMap = {};
-  all.forEach((p) => {
+  const eventMap: Record<number, LocalEvent> = {};
+  all.forEach((p: Participant) => {
     if (!p.eventId) return;
     if (!eventMap[p.eventId]) {
       eventMap[p.eventId] = {
@@ -173,7 +189,7 @@ const groupedData = computed(() => {
   }
 
   // 初始化所有管理者的分組（即使沒有活動也顯示）
-  const grouped = {};
+  const grouped: Record<number, ManagerGroup> = {};
   adminAccounts.value.forEach((manager) => {
     grouped[manager.id] = {
       id: manager.id,
@@ -192,18 +208,18 @@ const groupedData = computed(() => {
   });
 
   // 返回所有管理者（包括沒有活動的）
-  let result = Object.values(grouped);
+  let result: ManagerGroup[] = Object.values(grouped);
 
   // 如果有選擇特定管理者，只顯示該管理者
   if (selectedManager.value) {
-    result = result.filter((group) => group.id === selectedManager.value);
+    result = result.filter((group: ManagerGroup) => group.id === selectedManager.value);
   }
 
   return result;
 });
 
 // 篩選參與者（搜尋關鍵字）
-const filteredParticipants = (participants) => {
+const filteredParticipants = (participants: LocalEvent['participants']) => {
   if (!searchKeyword.value) return participants;
   const keyword = searchKeyword.value.toLowerCase();
   return participants.filter(
@@ -216,7 +232,7 @@ const filteredParticipants = (participants) => {
 };
 
 // 切換活動展開/收合
-const toggleEvent = (eventId) => {
+const toggleEvent = (eventId: number) => {
   const index = expandedEvents.value.indexOf(eventId);
   if (index > -1) {
     expandedEvents.value.splice(index, 1);
@@ -226,7 +242,7 @@ const toggleEvent = (eventId) => {
 };
 
 // 格式化日期
-const formatDate = (date) => {
+const formatDate = (date: string) => {
   return new Date(date).toLocaleDateString("zh-TW", {
     year: "numeric",
     month: "2-digit",
@@ -237,7 +253,7 @@ const formatDate = (date) => {
 };
 
 // 匯出 Excel
-const exportEventData = (event) => {
+const exportEventData = (event: LocalEvent) => {
   const data = event.participants.map((p) => ({
     姓名: p.name,
     公司: p.company,

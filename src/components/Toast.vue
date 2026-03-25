@@ -16,7 +16,7 @@
   </Teleport>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from "vue";
 
 const props = defineProps({
@@ -27,7 +27,7 @@ const props = defineProps({
   type: {
     type: String,
     default: "info", // success, error, warning, info
-    validator: (value) => ["success", "error", "warning", "info"].includes(value),
+    validator: (value: string) => ["success", "error", "warning", "info"].includes(value),
   },
   duration: {
     type: Number,

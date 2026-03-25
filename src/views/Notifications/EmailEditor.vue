@@ -1,10 +1,19 @@
-<script setup>
+<script setup lang="ts">
 import { reactive, ref, onMounted, computed } from "vue";
 import { QuillEditor } from "@vueup/vue-quill";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
 import { useToast } from "@/composables/useToast";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
+import { apiRequest } from "@/utils/api";
+import type { Participant } from "@/types";
+
+interface EmailTemplate {
+  subject: string;
+  senderName: string;
+  content: string;
+  date: string;
+}
 
 const { success, warning } = useToast();
 const participantsStore = useParticipantsStore();
@@ -18,14 +27,14 @@ const mailSettings = reactive({
     "<h1>親愛的 {name} 您好：</h1><p>感謝您報名參加 <strong>{event_name}</strong>。</p><p>您的專屬報名序號為：{order_id}</p><p>期待您的蒞臨！</p>",
 });
 
-const myQuill = ref(null);
+const myQuill = ref<InstanceType<typeof QuillEditor> | null>(null);
 const showTemplateDrawer = ref(false);
-const savedTemplates = ref([]);
+const savedTemplates = ref<EmailTemplate[]>([]);
 
 // 參與者資料（從 participantsStore 載入）
 const participants = computed(() => participantsStore.participants);
 
-const selectedParticipants = ref([]);
+const selectedParticipants = ref<Participant[]>([]);
 const searchQuery = ref("");
 const selectedActivity = ref("所有活動");
 
@@ -54,7 +63,7 @@ const getFilteredParticipants = computed(() => {
 });
 
 // 選擇邏輯修正
-const toggleParticipantSelection = (participant) => {
+const toggleParticipantSelection = (participant: Participant) => {
   const index = selectedParticipants.value.findIndex((p) => p.id === participant.id);
   if (index > -1) {
     selectedParticipants.value.splice(index, 1);
@@ -73,12 +82,13 @@ const clearSelection = () => {
 
 const selectedIdSet = computed(() => new Set(selectedParticipants.value.map((p) => p.id)));
 
-const isParticipantSelected = (participant) => {
+const isParticipantSelected = (participant: Participant) => {
   return selectedIdSet.value.has(participant.id);
 };
 
 // 智慧插入變數
-const insertTag = (tag) => {
+const insertTag = (tag: string) => {
+  if (!myQuill.value) return;
   const quill = myQuill.value.getQuill();
   const range = quill.getSelection(true);
   if (range) {
@@ -101,7 +111,7 @@ const loadTemplates = () => {
   }
 };
 
-const deleteTemplate = (index) => {
+const deleteTemplate = (index: number) => {
   savedTemplates.value.splice(index, 1);
   localStorage.setItem("email_templates", JSON.stringify(savedTemplates.value));
 };
@@ -130,24 +140,91 @@ const saveSettings = () => {
   success("通知信樣板已成功儲存！");
 };
 
-const applyTemplate = (template) => {
+const applyTemplate = (template: EmailTemplate) => {
   mailSettings.subject = template.subject;
   mailSettings.senderName = template.senderName;
   mailSettings.content = template.content;
   closeTemplateDrawer();
 };
 
-const sendTestEmail = () => {
+const sending = ref(false);
+const cooldown = ref(0);
+let cooldownTimer: ReturnType<typeof setInterval> | null = null;
+
+const sendBtnText = computed(() => {
+  if (sending.value) return "發送中...";
+  if (cooldown.value > 0) return `${cooldown.value}s 後可再次發送`;
+  return "發送信件";
+});
+
+const startCooldown = (seconds = 30) => {
+  cooldown.value = seconds;
+  cooldownTimer = setInterval(() => {
+    cooldown.value--;
+    if (cooldown.value <= 0 && cooldownTimer) {
+      clearInterval(cooldownTimer);
+      cooldownTimer = null;
+    }
+  }, 1000);
+};
+
+const sendEmail = async () => {
+  if (sending.value || cooldown.value > 0) return;
+
   if (selectedParticipants.value.length === 0) {
     warning("請先選擇要發送的收件人！");
     return;
   }
-  const recipientList = selectedParticipants.value.map((p) => `${p.name} (${p.email})`).join("\n");
-  const confirmSend = confirm(
-    `確定要發送測試郵件嗎？\n\n主旨：${mailSettings.subject}\n收件人數：${selectedParticipants.value.length} 人\n\n列表：\n${recipientList}`,
-  );
-  if (confirmSend) {
-    success("測試發送成功！");
+
+  const withEmail = selectedParticipants.value.filter((p) => p.email);
+  const noEmail = selectedParticipants.value.length - withEmail.length;
+  if (withEmail.length === 0) {
+    warning("所選參與者都沒有 Email，無法發送！");
+    return;
+  }
+
+  const confirmMsg = [
+    `確定要發送郵件嗎？`,
+    ``,
+    `主旨：${mailSettings.subject}`,
+    `收件人數：${withEmail.length} 人`,
+    noEmail > 0 ? `（${noEmail} 人無 Email 將被略過）` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  if (!confirm(confirmMsg)) return;
+
+  sending.value = true;
+  try {
+    const res = await apiRequest("/api/send-email/", {
+      method: "POST",
+      body: JSON.stringify({
+        subject: mailSettings.subject,
+        sender_name: mailSettings.senderName,
+        content: mailSettings.content,
+        participant_ids: withEmail.map((p) => p.id),
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.detail || `發送失敗 (${res.status})`);
+    }
+
+    const data = await res.json();
+    success(data.message || "郵件發送成功！");
+
+    if (data.skipped_count > 0) {
+      warning(`${data.skipped_count} 位參與者因無 Email 被略過`);
+    }
+
+    // 發送成功後啟動 30 秒冷卻，防止重複發送
+    startCooldown(30);
+  } catch (err) {
+    warning((err as Error).message || "郵件發送失敗，請稍後再試");
+  } finally {
+    sending.value = false;
   }
 };
 
@@ -169,7 +246,7 @@ onMounted(async () => {
   loadTemplates();
   try {
     const eventId = eventsStore.currentEvent?.id;
-    await participantsStore.fetchParticipants(eventId ? { event: eventId } : {});
+    await participantsStore.fetchParticipants(eventId ? { event: String(eventId) } : {});
   } catch {
     warning("載入參與者資料失敗");
   }
@@ -180,7 +257,7 @@ onMounted(async () => {
   <div class="email-editor-view">
     <div class="page-header">
       <div class="header-actions">
-        <button class="btn-send" @click="sendTestEmail">發送信件</button>
+        <button class="btn-send" :disabled="sending || cooldown > 0" @click="sendEmail">{{ sendBtnText }}</button>
         <button class="btn-save" @click="saveSettings">儲存目前樣板</button>
         <button class="btn-view-templates" @click="openTemplateDrawer">查看樣板庫</button>
       </div>
@@ -305,13 +382,19 @@ onMounted(async () => {
 .email-editor-view {
   background: #f8fafc;
   min-height: 100vh;
-  padding: 20px;
+  padding: 24px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --primary-blue: #3b82f6;
   --deep-dark: #0f172a;
   --text-gray: #475569;
   --bg-soft: #f8fafc;
   --border-light: #e2e8f0;
+}
+
+.email-editor-view *,
+.email-editor-view *::before,
+.email-editor-view *::after {
+  box-sizing: border-box;
 }
 
 /* ===========================================
@@ -330,6 +413,7 @@ onMounted(async () => {
   display: flex;
   gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 /* ===========================================
@@ -338,35 +422,36 @@ onMounted(async () => {
 
 .btn-send,
 .btn-save {
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 12px 24px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
   color: white;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .btn-send {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  padding: 12px 24px;
-  border-radius: 10px;
-  font-size: 0.95rem;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-.btn-send:hover {
+.btn-send:hover:not(:disabled) {
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
+.btn-send:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .btn-save {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  padding: 12px 24px;
-  border-radius: 10px;
-  font-size: 0.95rem;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
@@ -387,6 +472,7 @@ onMounted(async () => {
   font-size: 0.95rem;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  white-space: nowrap;
 }
 
 .btn-view-templates:hover {
@@ -431,15 +517,17 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
 }
 
 .panel {
   background: white;
   border-radius: 16px;
   border: 1px solid var(--border-light);
-  padding: 16px;
+  padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: box-shadow 0.3s;
+  min-width: 0;
 }
 
 .panel:hover {
@@ -450,7 +538,7 @@ onMounted(async () => {
   font-size: 1.1rem;
   font-weight: 800;
   color: var(--deep-dark);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   padding-bottom: 8px;
   border-bottom: 2px solid #f1f5f9;
 }
@@ -483,6 +571,7 @@ onMounted(async () => {
   border-radius: 12px;
   border: 1px solid var(--border-light);
   font-weight: 600;
+  font-size: 0.9rem;
   transition: 0.3s;
 }
 
@@ -519,7 +608,6 @@ onMounted(async () => {
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
-  margin-left: 6px;
   transition: 0.2s;
 }
 
@@ -543,7 +631,7 @@ onMounted(async () => {
 }
 
 .quill-container-fixed :deep(.ql-container) {
-  min-height: 450px;
+  min-height: 400px;
   font-family: inherit;
   font-size: 0.95rem;
 }
@@ -552,6 +640,10 @@ onMounted(async () => {
   border: none;
   background: #f8fafc;
   border-bottom: 1px solid var(--border-light);
+}
+
+.quill-container-fixed :deep(.ql-editor) {
+  min-height: 400px;
 }
 
 .quill-container-fixed:focus-within {
@@ -563,11 +655,17 @@ onMounted(async () => {
    👥 參與者選擇區域
    =========================================== */
 
+.participants-side {
+  position: sticky;
+  top: 20px;
+}
+
 .participants-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  gap: 8px;
 }
 
 .selection-info {
@@ -577,6 +675,7 @@ onMounted(async () => {
   background: #eff6ff;
   padding: 4px 10px;
   border-radius: 8px;
+  white-space: nowrap;
 }
 
 .participants-controls {
@@ -589,10 +688,11 @@ onMounted(async () => {
 
 .filter-select {
   width: 100%;
-  padding: 12px 16px;
-  border-radius: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
   border: 1px solid var(--border-light);
   font-weight: 600;
+  font-size: 0.85rem;
   transition: 0.3s;
   cursor: pointer;
 }
@@ -609,10 +709,11 @@ onMounted(async () => {
 
 .search-input {
   width: 100%;
-  padding: 12px 16px;
-  border-radius: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
   border: 1px solid var(--border-light);
   font-weight: 600;
+  font-size: 0.85rem;
   transition: 0.3s;
   margin-bottom: 12px;
 }
@@ -633,21 +734,18 @@ onMounted(async () => {
 }
 
 .participants-list {
-  max-height: 400px;
+  max-height: 500px;
   overflow-y: auto;
   border: 1px solid #f1f5f9;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #fafbfc;
 }
 
 .participant-item {
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
   transition: all 0.2s ease;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 .participant-item:last-child {
@@ -664,7 +762,6 @@ onMounted(async () => {
 }
 
 .participant-info {
-  flex: 1;
   cursor: pointer;
 }
 
@@ -678,6 +775,7 @@ onMounted(async () => {
 .participant-email {
   font-size: 0.8rem;
   color: #475569;
+  word-break: break-all;
 }
 
 .participant-detail {
@@ -861,10 +959,10 @@ onMounted(async () => {
    📱 響應式設計
    =========================================== */
 
+/* 大平板 / 小桌面 */
 @media (max-width: 1200px) {
   .editor-layout {
     grid-template-columns: 1fr 300px;
-    gap: 20px;
   }
 
   .template-drawer {
@@ -872,24 +970,28 @@ onMounted(async () => {
   }
 }
 
+/* 平板 — 單欄佈局 */
 @media (max-width: 1024px) {
   .email-editor-view {
-    padding: 20px;
+    padding: 16px;
   }
 
   .editor-layout {
     grid-template-columns: 1fr;
-    gap: 20px;
   }
 
   .participants-side {
+    position: static;
     order: -1;
   }
 
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
+  .participants-list {
+    max-height: 280px;
+  }
+
+  .quill-container-fixed :deep(.ql-container),
+  .quill-container-fixed :deep(.ql-editor) {
+    min-height: 300px;
   }
 
   .header-actions {
@@ -903,78 +1005,101 @@ onMounted(async () => {
   }
 }
 
+/* 手機橫屏 */
 @media (max-width: 768px) {
-  .email-editor-view {
-    padding: 16px;
-  }
-
-  .panel {
-    padding: 16px;
-  }
-
-  .participants-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .filter-row {
-    margin-bottom: 8px;
-  }
-
-  .action-buttons {
-    flex-direction: column;
-  }
-
-  .participant-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-  }
-
-  .template-info {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .template-date {
-    margin-left: 0;
-    align-self: flex-end;
-  }
-}
-
-@media (max-width: 480px) {
   .email-editor-view {
     padding: 12px;
   }
 
   .page-header {
-    padding: 16px;
+    padding: 0 0 12px 0;
+    margin-bottom: 12px;
+  }
+
+  .panel {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .config-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .participants-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .participants-list {
+    max-height: 240px;
+  }
+
+  .quill-container-fixed :deep(.ql-container),
+  .quill-container-fixed :deep(.ql-editor) {
+    min-height: 250px;
+  }
+
+  .template-info {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .template-date {
+    margin-left: 0;
+  }
+}
+
+/* 手機直屏 */
+@media (max-width: 480px) {
+  .email-editor-view {
+    padding: 8px;
   }
 
   .header-actions {
     flex-direction: column;
     gap: 8px;
+    width: 100%;
   }
 
   .btn-send,
   .btn-save,
   .btn-view-templates {
     width: 100%;
+    text-align: center;
     padding: 12px;
   }
 
   .editor-layout {
-    gap: 16px;
+    gap: 12px;
+  }
+
+  .panel {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .tag-item {
+    font-size: 0.75rem;
+    padding: 4px 8px;
   }
 
   .participants-list {
-    max-height: 300px;
+    max-height: 200px;
+  }
+
+  .quill-container-fixed :deep(.ql-container),
+  .quill-container-fixed :deep(.ql-editor) {
+    min-height: 200px;
   }
 
   .template-drawer {
     width: 100%;
     max-width: none;
+  }
+
+  .action-buttons {
+    flex-direction: column;
   }
 }
 

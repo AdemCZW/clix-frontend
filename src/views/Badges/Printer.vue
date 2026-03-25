@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import vPrint from "vue3-print-nb";
 import { useParticipantsStore } from "@/stores/participants";
@@ -10,14 +10,14 @@ const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
 
 const logoUrl = ref("");
-const logoFile = ref(null);
-function handleLogoUpload(e) {
-  const file = e.target.files[0];
+const logoFile = ref<File | null>(null);
+function handleLogoUpload(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
   logoFile.value = file;
   const reader = new FileReader();
   reader.onload = (ev) => {
-    logoUrl.value = ev.target.result;
+    logoUrl.value = (ev.target as FileReader).result as string;
   };
   reader.readAsDataURL(file);
 }
@@ -26,7 +26,7 @@ function handleLogoUpload(e) {
 const allParticipants = computed(() => participantsStore.participants);
 
 const searchQuery = ref("");
-const selectedIds = ref([]);
+const selectedIds = ref<number[]>([]);
 const filteredParticipants = computed(() =>
   allParticipants.value.filter(
     (p) =>
@@ -39,10 +39,19 @@ const selectedParticipants = computed(() =>
 );
 
 // 拖曳範本設定
+interface BadgeElement {
+  id: string;
+  key: string;
+  label: string;
+  x: number;
+  y: number;
+  style: { fontSize: number; fontWeight: string; color: string };
+}
+
 const dragging = ref(false);
 const dragOffset = ref({ x: 0, y: 0 });
 
-function startDrag(el, evt) {
+function startDrag(el: BadgeElement, evt: MouseEvent) {
   activeElement.value = el;
   dragging.value = true;
   dragOffset.value = {
@@ -50,7 +59,7 @@ function startDrag(el, evt) {
     y: evt.clientY - el.y,
   };
 }
-function onDrag(evt) {
+function onDrag(evt: MouseEvent) {
   if (!dragging.value || !activeElement.value) return;
   activeElement.value.x = evt.clientX - dragOffset.value.x;
   activeElement.value.y = evt.clientY - dragOffset.value.y;
@@ -59,7 +68,7 @@ function stopDrag() {
   dragging.value = false;
 }
 
-const activeElement = ref(null);
+const activeElement = ref<BadgeElement | null>(null);
 
 // 預設排版
 const defaultElements = [
@@ -97,7 +106,7 @@ function loadSavedTemplate() {
 }
 
 const _savedTemplate = loadSavedTemplate();
-const templateElements = ref(_savedTemplate?.length ? _savedTemplate : defaultElements);
+const templateElements = ref<BadgeElement[]>(_savedTemplate?.length ? _savedTemplate : defaultElements);
 
 function resetTemplate() {
   localStorage.removeItem("badge_template");
@@ -118,7 +127,7 @@ watch(
   () => eventsStore.currentEvent,
   async (newEvent) => {
     if (newEvent?.id) {
-      await participantsStore.fetchParticipants({ event: newEvent.id });
+      await participantsStore.fetchParticipants({ event: String(newEvent.id) });
     } else {
       participantsStore.clear();
     }
@@ -126,7 +135,7 @@ watch(
   { immediate: true }
 );
 
-const toggleSelection = (id) => {
+const toggleSelection = (id: number) => {
   const index = selectedIds.value.indexOf(id);
   if (index > -1) {
     selectedIds.value.splice(index, 1);
@@ -144,8 +153,8 @@ const toggleAll = () => {
 };
 
 // QR Code 圖片生成
-const qrDataUrls = ref({});
-async function ensureQr(token) {
+const qrDataUrls = ref<Record<string, string>>({});
+async function ensureQr(token: string) {
   if (!token || qrDataUrls.value[token]) return;
   qrDataUrls.value[token] = await QRCodeLib.toDataURL(token, { width: 80, margin: 1 });
 }
@@ -166,26 +175,26 @@ const showStations = ref(false);
 
 // ===== QR 掃描 → 報到 → 選台列印 =====
 const scanModalOpen = ref(false);
-const scanVideo = ref(null);
-const scanCanvas = ref(null);
-const scanStream = ref(null);
+const scanVideo = ref<HTMLVideoElement | null>(null);
+const scanCanvas = ref<HTMLCanvasElement | null>(null);
+const scanStream = ref<MediaStream | null>(null);
 // phase: 'scanning' | 'loading' | 'checkedin' | 'sending' | 'sent' | 'error'
 const scanPhase = ref("scanning");
-const scannedParticipant = ref(null); // raw API response
+const scannedParticipant = ref<Record<string, unknown> | null>(null); // raw API response
 const scanError = ref("");
-const sendingStation = ref(null);
-let scanAnimFrame = null;
+const sendingStation = ref<number | null>(null);
+let scanAnimFrame: number | null = null;
 
 async function openScanModal() {
   scanPhase.value = "scanning";
   scannedParticipant.value = null;
   scanError.value = "";
   scanModalOpen.value = true;
-  await new Promise((r) => setTimeout(r, 80));
+  await new Promise<void>((r) => setTimeout(r, 80));
   try {
     scanStream.value = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-    scanVideo.value.srcObject = scanStream.value;
-    scanVideo.value.play();
+    scanVideo.value!.srcObject = scanStream.value;
+    scanVideo.value!.play();
     scanFrame();
   } catch {
     scanError.value = "無法開啟相機，請確認相機權限";
@@ -200,7 +209,7 @@ function scanFrame() {
   if (video.readyState === video.HAVE_ENOUGH_DATA) {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d")!;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const code = jsQR(imageData.data, imageData.width, imageData.height);
@@ -212,7 +221,7 @@ function scanFrame() {
   scanAnimFrame = requestAnimationFrame(scanFrame);
 }
 
-async function handleScannedToken(rawToken) {
+async function handleScannedToken(rawToken: string) {
   stopScanCamera();
   scanPhase.value = "loading";
 
@@ -247,13 +256,13 @@ async function handleScannedToken(rawToken) {
     }
 
     scanPhase.value = "checkedin";
-  } catch (err) {
-    scanError.value = err.message || "報到失敗，請重試";
+  } catch (err: unknown) {
+    scanError.value = (err as Error).message || "報到失敗，請重試";
     scanPhase.value = "error";
   }
 }
 
-async function sendToStation(slot) {
+async function sendToStation(slot: number) {
   if (!scannedParticipant.value) return;
   sendingStation.value = slot;
   scanPhase.value = "sending";
@@ -264,22 +273,22 @@ async function sendToStation(slot) {
     .replace(/\/$/, "")
     .replace(/^https/, "wss")
     .replace(/^http/, "ws");
-  const participantSnapshot = { ...scannedParticipant.value };
+  const participantSnapshot = { ...(scannedParticipant.value as Record<string, unknown>) };
 
   try {
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const accessToken = localStorage.getItem("access_token") || "";
       const tokenParam = accessToken ? `?token=${accessToken}` : "";
       const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/${tokenParam}`);
 
       let settled = false;
-      let connectTimeout = null;
-      let ackTimeout = null;
-      const settle = (ok, err) => {
+      let connectTimeout: ReturnType<typeof setTimeout> | null = null;
+      let ackTimeout: ReturnType<typeof setTimeout> | null = null;
+      const settle = (ok: boolean, err?: Error) => {
         if (settled) return;
         settled = true;
-        clearTimeout(connectTimeout);
-        clearTimeout(ackTimeout);
+        if (connectTimeout) clearTimeout(connectTimeout);
+        if (ackTimeout) clearTimeout(ackTimeout);
         try { ws.close(); } catch { /* ignore */ }
         ok ? resolve() : reject(err);
       };
@@ -287,7 +296,7 @@ async function sendToStation(slot) {
       connectTimeout = setTimeout(() => settle(false, new Error("連線超時（5秒）")), 5000);
 
       ws.onopen = () => {
-        clearTimeout(connectTimeout);
+        if (connectTimeout) clearTimeout(connectTimeout);
         ws.send(JSON.stringify({ type: "print", data: participantSnapshot }));
         ackTimeout = setTimeout(() => settle(true), 6000);
       };
@@ -301,8 +310,8 @@ async function sendToStation(slot) {
       ws.onclose = () => settle(true); // 降級視為成功
     });
     scanPhase.value = "sent";
-  } catch (err) {
-    scanError.value = `傳送到站台 ${slot} 失敗：${err.message}`;
+  } catch (err: unknown) {
+    scanError.value = `傳送到站台 ${slot} 失敗：${(err as Error).message}`;
     scanPhase.value = "error";
   }
 }
@@ -332,9 +341,9 @@ function scanAgain() {
 
 // ===== 外部列印站台連線測試 =====
 // stationTestStatus: 'idle' | 'testing' | 'online' | 'offline'
-const stationTestStatus = ref({ 1: "idle", 2: "idle", 3: "idle" });
+const stationTestStatus = ref<Record<number, string>>({ 1: "idle", 2: "idle", 3: "idle" });
 
-async function testStation(slot) {
+async function testStation(slot: number) {
   const eid = eventsStore.currentEvent?.id;
   if (!eid) return;
   stationTestStatus.value[slot] = "testing";
@@ -348,7 +357,7 @@ async function testStation(slot) {
   const tokenParam = token ? `?token=${token}` : "";
 
   try {
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/${tokenParam}`);
       const timeout = setTimeout(() => { ws.close(); reject(); }, 5000);
       ws.onopen = () => { clearTimeout(timeout); ws.close(); resolve(); };
@@ -373,7 +382,7 @@ watch(mobileDispatchUrl, async (url) => {
     : "";
 }, { immediate: true });
 
-function openStation(slot) {
+function openStation(slot: number) {
   const eid = eventsStore.currentEvent?.id;
   if (!eid) return;
   const url = `${window.location.origin}${window.location.pathname}#/print/station/${slot}?event=${eid}`;
