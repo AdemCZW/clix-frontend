@@ -347,4 +347,23 @@ const saveCompanyInfo = async () => {
     transform: translateY(0);
   }
 }
+
+@media (max-width: 768px) {
+  .content-panel {
+    padding: 16px;
+  }
+
+  .company-form .form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .page-header .page-title {
+    font-size: 1.4rem;
+  }
+
+  .btn-primary {
+    width: 100%;
+  }
+}
 </style>

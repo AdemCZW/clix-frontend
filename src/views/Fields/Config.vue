@@ -25,9 +25,6 @@ const fields = ref<FormField[]>([]);
 
 // --- 取得頁面 ID 並載入欄位 ---
 async function loadForEvent(event: { id?: number; name?: string } | null) {
-  // #region agent log
-  fetch('http://127.0.0.1:7609/ingest/596a70c9-8187-4c67-9e17-fadd7ea35fcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9b3802'},body:JSON.stringify({sessionId:'9b3802',location:'Config.vue:loadForEvent:entry',message:'loadForEvent called',data:{eventId:event?.id,eventName:event?.name},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-  // #endregion
   if (!event?.id) return;
   isInitializing.value = true;
   pageId.value = null;
@@ -42,13 +39,7 @@ async function loadForEvent(event: { id?: number; name?: string } | null) {
       ...f,
       options: Array.isArray(f.options) ? f.options.map((o) => ({ ...o })) : [],
     })) : [];
-    // #region agent log
-    fetch('http://127.0.0.1:7609/ingest/596a70c9-8187-4c67-9e17-fadd7ea35fcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9b3802'},body:JSON.stringify({sessionId:'9b3802',location:'Config.vue:loadForEvent:afterFetch',message:'loadForEvent success',data:{pageId:page.id,fieldsLength:fields.value.length},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
-    // #endregion
   } catch (err) {
-    // #region agent log
-    fetch('http://127.0.0.1:7609/ingest/596a70c9-8187-4c67-9e17-fadd7ea35fcb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9b3802'},body:JSON.stringify({sessionId:'9b3802',location:'Config.vue:loadForEvent:catch',message:'loadForEvent failed',data:{error:String((err as Error)?.message||err)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
-    // #endregion
     toastError("載入欄位設定失敗");
   } finally {
     isInitializing.value = false;

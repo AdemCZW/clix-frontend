@@ -443,6 +443,7 @@ const toggleVIP = (participant: Participant) => {
         </button>
       </div>
 
+      <div class="table-scroll-wrap">
       <table class="data-table">
         <thead>
           <tr>
@@ -533,6 +534,7 @@ const toggleVIP = (participant: Participant) => {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <!-- 右側滑出編輯面板 -->
@@ -951,8 +953,14 @@ const toggleVIP = (participant: Participant) => {
   overflow: visible;
   padding: 0;
 }
+.table-scroll-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .data-table {
   width: 100%;
+  min-width: 700px;
   border-collapse: collapse;
 
   th {

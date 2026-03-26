@@ -155,6 +155,11 @@ const router = createRouter({
             component: () =>
                 import ('../views/Registration/PublicPage.vue'),
             meta: { requiresAuth: false }
+        },
+        // ===== 404 — 未匹配路由導回登入頁 =====
+        {
+            path: '/:pathMatch(.*)*',
+            redirect: '/login'
         }
     ]
 })
