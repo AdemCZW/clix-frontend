@@ -134,12 +134,12 @@ const formatDate = (date, endDate, time) => {
       <h2 class="success-title">報名成功！</h2>
       <p class="success-sub">{{ store.submittedParticipant.name }}，感謝您的報名，期待與您相見！</p>
 
-      <div v-if="store.submittedParticipant.qrCodeUrl" class="qr-card">
+      <div v-if="store.submittedParticipant.qr_code_url || store.submittedParticipant.qrCodeUrl" class="qr-card">
         <p class="qr-hint">現場出示此 QR Code 掃描報到</p>
         <div class="qr-img-wrap">
-          <img :src="store.submittedParticipant.qrCodeUrl" alt="QR Code" />
+          <img :src="store.submittedParticipant.qr_code_url || store.submittedParticipant.qrCodeUrl" alt="QR Code" />
         </div>
-        <p class="qr-token">{{ store.submittedParticipant.checkInToken }}</p>
+        <p class="qr-token">{{ store.submittedParticipant.check_in_token || store.submittedParticipant.checkInToken }}</p>
       </div>
 
       <div class="reminder-box" v-if="pageData">
