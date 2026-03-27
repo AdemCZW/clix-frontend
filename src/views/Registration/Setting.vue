@@ -596,9 +596,9 @@ const closeGuestDetail = () => {
               <div class="detail-avatar-section">
                 <div class="detail-avatar">
                   <div
-                    v-if="(viewingGuest as any).avatar"
+                    v-if="viewingGuest.avatar"
                     class="avatar-img"
-                    :style="{ backgroundImage: `url(${(viewingGuest as any).avatar})` }"
+                    :style="{ backgroundImage: `url(${viewingGuest.avatar})` }"
                   ></div>
                   <span v-else class="avatar-initial-large">{{ viewingGuest.name.charAt(0) }}</span>
                 </div>
@@ -626,7 +626,7 @@ const closeGuestDetail = () => {
                 </div>
                 <div class="detail-field full-width">
                   <label>簡介</label>
-                  <div class="detail-value">{{ (viewingGuest as any).bio || "未填寫" }}</div>
+                  <div class="detail-value">{{ viewingGuest.bio || "未填寫" }}</div>
                 </div>
               </div>
             </div>

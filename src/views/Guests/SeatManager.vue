@@ -403,7 +403,7 @@ const seatSize = computed(() => {
                 class="drop-zone"
                 :class="{
                   'is-filled': seat.attendee.length > 0,
-                  'is-vip': seat.attendee.length > 0 && (seat.attendee[0] as any).type === 'VIP',
+                  'is-vip': seat.attendee.length > 0 && seat.attendee[0]?.type === 'VIP',
                   'is-selected': selectedSeat === seat,
                 }"
                 :style="{ width: `${seatSize.width}px`, height: `${seatSize.height}px` }"

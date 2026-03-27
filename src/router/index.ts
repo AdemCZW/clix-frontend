@@ -1,6 +1,13 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
+// Lazy import with error fallback — 網路斷線時不會白屏
+function lazyLoad(loader: () => Promise<any>) {
+    return () => loader().catch(() => {
+        return import('../views/LoginView.vue')
+    })
+}
+
 const router = createRouter({
     history: createWebHashHistory(
         import.meta.env.BASE_URL),
@@ -26,93 +33,78 @@ const router = createRouter({
                 {
                     path: 'dashboard',
                     name: 'Dashboard',
-                    component: () =>
-                        import ('../views/Dashboard/Overview.vue')
+                    component: lazyLoad(() => import('../views/Dashboard/Overview.vue'))
                 },
                 {
                     path: 'events',
                     name: 'Events',
-                    component: () =>
-                        import ('../views/Events/List.vue')
+                    component: lazyLoad(() => import('../views/Events/List.vue'))
                 },
                 {
                     path: 'account',
                     name: 'Account',
-                    component: () =>
-                        import ('../views/Account/Permissions.vue')
+                    component: lazyLoad(() => import('../views/Account/Permissions.vue'))
                 },
                 {
                     path: 'all-participants',
                     name: 'AllParticipants',
-                    component: () =>
-                        import ('../views/AllParticipants/List.vue')
+                    component: lazyLoad(() => import('../views/AllParticipants/List.vue'))
                 },
                 // ===== 第二層：活動管理功能 =====
                 {
                     path: 'registration-setting',
                     name: 'RegistrationSetting',
-                    component: () =>
-                        import ('../views/Registration/Setting.vue')
+                    component: lazyLoad(() => import('../views/Registration/Setting.vue'))
                 },
                 {
                     path: 'guests',
                     name: 'Guests',
-                    component: () =>
-                        import ('../views/Guests/List.vue')
+                    component: lazyLoad(() => import('../views/Guests/List.vue'))
                 },
                 {
                     path: 'seating-plan',
                     name: 'SeatingPlan',
-                    component: () =>
-                        import ('../views/Guests/SeatManager.vue')
+                    component: lazyLoad(() => import('../views/Guests/SeatManager.vue'))
                 },
                 {
                     path: 'form-fields',
                     name: 'FormFields',
-                    component: () =>
-                        import ('../views/Fields/Config.vue')
+                    component: lazyLoad(() => import('../views/Fields/Config.vue'))
                 },
                 {
                     path: 'notifications',
                     name: 'Notifications',
-                    component: () =>
-                        import ('../views/Notifications/EmailEditor.vue')
+                    component: lazyLoad(() => import('../views/Notifications/EmailEditor.vue'))
                 },
                 {
                     path: 'participants',
                     name: 'Participants',
-                    component: () =>
-                        import ('../views/Participants/List.vue')
+                    component: lazyLoad(() => import('../views/Participants/List.vue'))
                 },
                 {
                     path: 'checkin-history',
                     name: 'CheckInHistory',
-                    component: () =>
-                        import ('../views/CheckIn/History.vue')
+                    component: lazyLoad(() => import('../views/CheckIn/History.vue'))
                 },
                 {
                     path: 'badge-printing',
                     name: 'BadgePrinting',
-                    component: () =>
-                        import ('../views/Badges/Printer.vue')
+                    component: lazyLoad(() => import('../views/Badges/Printer.vue'))
                 },
                 {
                     path: 'lottery-winners',
                     name: 'LotteryWinners',
-                    component: () =>
-                        import ('../views/Lottery/Winners.vue')
+                    component: lazyLoad(() => import('../views/Lottery/Winners.vue'))
                 },
                 {
                     path: 'organizer-info',
                     name: 'OrganizerInfo',
-                    component: () =>
-                        import ('../views/Organizer/CompanyInfo.vue')
+                    component: lazyLoad(() => import('../views/Organizer/CompanyInfo.vue'))
                 },
                 {
                     path: 'ai-service',
                     name: 'AIService',
-                    component: () =>
-                        import ('../views/AI-Service/BotSetting.vue')
+                    component: lazyLoad(() => import('../views/AI-Service/BotSetting.vue'))
                 }
             ]
         },

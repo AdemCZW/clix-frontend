@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import * as XLSX from "xlsx";
+// XLSX lazy import — 只在匯出時才載入（省 420KB 初始 bundle）
+const loadXLSX = () => import("xlsx");
 import { useToast } from "@/composables/useToast";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
@@ -53,8 +54,11 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 };
 
+import { useDebouncedRef } from "@/composables/useDebounce";
+
 // 搜尋與過濾狀態
 const searchQuery = ref("");
+const debouncedSearch = useDebouncedRef(searchQuery, 300);
 const activeTab = ref("VIP"); // 標籤切換：VIP 或 一般民眾
 const filterStatus = ref("All"); // 狀態過濾
 
@@ -79,8 +83,8 @@ const editingParticipant = ref<Participant | null>(null);
 const filteredList = computed(() => {
   return participantsStore.participants.filter((p) => {
     const matchSearch =
-      p.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      p.company.toLowerCase().includes(searchQuery.value.toLowerCase());
+      p.name.toLowerCase().includes(debouncedSearch.value.toLowerCase()) ||
+      p.company.toLowerCase().includes(debouncedSearch.value.toLowerCase());
     const matchTab = p.type === activeTab.value;
     const matchStatus = filterStatus.value === "All" || p.status === filterStatus.value;
     return matchSearch && matchTab && matchStatus;
@@ -92,7 +96,7 @@ const isExporting = ref(false);
 const showExportMenu = ref(false);
 
 // 匯出指定範圍的資料
-const exportData = (exportType: string) => {
+const exportData = async (exportType: string) => {
   let dataToExport: Participant[] = [];
   let fileName = "";
 
@@ -147,6 +151,7 @@ const exportData = (exportType: string) => {
     報到狀態: p.status,
   }));
 
+  const XLSX = await loadXLSX();
   const worksheet = XLSX.utils.json_to_sheet(exportList);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "參與者");
@@ -172,6 +177,7 @@ const handleImport = async (e: Event) => {
   const reader = new FileReader();
   reader.onload = async (event) => {
     const data = new Uint8Array((event.target as FileReader).result as ArrayBuffer);
+    const XLSX = await loadXLSX();
     const workbook = XLSX.read(data, { type: "array" });
     const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 

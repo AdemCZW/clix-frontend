@@ -122,6 +122,9 @@ export interface Guest {
   title: string
   company: string
   event: number
+  bio?: string
+  avatar?: string
+  activity?: string
   [key: string]: unknown
 }
 
@@ -131,7 +134,10 @@ export interface RegistrationPage {
   eventId: number
   eventName: string
   eventDate: string
+  eventEndDate?: string
+  eventTime?: string
   eventLocation: string
+  eventAddress?: string
   banner: string | null
   shortLink: string
   mainContent: string
@@ -227,10 +233,17 @@ export interface SeatLayout {
   cols: number
 }
 
+export interface SeatAttendee {
+  id: number
+  name: string
+  type?: string
+  [key: string]: unknown
+}
+
 export interface Seat {
   id: string
   label: string
-  attendee: unknown[]
+  attendee: SeatAttendee[]
 }
 
 export type ActivitySeats = Record<string, Seat[]>

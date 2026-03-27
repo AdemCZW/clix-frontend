@@ -106,7 +106,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import * as XLSX from "xlsx";
+const loadXLSX = () => import("xlsx");
 import { useAdminAccountsStore } from "@/stores/adminAccounts";
 import { useParticipantsStore } from "@/stores/participants";
 import { storeToRefs } from "pinia";
@@ -131,7 +131,10 @@ const adminStore = useAdminAccountsStore();
 const participantsStore = useParticipantsStore();
 const { adminAccounts } = storeToRefs(adminStore);
 
+import { useDebouncedRef } from "@/composables/useDebounce";
+
 const searchKeyword = ref("");
+const debouncedKeyword = useDebouncedRef(searchKeyword, 300);
 const selectedManager = ref<number | "">("");
 const selectedEvent = ref<number | "">("");
 const expandedEvents = ref<number[]>([]);
@@ -220,8 +223,8 @@ const groupedData = computed(() => {
 
 // 篩選參與者（搜尋關鍵字）
 const filteredParticipants = (participants: LocalEvent['participants']) => {
-  if (!searchKeyword.value) return participants;
-  const keyword = searchKeyword.value.toLowerCase();
+  if (!debouncedKeyword.value) return participants;
+  const keyword = debouncedKeyword.value.toLowerCase();
   return participants.filter(
     (p) =>
       p.name.toLowerCase().includes(keyword) ||
@@ -253,7 +256,7 @@ const formatDate = (date: string) => {
 };
 
 // 匯出 Excel
-const exportEventData = (event: LocalEvent) => {
+const exportEventData = async (event: LocalEvent) => {
   const data = event.participants.map((p) => ({
     姓名: p.name,
     公司: p.company,
@@ -264,6 +267,7 @@ const exportEventData = (event: LocalEvent) => {
     報名時間: formatDate(p.registeredAt),
   }));
 
+  const XLSX = await loadXLSX();
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "參與者名單");

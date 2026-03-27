@@ -145,15 +145,15 @@ const formatDate = (date, endDate, time) => {
       <div class="reminder-box" v-if="pageData">
         <div class="reminder-row" v-if="pageData.eventDate">
           <span class="r-icon">📅</span>
-          <span>{{ formatDate(pageData.eventDate, (pageData as any).eventEndDate, (pageData as any).eventTime) }}</span>
+          <span>{{ formatDate(pageData.eventDate, pageData.eventEndDate, pageData.eventTime) }}</span>
         </div>
         <div class="reminder-row" v-if="pageData.eventLocation">
           <span class="r-icon">📍</span>
           <span>{{ pageData.eventLocation }}</span>
         </div>
-        <div class="reminder-row" v-if="(pageData as any).eventAddress">
+        <div class="reminder-row" v-if="pageData.eventAddress">
           <span class="r-icon">🗺️</span>
-          <span>{{ (pageData as any).eventAddress }}</span>
+          <span>{{ pageData.eventAddress }}</span>
         </div>
       </div>
     </div>
@@ -176,10 +176,10 @@ const formatDate = (date, endDate, time) => {
           <h1 class="p-title">{{ pageData.eventName }}</h1>
           <div class="p-badges">
             <span v-if="pageData.eventDate">
-              📅 {{ formatDate(pageData.eventDate, (pageData as any).eventEndDate, (pageData as any).eventTime) }}
+              📅 {{ formatDate(pageData.eventDate, pageData.eventEndDate, pageData.eventTime) }}
             </span>
             <span v-if="pageData.eventLocation">📍 {{ pageData.eventLocation }}</span>
-            <span v-if="(pageData as any).eventAddress">🗺️ {{ (pageData as any).eventAddress }}</span>
+            <span v-if="pageData.eventAddress">🗺️ {{ pageData.eventAddress }}</span>
             <span class="badge-count">
               👥 {{ participantsCount }} / {{ maxParticipants }}
             </span>
@@ -203,7 +203,7 @@ const formatDate = (date, endDate, time) => {
           <div class="footer-info">
             <span class="f-title">立即報名參加</span>
             <span class="f-date">
-              <template v-if="pageData.eventDate">📅 {{ formatDate(pageData.eventDate, (pageData as any).eventEndDate, (pageData as any).eventTime) }}</template>
+              <template v-if="pageData.eventDate">📅 {{ formatDate(pageData.eventDate, pageData.eventEndDate, pageData.eventTime) }}</template>
               <template v-if="pageData.eventLocation">　📍 {{ pageData.eventLocation }}</template>
             </span>
           </div>

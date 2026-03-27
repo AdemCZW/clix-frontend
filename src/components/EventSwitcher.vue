@@ -173,15 +173,14 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useUserStore } from "@/stores/user";
 
-// This component references series/event switching APIs that don't exist on the
-// current user store. Cast to `any` to suppress TS errors for this dead code.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- 此元件參考尚未實作的 series/event API
 const userStore = useUserStore() as any;
 const showDropdown = ref(false);
 const showAddEvent = ref(false);
 const showAddSeries = ref(false);
 const dropdownRef = ref<HTMLElement | null>(null);
 const expandedSeries = ref<string | null>(null);
-const selectedSeriesForEvent = ref<any>(null);
+const selectedSeriesForEvent = ref<Record<string, unknown> | null>(null);
 
 const newEvent = ref({
   name: "",

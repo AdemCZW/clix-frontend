@@ -310,7 +310,7 @@ const getInitials = (name: string) => {
         <div class="form-field">
           <label>簡介</label>
           <textarea
-            v-model="(editingGuest as any).bio"
+            v-model="editingGuest!.bio"
             placeholder="請輸入個人簡介"
             class="textarea-styled"
             rows="3"
@@ -319,7 +319,7 @@ const getInitials = (name: string) => {
 
         <div class="form-field">
           <label>參加活動</label>
-          <select v-model="(editingGuest as any).activity" class="select-styled full-width">
+          <select v-model="editingGuest!.activity" class="select-styled full-width">
             <option v-for="opt in activityOptions.slice(1)" :key="opt" :value="opt">
               {{ opt }}
             </option>
