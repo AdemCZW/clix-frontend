@@ -179,7 +179,14 @@ onMounted(async () => {
     form.enableAutoSend   = page.enableAutoSend;
     form.bannerPreview    = page.banner || null;
   } catch (err: unknown) {
-    toastError((err as Error).message || "載入報名頁設定失敗");
+    const msg = (err as Error).message || "";
+    if (msg.includes("401") || msg.includes("Authentication")) {
+      toastError("登入已過期，請重新登入");
+    } else if (msg.includes("fetch") || msg.includes("network") || msg.includes("Failed")) {
+      toastError("網路連線失敗，請檢查網路後重新整理");
+    } else {
+      toastError(msg || "載入報名頁設定失敗");
+    }
   } finally {
     loading.value = false;
   }

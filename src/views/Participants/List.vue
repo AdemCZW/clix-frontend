@@ -247,16 +247,30 @@ const handleImport = async (e: Event) => {
   reader.readAsArrayBuffer(file);
 };
 
+const originalParticipantSnapshot = ref("");
+
+const hasUnsavedParticipant = computed(() => {
+  if (!editingParticipant.value) return false;
+  return JSON.stringify(editingParticipant.value) !== originalParticipantSnapshot.value;
+});
+
 const openEditPanel = (participant: Participant) => {
   editingParticipant.value = { ...participant };
+  originalParticipantSnapshot.value = JSON.stringify(editingParticipant.value);
 };
 
 const closeEditPanel = () => {
+  if (hasUnsavedParticipant.value && !confirm("尚未儲存變更，確定要離開嗎？")) return;
   editingParticipant.value = null;
 };
 const editPanelOpen = computed({
   get: () => !!editingParticipant.value,
-  set: (v) => { if (!v) editingParticipant.value = null; },
+  set: (v) => {
+    if (!v) {
+      if (hasUnsavedParticipant.value && !confirm("尚未儲存變更，確定要離開嗎？")) return;
+      editingParticipant.value = null;
+    }
+  },
 });
 
 // 確認刪除 dialog

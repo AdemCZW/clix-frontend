@@ -1,5 +1,12 @@
 <template>
   <div class="dashboard-view">
+    <!-- 載入失敗 -->
+    <div v-if="dashboardError" class="dashboard-error">
+      <p>{{ dashboardError }}</p>
+      <button class="btn-retry" @click="loadDashboard">重新載入</button>
+    </div>
+
+    <template v-else>
     <div class="stats-bar">
       <div class="stat-item">
         <div class="stat-label">活動總數</div>
@@ -187,6 +194,7 @@
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
@@ -333,16 +341,34 @@ const showTooltip = (pt, _i, evt) => {
 const hideTooltip = () => { tooltip.value.visible = false; };
 
 // ── 資料載入 ──────────────────────────────────────────────
-onMounted(async () => {
-  const user = userStore.user;
-  await Promise.all([
-    eventsStore.fetchEvents({
-      userId: user?.id,
-      isSuperAdmin: userStore.isSuperAdmin,
-    }),
-    participantsStore.fetchParticipants({}),
-  ]);
-});
+const dashboardLoading = ref(true);
+const dashboardError = ref("");
+
+const loadDashboard = async () => {
+  dashboardLoading.value = true;
+  dashboardError.value = "";
+  try {
+    const user = userStore.user;
+    await Promise.all([
+      eventsStore.fetchEvents({
+        userId: user?.id,
+        isSuperAdmin: userStore.isSuperAdmin,
+      }),
+      participantsStore.fetchParticipants({}),
+    ]);
+  } catch (err: unknown) {
+    const msg = (err as Error).message || "";
+    if (msg.includes("fetch") || msg.includes("network") || msg.includes("Failed")) {
+      dashboardError.value = "網路連線失敗，請檢查網路後重試";
+    } else {
+      dashboardError.value = msg || "載入儀表板失敗";
+    }
+  } finally {
+    dashboardLoading.value = false;
+  }
+};
+
+onMounted(loadDashboard);
 
 const selectEvent = (displayEvent) => {
   const storeEvent = eventsStore.events.find((e) => e.id === displayEvent.id);
@@ -718,6 +744,38 @@ const selectEvent = (displayEvent) => {
     .event-status {
       align-self: flex-start;
     }
+  }
+}
+
+.dashboard-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+  gap: 16px;
+
+  p {
+    font-size: 1rem;
+    color: #64748b;
+    margin: 0;
+  }
+}
+
+.btn-retry {
+  padding: 10px 24px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
   }
 }
 </style>

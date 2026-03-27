@@ -21,8 +21,32 @@
       </button>
     </div>
 
+    <!-- Loading 骨架屏 -->
+    <div v-if="loadingEvents" class="events-grid">
+      <div v-for="n in 4" :key="n" class="event-card skeleton-card">
+        <div class="skeleton-banner"></div>
+        <div class="skeleton-body">
+          <div class="skeleton-line w60"></div>
+          <div class="skeleton-line w40"></div>
+          <div class="skeleton-line w80"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 載入失敗 + 重試 -->
+    <div v-else-if="loadError" class="empty-state">
+      <div class="empty-icon" style="color: #ef4444;">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <h3>載入失敗</h3>
+      <p>{{ loadError }}</p>
+      <button class="btn-create" @click="loadEvents">重新載入</button>
+    </div>
+
     <!-- 空狀態 -->
-    <div v-if="filteredEvents.length === 0" class="empty-state">
+    <div v-else-if="filteredEvents.length === 0" class="empty-state">
       <div class="empty-icon">
         <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -189,6 +213,8 @@ const { success, error } = useToast();
 const searchQuery = ref("");
 const activeFilter = ref("all");
 const showCreateModal = ref(false);
+const loadingEvents = ref(true);
+const loadError = ref("");
 
 // 活動過期判斷
 const today = new Date().toISOString().slice(0, 10);
@@ -199,13 +225,24 @@ const isEventExpired = (event: Event) => {
 
 // 右側編輯面板
 const editingEvent = ref<EventEditForm | null>(null);
+const originalEditSnapshot = ref("");
 const editPanelOpen = computed({
   get: () => !!editingEvent.value,
-  set: (v) => { if (!v) editingEvent.value = null; },
+  set: (v) => {
+    if (!v) {
+      if (hasUnsavedChanges.value && !confirm("尚未儲存變更，確定要離開嗎？")) return;
+      editingEvent.value = null;
+    }
+  },
+});
+
+const hasUnsavedChanges = computed(() => {
+  if (!editingEvent.value) return false;
+  return JSON.stringify(editingEvent.value) !== originalEditSnapshot.value;
 });
 
 const openEditPanel = (event: Event) => {
-  editingEvent.value = {
+  const data = {
     id: event.id,
     name: event.name,
     date: event.date,
@@ -215,9 +252,14 @@ const openEditPanel = (event: Event) => {
     address: event.address || "",
     maxParticipants: (event as Event & { maxParticipants?: number }).maxParticipants || 500,
   };
+  editingEvent.value = data;
+  originalEditSnapshot.value = JSON.stringify(data);
 };
 
-const closeEditPanel = () => { editingEvent.value = null; };
+const closeEditPanel = () => {
+  if (hasUnsavedChanges.value && !confirm("尚未儲存變更，確定要離開嗎？")) return;
+  editingEvent.value = null;
+};
 
 const saveEditEvent = async () => {
   if (!editingEvent.value) return;
@@ -275,8 +317,10 @@ const filteredEvents = computed(() => {
   return result;
 });
 
-// 進入頁面時載入活動列表
-onMounted(async () => {
+// 載入活動列表
+const loadEvents = async () => {
+  loadingEvents.value = true;
+  loadError.value = "";
   try {
     await eventsStore.fetchEvents({
       userId: userStore.user?.id,
@@ -301,9 +345,20 @@ onMounted(async () => {
       } catch { /* silent */ }
     }
   } catch (err: unknown) {
-    error((err as Error).message || "載入活動列表失敗");
+    const msg = (err as Error).message || "";
+    if (msg.includes("401") || msg.includes("Authentication")) {
+      loadError.value = "登入已過期，請重新登入";
+    } else if (msg.includes("fetch") || msg.includes("network") || msg.includes("Failed")) {
+      loadError.value = "網路連線失敗，請檢查網路後重試";
+    } else {
+      loadError.value = msg || "載入活動列表失敗";
+    }
+  } finally {
+    loadingEvents.value = false;
   }
-});
+};
+
+onMounted(loadEvents);
 
 const selectEvent = (event: Event) => {
   eventsStore.setCurrentEvent(event, userStore.user?.id);
@@ -824,5 +879,38 @@ const createEvent = async () => {
       font-size: 0.8rem;
     }
   }
+}
+
+/* Skeleton loading */
+.skeleton-card {
+  pointer-events: none;
+}
+.skeleton-banner {
+  height: 140px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: 16px 16px 0 0;
+}
+.skeleton-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.skeleton-line {
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+}
+.skeleton-line.w60 { width: 60%; }
+.skeleton-line.w40 { width: 40%; }
+.skeleton-line.w80 { width: 80%; }
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 </style>
