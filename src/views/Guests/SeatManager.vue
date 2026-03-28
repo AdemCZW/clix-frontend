@@ -75,16 +75,25 @@ const updateUnassignedList = () => {
   unassignedList.value = allParticipants.value.filter((p) => !seatedIds.includes(p.id));
 };
 
-// 分離貴賓和一般民眾
-const vipList = computed<SeatPerson[]>(() => unassignedList.value.filter((p) => p.type === "VIP"));
-const attendeeList = computed<SeatPerson[]>(() =>
-  unassignedList.value.filter((p) => p.type !== "VIP"),
-);
-
 // 切換顯示類型
 const guestViewType = ref("VIP"); // 'VIP' 或 'Attendee'
-const currentGuestList = computed<SeatPerson[]>(() => {
-  return guestViewType.value === "VIP" ? vipList.value : attendeeList.value;
+
+// vuedraggable 需要 writable list，不能用唯讀 computed
+const currentGuestList = computed<SeatPerson[]>({
+  get() {
+    if (guestViewType.value === "VIP") {
+      return unassignedList.value.filter((p) => p.type === "VIP");
+    }
+    return unassignedList.value.filter((p) => p.type !== "VIP");
+  },
+  set(newList) {
+    // 拖曳移除時，從 unassignedList 移除對應的人
+    const currentType = guestViewType.value === "VIP" ? "VIP" : null;
+    const otherPeople = unassignedList.value.filter((p) =>
+      currentType ? p.type !== "VIP" : p.type === "VIP"
+    );
+    unassignedList.value = [...otherPeople, ...newList];
+  },
 });
 
 // 只在 activityId 變化時重算（不監聽 allParticipants 避免拖曳時跳回）
@@ -347,14 +356,14 @@ const seatSize = computed(() => {
             :class="{ active: guestViewType === 'VIP' }"
             @click="guestViewType = 'VIP'"
           >
-            貴賓 VIP <span class="tab-count">{{ vipList.length }}</span>
+            貴賓 VIP <span class="tab-count">{{ unassignedList.filter(p => p.type === 'VIP').length }}</span>
           </button>
           <button
             class="type-tab"
             :class="{ active: guestViewType === 'Attendee' }"
             @click="guestViewType = 'Attendee'"
           >
-            一般民眾 <span class="tab-count">{{ attendeeList.length }}</span>
+            一般民眾 <span class="tab-count">{{ unassignedList.filter(p => p.type !== 'VIP').length }}</span>
           </button>
         </div>
 
