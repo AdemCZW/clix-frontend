@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import draggable from "vuedraggable";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
@@ -67,37 +67,36 @@ const activitySeats = seatsStore.activitySeats;
 const addRow = () => seatsStore.addRow(currentActivityId.value);
 const addCol = () => seatsStore.addCol(currentActivityId.value);
 
-// 待分配名單連動
-const unassignedList = ref<SeatPerson[]>([]);
-const updateUnassignedList = () => {
-  const currentSeats = activitySeats[currentActivityId.value];
-  const seatedIds = currentSeats.filter((s: Seat) => s.attendee.length > 0).map((s: Seat) => (s.attendee[0] as SeatPerson).id);
-  unassignedList.value = allParticipants.value.filter((p) => !seatedIds.includes(p.id));
-};
+// 待分配名單 — 用獨立 ref 給 vuedraggable 直接綁定（不能用 computed）
+const vipDragList = ref<SeatPerson[]>([]);
+const generalDragList = ref<SeatPerson[]>([]);
+const guestViewType = ref("VIP");
 
-// 切換顯示類型
-const guestViewType = ref("VIP"); // 'VIP' 或 'Attendee'
-
-// vuedraggable 需要 writable list，不能用唯讀 computed
-const currentGuestList = computed<SeatPerson[]>({
-  get() {
-    if (guestViewType.value === "VIP") {
-      return unassignedList.value.filter((p) => p.type === "VIP");
-    }
-    return unassignedList.value.filter((p) => p.type !== "VIP");
-  },
-  set(newList) {
-    // 拖曳移除時，從 unassignedList 移除對應的人
-    const currentType = guestViewType.value === "VIP" ? "VIP" : null;
-    const otherPeople = unassignedList.value.filter((p) =>
-      currentType ? p.type !== "VIP" : p.type === "VIP"
-    );
-    unassignedList.value = [...otherPeople, ...newList];
+// vuedraggable 綁定這個，get/set 切換 VIP 或一般
+const currentGuestList = computed({
+  get: () => guestViewType.value === "VIP" ? vipDragList.value : generalDragList.value,
+  set: (val) => {
+    if (guestViewType.value === "VIP") vipDragList.value = val;
+    else generalDragList.value = val;
   },
 });
 
-// 只在 activityId 變化時重算（不監聽 allParticipants 避免拖曳時跳回）
-watch(currentActivityId, () => updateUnassignedList());
+// 合併用（給模板統計顯示）
+const unassignedList = computed(() => [...vipDragList.value, ...generalDragList.value]);
+
+// 從座位資料重建拖曳列表（只在初始化和儲存後呼叫）
+const rebuildDragLists = () => {
+  const currentSeats = activitySeats[currentActivityId.value];
+  if (!currentSeats) return;
+  const seatedIds = new Set(
+    currentSeats
+      .filter((s: Seat) => s.attendee.length > 0)
+      .map((s: Seat) => (s.attendee[0] as unknown as SeatPerson).id)
+  );
+  const free = allParticipants.value.filter((p) => !seatedIds.has(p.id));
+  vipDragList.value = free.filter((p) => p.type === "VIP");
+  generalDragList.value = free.filter((p) => p.type !== "VIP");
+};
 
 // 儲存座位到後端
 const savingSeats = ref(false);
@@ -120,7 +119,7 @@ onMounted(async () => {
     await participantsStore.fetchParticipants({ event: String(event.id) });
     await seatsStore.loadEventSeats(event.id);
     seatsStore.ensureActivity(currentActivityId.value);
-    updateUnassignedList();
+    rebuildDragLists();
   }
 });
 
@@ -186,7 +185,7 @@ const onSeatAdd = (evt: unknown, targetSeat: Seat) => {
       description: `${newPerson.name} 分配至 ${targetSeat.label}`,
     });
   }
-  updateUnassignedList();
+  rebuildDragLists();
 };
 
 // 點選換位邏輯（只用於座位之間的換位）
@@ -245,7 +244,7 @@ const selectSeat = (seat: Seat) => {
 
   // 清除選取
   selectedSeat.value = null;
-  updateUnassignedList();
+  rebuildDragLists();
 };
 
 const handleRemove = (seat: Seat) => {
@@ -263,7 +262,7 @@ const handleRemove = (seat: Seat) => {
       description: `${person.name} 從 ${seat.label} 移除`,
     });
 
-    updateUnassignedList();
+    rebuildDragLists();
   }
   selectedSeat.value = null;
 };
