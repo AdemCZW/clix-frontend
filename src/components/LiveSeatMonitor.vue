@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { useSeatsStore } from "@/stores/seats";
+import { useUserStore } from "@/stores/user";
 import { useCheckinStats } from "@/composables/useCheckinStats";
 
 defineProps({ /* kept for backward compat */ });
@@ -12,6 +13,7 @@ const seatsStore = useSeatsStore();
 
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
+const userStore = useUserStore();
 const { stats, checkInRate } = useCheckinStats();
 
 const mobileTab = ref('seats');
@@ -22,10 +24,19 @@ let clockTimer: ReturnType<typeof setInterval> | null = null;
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
 
 // 即時時鐘
-onMounted(() => {
+onMounted(async () => {
+  // 新分頁開啟時，從 localStorage 恢復當前活動
+  if (!eventsStore.currentEvent) {
+    userStore.checkAuth();
+    const userId = userStore.user?.id;
+    if (userId) {
+      eventsStore.initFromStorage(userId);
+    }
+  }
+
   clockTimer = setInterval(() => { now.value = new Date(); }, 1000);
   // 開啟時立即刷新一次，之後每 10 秒自動刷新
-  doRefresh();
+  await doRefresh();
   refreshTimer = setInterval(doRefresh, 10000);
 });
 
