@@ -72,15 +72,6 @@ const vipDragList = ref<SeatPerson[]>([]);
 const generalDragList = ref<SeatPerson[]>([]);
 const guestViewType = ref("VIP");
 
-// vuedraggable 綁定這個，get/set 切換 VIP 或一般
-const currentGuestList = computed({
-  get: () => guestViewType.value === "VIP" ? vipDragList.value : generalDragList.value,
-  set: (val) => {
-    if (guestViewType.value === "VIP") vipDragList.value = val;
-    else generalDragList.value = val;
-  },
-});
-
 // 合併用（給模板統計顯示）
 const unassignedList = computed(() => [...vipDragList.value, ...generalDragList.value]);
 
@@ -366,9 +357,10 @@ const seatSize = computed(() => {
           </button>
         </div>
 
-        <!-- 賓客列表 -->
+        <!-- 賓客列表 — VIP -->
         <draggable
-          v-model="currentGuestList"
+          v-if="guestViewType === 'VIP'"
+          v-model="vipDragList"
           group="seatingGroup"
           item-key="id"
           class="drag-area"
@@ -377,7 +369,29 @@ const seatSize = computed(() => {
           :animation="300"
         >
           <template #item="{ element }">
-            <div class="person-card" :class="{ 'vip-card': element.type === 'VIP' }">
+            <div class="person-card vip-card">
+              <div class="card-main">
+                <span class="p-serial">#{{ element.serial }}</span>
+                <span class="p-name">{{ element.name }}</span>
+              </div>
+              <div class="p-company">{{ element.company }}</div>
+            </div>
+          </template>
+        </draggable>
+
+        <!-- 賓客列表 — 一般民眾 -->
+        <draggable
+          v-else
+          v-model="generalDragList"
+          group="seatingGroup"
+          item-key="id"
+          class="drag-area"
+          ghost-class="my-ghost"
+          drag-class="my-drag"
+          :animation="300"
+        >
+          <template #item="{ element }">
+            <div class="person-card">
               <div class="card-main">
                 <span class="p-serial">#{{ element.serial }}</span>
                 <span class="p-name">{{ element.name }}</span>
