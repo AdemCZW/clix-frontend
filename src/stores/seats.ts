@@ -34,18 +34,33 @@ export const useSeatsStore = defineStore("seats", () => {
   const loading = ref(false)
   const saving = ref(false)
 
-  // 寫入 localStorage（跨分頁同步）
-  watch(layout, (val) => localStorage.setItem(LS_LAYOUT, JSON.stringify(val)), { deep: true })
-  watch(activitySeats, (val) => localStorage.setItem(LS_SEATS, JSON.stringify(val)), { deep: true })
+  // 寫入 localStorage（跨分頁同步），加防抖避免高頻寫入
+  let layoutTimer: ReturnType<typeof setTimeout> | null = null
+  let seatsTimer: ReturnType<typeof setTimeout> | null = null
+  let isSyncing = false // 防止 onStorage 回寫觸發 watch 循環
 
-  // 跨分頁同步
+  watch(layout, (val) => {
+    if (isSyncing) return
+    if (layoutTimer) clearTimeout(layoutTimer)
+    layoutTimer = setTimeout(() => localStorage.setItem(LS_LAYOUT, JSON.stringify(val)), 300)
+  }, { deep: true })
+
+  watch(activitySeats, (val) => {
+    if (isSyncing) return
+    if (seatsTimer) clearTimeout(seatsTimer)
+    seatsTimer = setTimeout(() => localStorage.setItem(LS_SEATS, JSON.stringify(val)), 300)
+  }, { deep: true })
+
+  // 跨分頁同步（只接收其他分頁的變更）
   const onStorage = (e: StorageEvent) => {
+    isSyncing = true
     if (e.key === LS_SEATS && e.newValue) {
       try { applySeats(activitySeats, JSON.parse(e.newValue)) } catch { /* ignore */ }
     }
     if (e.key === LS_LAYOUT && e.newValue) {
       try { Object.assign(layout, JSON.parse(e.newValue)) } catch { /* ignore */ }
     }
+    setTimeout(() => { isSyncing = false }, 50)
   }
   if (typeof window !== 'undefined') {
     window.addEventListener("storage", onStorage)

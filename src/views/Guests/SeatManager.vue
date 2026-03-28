@@ -87,8 +87,8 @@ const currentGuestList = computed<SeatPerson[]>(() => {
   return guestViewType.value === "VIP" ? vipList.value : attendeeList.value;
 });
 
-watch(currentActivityId, () => updateUnassignedList(), { immediate: true });
-watch(allParticipants, () => updateUnassignedList());
+// 只在 activityId 變化時重算（不監聽 allParticipants 避免拖曳時跳回）
+watch(currentActivityId, () => updateUnassignedList());
 
 // 儲存座位到後端
 const savingSeats = ref(false);
