@@ -52,20 +52,16 @@ const dateStr = computed(() =>
   now.value.toLocaleDateString("zh-TW", { year: "numeric", month: "long", day: "numeric", weekday: "short" })
 );
 
-// 刷新資料（參與者報到狀態 + 首次載入座位）
+// 刷新資料（參與者報到狀態 + 從後端拉最新座位）
 const doRefresh = async () => {
   if (refreshing.value) return;
   refreshing.value = true;
   try {
     const eventId = eventsStore.currentEvent?.id;
     if (eventId) {
-      // 每次都刷新參與者（報到狀態會變）
       await participantsStore.fetchParticipants({ event: String(eventId) });
-      // 座位只在首次載入，避免覆蓋 SeatManager 的拖曳結果
-      const actId = `event_${eventId}`;
-      if (!seatsStore.activitySeats[actId]) {
-        await seatsStore.loadEventSeats(eventId);
-      }
+      // 監控頁是唯讀，每次都從後端拉最新座位
+      await seatsStore.loadEventSeats(eventId);
     }
   } finally {
     refreshing.value = false;
