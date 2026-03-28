@@ -4,6 +4,7 @@ import draggable from "vuedraggable";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { useSeatsStore } from "@/stores/seats";
+import { useToast } from "@/composables/useToast";
 import type { ParticipantType, Seat } from "@/types";
 
 interface SeatPerson {
@@ -36,6 +37,7 @@ interface HistoryRecord {
 }
 
 
+const { success, error: toastError } = useToast();
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
 const seatsStore = useSeatsStore();
@@ -43,7 +45,8 @@ const seatsStore = useSeatsStore();
 // 當前專案和活動資訊
 const currentProject = computed(() => eventsStore.currentEvent?.name || "—");
 const currentActivity = computed(() => eventsStore.currentEvent?.name || "—");
-const currentActivityId = ref("act_01");
+const currentEventId = computed(() => eventsStore.currentEvent?.id || 0);
+const currentActivityId = computed(() => currentEventId.value ? `event_${currentEventId.value}` : "act_01");
 
 // 賓客名單（從 store 載入）
 const allParticipants = computed<SeatPerson[]>(() =>
@@ -87,10 +90,27 @@ const currentGuestList = computed<SeatPerson[]>(() => {
 watch(currentActivityId, () => updateUnassignedList(), { immediate: true });
 watch(allParticipants, () => updateUnassignedList());
 
+// 儲存座位到後端
+const savingSeats = ref(false);
+const saveSeats = async () => {
+  if (!currentEventId.value) return;
+  savingSeats.value = true;
+  try {
+    await seatsStore.saveAll(currentEventId.value);
+    success("座位分配已儲存");
+  } catch {
+    toastError("儲存座位失敗，請稍後再試");
+  } finally {
+    savingSeats.value = false;
+  }
+};
+
 onMounted(async () => {
   const event = eventsStore.currentEvent;
   if (event?.id) {
     await participantsStore.fetchParticipants({ event: String(event.id) });
+    await seatsStore.loadEventSeats(event.id);
+    seatsStore.ensureActivity(currentActivityId.value);
     updateUnassignedList();
   }
 });
@@ -372,6 +392,9 @@ const seatSize = computed(() => {
             </button>
             <button @click="addRow" class="btn-mini-tag">+ 新增一排</button>
             <button @click="addCol" class="btn-mini-tag">+ 新增一列</button>
+            <button @click="saveSeats" :disabled="savingSeats" class="btn-mini-tag save-btn">
+              {{ savingSeats ? '儲存中...' : '💾 儲存座位' }}
+            </button>
             <div class="grid-info">{{ layout.rows }} × {{ layout.cols }}</div>
           </div>
         </div>
@@ -653,6 +676,24 @@ const seatSize = computed(() => {
     border-color: var(--primary-blue);
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  }
+
+  &.save-btn {
+    background: #d1fae5;
+    border-color: #6ee7b7;
+    color: #065f46;
+
+    &:hover {
+      background: #059669;
+      color: white;
+      border-color: #059669;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
   }
 }
 
