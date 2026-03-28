@@ -59,30 +59,47 @@ const allParticipants = computed<SeatPerson[]>(() =>
   })),
 );
 
-// 從 seats store 取得 layout 和 activitySeats
+// 從 seats store 取得 layout
 const layout = seatsStore.layout;
-const activitySeats = seatsStore.activitySeats;
+
+// 本地座位陣列（獨立 ref，vuedraggable 直接操作，不受 reactive/computed 干擾）
+const localSeats = ref<Seat[]>([]);
 
 // 新增座位邏輯
-const addRow = () => seatsStore.addRow(currentActivityId.value);
-const addCol = () => seatsStore.addCol(currentActivityId.value);
+const addRow = () => {
+  layout.rows++;
+  const newCount = layout.rows * layout.cols;
+  while (localSeats.value.length < newCount) {
+    localSeats.value.push({ id: `s-${Date.now()}-${localSeats.value.length}`, label: `座-${localSeats.value.length + 1}`, attendee: [] });
+  }
+  syncToStore();
+};
+const addCol = () => {
+  layout.cols++;
+  const newCount = layout.rows * layout.cols;
+  while (localSeats.value.length < newCount) {
+    localSeats.value.push({ id: `s-${Date.now()}-${localSeats.value.length}`, label: `座-${localSeats.value.length + 1}`, attendee: [] });
+  }
+  syncToStore();
+};
 
-// 待分配名單 — 用獨立 ref 給 vuedraggable 直接綁定（不能用 computed）
+// 同步本地座位到 store（給存檔和跨分頁用）
+const syncToStore = () => {
+  seatsStore.activitySeats[currentActivityId.value] = localSeats.value;
+  syncToStore();
+};
+
+// 待分配名單
 const vipDragList = ref<SeatPerson[]>([]);
 const generalDragList = ref<SeatPerson[]>([]);
 const guestViewType = ref("VIP");
-
-// 合併用（給模板統計顯示）
 const unassignedList = computed(() => [...vipDragList.value, ...generalDragList.value]);
 
-// 從座位資料重建拖曳列表（只在初始化和儲存後呼叫）
 const rebuildDragLists = () => {
-  const currentSeats = activitySeats[currentActivityId.value];
-  if (!currentSeats) return;
   const seatedIds = new Set(
-    currentSeats
-      .filter((s: Seat) => s.attendee.length > 0)
-      .map((s: Seat) => (s.attendee[0] as unknown as SeatPerson).id)
+    localSeats.value
+      .filter((s) => s.attendee.length > 0)
+      .map((s) => (s.attendee[0] as unknown as SeatPerson).id)
   );
   const free = allParticipants.value.filter((p) => !seatedIds.has(p.id));
   vipDragList.value = free.filter((p) => p.type === "VIP");
@@ -109,10 +126,12 @@ onMounted(async () => {
   if (event?.id) {
     await participantsStore.fetchParticipants({ event: String(event.id) });
     // 只在第一次進入時從後端載入，之後不覆蓋本地拖曳結果
-    if (!seatsStore.loaded || !activitySeats[currentActivityId.value]) {
+    if (!seatsStore.loaded || !seatsStore.activitySeats[currentActivityId.value]) {
       await seatsStore.loadEventSeats(event.id);
     }
     seatsStore.ensureActivity(currentActivityId.value);
+    // 從 store 複製到本地 ref（之後 vuedraggable 只操作本地 ref）
+    localSeats.value = [...(seatsStore.activitySeats[currentActivityId.value] || [])];
     rebuildDragLists();
   }
 });
@@ -180,7 +199,7 @@ const onSeatAdd = (evt: unknown, targetSeat: Seat) => {
     });
   }
   rebuildDragLists();
-  seatsStore.notifyChange(); // 廣播到監控頁
+  syncToStore(); // 廣播到監控頁
 };
 
 // 點選換位邏輯（只用於座位之間的換位）
@@ -240,7 +259,7 @@ const selectSeat = (seat: Seat) => {
   // 清除選取
   selectedSeat.value = null;
   rebuildDragLists();
-  seatsStore.notifyChange();
+  syncToStore();
 };
 
 const handleRemove = (seat: Seat) => {
@@ -259,7 +278,7 @@ const handleRemove = (seat: Seat) => {
     });
 
     rebuildDragLists();
-    seatsStore.notifyChange();
+    syncToStore();
   }
   selectedSeat.value = null;
 };
@@ -441,7 +460,7 @@ const seatSize = computed(() => {
             :style="{ gridTemplateColumns: `repeat(${layout.cols}, ${seatSize.width}px)` }"
           >
             <div
-              v-for="seat in activitySeats[currentActivityId]"
+              v-for="seat in localSeats"
               :key="seat.id"
               class="seat-item"
               :style="{ width: `${seatSize.width}px` }"
