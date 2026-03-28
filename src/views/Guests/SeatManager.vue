@@ -108,7 +108,10 @@ onMounted(async () => {
   const event = eventsStore.currentEvent;
   if (event?.id) {
     await participantsStore.fetchParticipants({ event: String(event.id) });
-    await seatsStore.loadEventSeats(event.id);
+    // 只在第一次進入時從後端載入，之後不覆蓋本地拖曳結果
+    if (!seatsStore.loaded || !activitySeats[currentActivityId.value]) {
+      await seatsStore.loadEventSeats(event.id);
+    }
     seatsStore.ensureActivity(currentActivityId.value);
     rebuildDragLists();
   }
