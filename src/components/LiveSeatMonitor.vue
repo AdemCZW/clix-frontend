@@ -34,8 +34,14 @@ onMounted(async () => {
     }
   }
 
+  // 首次載入：從後端拉座位資料（之後靠 localStorage 跨分頁即時同步）
+  const eventId = eventsStore.currentEvent?.id;
+  if (eventId && !seatsStore.activitySeats[`event_${eventId}`]) {
+    await seatsStore.loadEventSeats(eventId);
+  }
+
   clockTimer = setInterval(() => { now.value = new Date(); }, 1000);
-  // 開啟時立即刷新一次，之後每 10 秒自動刷新
+  // 每 10 秒刷新參與者報到狀態
   await doRefresh();
   refreshTimer = setInterval(doRefresh, 10000);
 });
@@ -52,7 +58,7 @@ const dateStr = computed(() =>
   now.value.toLocaleDateString("zh-TW", { year: "numeric", month: "long", day: "numeric", weekday: "short" })
 );
 
-// 刷新資料（參與者報到狀態 + 從後端拉最新座位）
+// 刷新參與者報到狀態（座位透過 localStorage 跨分頁即時同步，不需打 API）
 const doRefresh = async () => {
   if (refreshing.value) return;
   refreshing.value = true;
@@ -60,8 +66,6 @@ const doRefresh = async () => {
     const eventId = eventsStore.currentEvent?.id;
     if (eventId) {
       await participantsStore.fetchParticipants({ event: String(eventId) });
-      // 監控頁是唯讀，每次都從後端拉最新座位
-      await seatsStore.loadEventSeats(eventId);
     }
   } finally {
     refreshing.value = false;

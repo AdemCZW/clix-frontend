@@ -180,6 +180,7 @@ const onSeatAdd = (evt: unknown, targetSeat: Seat) => {
     });
   }
   rebuildDragLists();
+  seatsStore.notifyChange(); // 廣播到監控頁
 };
 
 // 點選換位邏輯（只用於座位之間的換位）
@@ -239,6 +240,7 @@ const selectSeat = (seat: Seat) => {
   // 清除選取
   selectedSeat.value = null;
   rebuildDragLists();
+  seatsStore.notifyChange();
 };
 
 const handleRemove = (seat: Seat) => {
@@ -257,6 +259,7 @@ const handleRemove = (seat: Seat) => {
     });
 
     rebuildDragLists();
+    seatsStore.notifyChange();
   }
   selectedSeat.value = null;
 };
