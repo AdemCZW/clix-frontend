@@ -41,13 +41,18 @@ const dateStr = computed(() =>
   now.value.toLocaleDateString("zh-TW", { year: "numeric", month: "long", day: "numeric", weekday: "short" })
 );
 
-// 刷新資料
+// 刷新資料（參與者 + 座位分配）
 const doRefresh = async () => {
   if (refreshing.value) return;
   refreshing.value = true;
   try {
     const eventId = eventsStore.currentEvent?.id;
-    if (eventId) await participantsStore.fetchParticipants({ event: String(eventId) });
+    if (eventId) {
+      await Promise.all([
+        participantsStore.fetchParticipants({ event: String(eventId) }),
+        seatsStore.loadEventSeats(eventId),
+      ]);
+    }
   } finally {
     refreshing.value = false;
   }
@@ -68,8 +73,12 @@ const getSeatPerson = (seat) => {
   return participantsStore.participants.find((x) => x.id === person.id) || person;
 };
 
-// 從 store 取得當前活動座位（act_01 為預設）
-const currentSeats = computed(() => seatsStore.activitySeats["act_01"] || []);
+// 從 store 取得當前活動座位
+const currentActivityId = computed(() => {
+  const eventId = eventsStore.currentEvent?.id;
+  return eventId ? `event_${eventId}` : "act_01";
+});
+const currentSeats = computed(() => seatsStore.activitySeats[currentActivityId.value] || []);
 const currentLayout = computed(() => seatsStore.layout);
 
 // 座位統計
