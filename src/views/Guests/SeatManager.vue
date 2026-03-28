@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import draggable from "vuedraggable";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { useSeatsStore } from "@/stores/seats";
 import { useToast } from "@/composables/useToast";
-import type { ParticipantType, Seat } from "@/types";
+import { apiRequest } from "@/utils/api";
+import type { ParticipantType, Seat, SeatAttendee } from "@/types";
 
 interface SeatPerson {
   id: number;
@@ -37,7 +38,6 @@ interface HistoryRecord {
 }
 
 
-const { success, error: toastError } = useToast();
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
 const seatsStore = useSeatsStore();
@@ -45,8 +45,7 @@ const seatsStore = useSeatsStore();
 // 當前專案和活動資訊
 const currentProject = computed(() => eventsStore.currentEvent?.name || "—");
 const currentActivity = computed(() => eventsStore.currentEvent?.name || "—");
-const currentEventId = computed(() => eventsStore.currentEvent?.id || 0);
-const currentActivityId = computed(() => currentEventId.value ? `event_${currentEventId.value}` : "act_01");
+const currentActivityId = ref("act_01");
 
 // 賓客名單（從 store 載入）
 const allParticipants = computed<SeatPerson[]>(() =>
@@ -59,82 +58,75 @@ const allParticipants = computed<SeatPerson[]>(() =>
   })),
 );
 
-// 從 seats store 取得 layout
+// 從 seats store 取得 layout 和 activitySeats
 const layout = seatsStore.layout;
-
-// 本地座位陣列（獨立 ref，vuedraggable 直接操作，不受 reactive/computed 干擾）
-const localSeats = ref<Seat[]>([]);
+const activitySeats = seatsStore.activitySeats;
 
 // 新增座位邏輯
-const addRow = () => {
-  layout.rows++;
-  const newCount = layout.rows * layout.cols;
-  while (localSeats.value.length < newCount) {
-    localSeats.value.push({ id: `s-${Date.now()}-${localSeats.value.length}`, label: `座-${localSeats.value.length + 1}`, attendee: [] });
-  }
-  syncToStore();
-};
-const addCol = () => {
-  layout.cols++;
-  const newCount = layout.rows * layout.cols;
-  while (localSeats.value.length < newCount) {
-    localSeats.value.push({ id: `s-${Date.now()}-${localSeats.value.length}`, label: `座-${localSeats.value.length + 1}`, attendee: [] });
-  }
-  syncToStore();
+const addRow = () => seatsStore.addRow(currentActivityId.value);
+const addCol = () => seatsStore.addCol(currentActivityId.value);
+
+// 待分配名單連動
+const unassignedList = ref<SeatPerson[]>([]);
+const updateUnassignedList = () => {
+  const currentSeats = activitySeats[currentActivityId.value];
+  const seatedIds = currentSeats.filter((s: Seat) => s.attendee.length > 0).map((s: Seat) => (s.attendee[0] as SeatPerson).id);
+  unassignedList.value = allParticipants.value.filter((p) => !seatedIds.includes(p.id));
 };
 
-// 同步本地座位到 store（給存檔和跨分頁用）
-const syncToStore = () => {
-  seatsStore.activitySeats[currentActivityId.value] = localSeats.value;
-  syncToStore();
-};
+// 分離貴賓和一般民眾
+const vipList = computed<SeatPerson[]>(() => unassignedList.value.filter((p) => p.type === "VIP"));
+const attendeeList = computed<SeatPerson[]>(() =>
+  unassignedList.value.filter((p) => p.type !== "VIP"),
+);
 
-// 待分配名單
-const vipDragList = ref<SeatPerson[]>([]);
-const generalDragList = ref<SeatPerson[]>([]);
-const guestViewType = ref("VIP");
-const unassignedList = computed(() => [...vipDragList.value, ...generalDragList.value]);
+// 切換顯示類型
+const guestViewType = ref("VIP"); // 'VIP' 或 'Attendee'
+const currentGuestList = computed<SeatPerson[]>(() => {
+  return guestViewType.value === "VIP" ? vipList.value : attendeeList.value;
+});
 
-const rebuildDragLists = () => {
-  const seatedIds = new Set(
-    localSeats.value
-      .filter((s) => s.attendee.length > 0)
-      .map((s) => (s.attendee[0] as unknown as SeatPerson).id)
-  );
-  const free = allParticipants.value.filter((p) => !seatedIds.has(p.id));
-  vipDragList.value = free.filter((p) => p.type === "VIP");
-  generalDragList.value = free.filter((p) => p.type !== "VIP");
-};
-
-// 儲存座位到後端
-const savingSeats = ref(false);
-const saveSeats = async () => {
-  if (!currentEventId.value) return;
-  savingSeats.value = true;
-  try {
-    await seatsStore.saveAll(currentEventId.value);
-    success("座位分配已儲存");
-  } catch {
-    toastError("儲存座位失敗，請稍後再試");
-  } finally {
-    savingSeats.value = false;
-  }
-};
+watch(currentActivityId, () => updateUnassignedList(), { immediate: true });
+watch(allParticipants, () => updateUnassignedList());
 
 onMounted(async () => {
   const event = eventsStore.currentEvent;
   if (event?.id) {
     await participantsStore.fetchParticipants({ event: String(event.id) });
-    // 只在第一次進入時從後端載入，之後不覆蓋本地拖曳結果
-    if (!seatsStore.loaded || !seatsStore.activitySeats[currentActivityId.value]) {
-      await seatsStore.loadEventSeats(event.id);
-    }
-    seatsStore.ensureActivity(currentActivityId.value);
-    // 從 store 複製到本地 ref（之後 vuedraggable 只操作本地 ref）
-    localSeats.value = [...(seatsStore.activitySeats[currentActivityId.value] || [])];
-    rebuildDragLists();
+    updateUnassignedList();
   }
 });
+
+// 儲存座位到後端
+const { success: toastSuccess, error: toastError } = useToast();
+const savingSeats = ref(false);
+const saveSeats = async () => {
+  const eventId = eventsStore.currentEvent?.id;
+  if (!eventId) return;
+  savingSeats.value = true;
+  try {
+    await apiRequest(`/api/seats/layout/${eventId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({ rows: seatsStore.layout.rows, cols: seatsStore.layout.cols }),
+    });
+    const seats = seatsStore.activitySeats[currentActivityId.value] || [];
+    const assignments = seats
+      .map((seat: Seat, index: number) => {
+        if (seat.attendee.length === 0) return null;
+        return { seat_index: index, seat_label: seat.label, participant_id: (seat.attendee[0] as SeatAttendee).id };
+      })
+      .filter(Boolean);
+    await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, {
+      method: 'POST',
+      body: JSON.stringify({ assignments }),
+    });
+    toastSuccess("座位分配已儲存");
+  } catch {
+    toastError("儲存失敗，請稍後再試");
+  } finally {
+    savingSeats.value = false;
+  }
+};
 
 // 即時監控 — 在新分頁開啟獨立頁面
 const openMonitor = () => {
@@ -198,8 +190,7 @@ const onSeatAdd = (evt: unknown, targetSeat: Seat) => {
       description: `${newPerson.name} 分配至 ${targetSeat.label}`,
     });
   }
-  rebuildDragLists();
-  syncToStore(); // 廣播到監控頁
+  updateUnassignedList();
 };
 
 // 點選換位邏輯（只用於座位之間的換位）
@@ -258,8 +249,7 @@ const selectSeat = (seat: Seat) => {
 
   // 清除選取
   selectedSeat.value = null;
-  rebuildDragLists();
-  syncToStore();
+  updateUnassignedList();
 };
 
 const handleRemove = (seat: Seat) => {
@@ -277,8 +267,7 @@ const handleRemove = (seat: Seat) => {
       description: `${person.name} 從 ${seat.label} 移除`,
     });
 
-    rebuildDragLists();
-    syncToStore();
+    updateUnassignedList();
   }
   selectedSeat.value = null;
 };
@@ -371,21 +360,20 @@ const seatSize = computed(() => {
             :class="{ active: guestViewType === 'VIP' }"
             @click="guestViewType = 'VIP'"
           >
-            貴賓 VIP <span class="tab-count">{{ unassignedList.filter(p => p.type === 'VIP').length }}</span>
+            貴賓 VIP <span class="tab-count">{{ vipList.length }}</span>
           </button>
           <button
             class="type-tab"
             :class="{ active: guestViewType === 'Attendee' }"
             @click="guestViewType = 'Attendee'"
           >
-            一般民眾 <span class="tab-count">{{ unassignedList.filter(p => p.type !== 'VIP').length }}</span>
+            一般民眾 <span class="tab-count">{{ attendeeList.length }}</span>
           </button>
         </div>
 
-        <!-- 賓客列表 — VIP -->
+        <!-- 賓客列表 -->
         <draggable
-          v-if="guestViewType === 'VIP'"
-          v-model="vipDragList"
+          v-model="currentGuestList"
           group="seatingGroup"
           item-key="id"
           class="drag-area"
@@ -394,29 +382,7 @@ const seatSize = computed(() => {
           :animation="300"
         >
           <template #item="{ element }">
-            <div class="person-card vip-card">
-              <div class="card-main">
-                <span class="p-serial">#{{ element.serial }}</span>
-                <span class="p-name">{{ element.name }}</span>
-              </div>
-              <div class="p-company">{{ element.company }}</div>
-            </div>
-          </template>
-        </draggable>
-
-        <!-- 賓客列表 — 一般民眾 -->
-        <draggable
-          v-else
-          v-model="generalDragList"
-          group="seatingGroup"
-          item-key="id"
-          class="drag-area"
-          ghost-class="my-ghost"
-          drag-class="my-drag"
-          :animation="300"
-        >
-          <template #item="{ element }">
-            <div class="person-card">
+            <div class="person-card" :class="{ 'vip-card': element.type === 'VIP' }">
               <div class="card-main">
                 <span class="p-serial">#{{ element.serial }}</span>
                 <span class="p-name">{{ element.name }}</span>
@@ -460,7 +426,7 @@ const seatSize = computed(() => {
             :style="{ gridTemplateColumns: `repeat(${layout.cols}, ${seatSize.width}px)` }"
           >
             <div
-              v-for="seat in localSeats"
+              v-for="seat in activitySeats[currentActivityId]"
               :key="seat.id"
               class="seat-item"
               :style="{ width: `${seatSize.width}px` }"
@@ -729,18 +695,8 @@ const seatSize = computed(() => {
     background: #d1fae5;
     border-color: #6ee7b7;
     color: #065f46;
-
-    &:hover {
-      background: #059669;
-      color: white;
-      border-color: #059669;
-    }
-
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
+    &:hover { background: #059669; color: white; border-color: #059669; }
+    &:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
   }
 }
 
