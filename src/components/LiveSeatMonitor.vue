@@ -87,12 +87,9 @@ const getSeatPerson = (seat) => {
   return participantsStore.participants.find((x) => x.id === person.id) || person;
 };
 
-// 從 store 取得當前活動座位
-const currentActivityId = computed(() => {
-  const eventId = eventsStore.currentEvent?.id;
-  return eventId ? `event_${eventId}` : "act_01";
-});
-const currentSeats = computed(() => seatsStore.activitySeats[currentActivityId.value] || []);
+// 從 store 取得當前活動座位（與編輯頁一致用 act_01）
+const currentActivityId = "act_01";
+const currentSeats = computed(() => seatsStore.activitySeats[currentActivityId] || []);
 const currentLayout = computed(() => seatsStore.layout);
 
 // 座位統計
