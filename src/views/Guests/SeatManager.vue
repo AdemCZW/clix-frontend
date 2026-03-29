@@ -45,7 +45,10 @@ const seatsStore = useSeatsStore();
 // 當前專案和活動資訊
 const currentProject = computed(() => eventsStore.currentEvent?.name || "—");
 const currentActivity = computed(() => eventsStore.currentEvent?.name || "—");
-const currentActivityId = ref("act_01");
+
+// 依活動 ID 產生唯一的座位 key
+const getActivityKey = (eventId?: number) => eventId ? `event_${eventId}` : "act_01";
+const currentActivityId = ref(getActivityKey(eventsStore.currentEvent?.id));
 
 // 賓客名單（從 store 載入）
 const allParticipants = computed<SeatPerson[]>(() =>
@@ -88,6 +91,13 @@ const attendeeList = computed<SeatPerson[]>(() =>
 const guestViewType = ref("VIP"); // 'VIP' 或 'Attendee'
 const currentGuestList = computed<SeatPerson[]>(() => {
   return guestViewType.value === "VIP" ? vipList.value : attendeeList.value;
+});
+
+// 活動切換時更新座位 key
+watch(() => eventsStore.currentEvent?.id, (newId) => {
+  currentActivityId.value = getActivityKey(newId);
+  seatsStore.ensureActivity(currentActivityId.value);
+  updateUnassignedList();
 });
 
 watch(currentActivityId, () => updateUnassignedList(), { immediate: true });
