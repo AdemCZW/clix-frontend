@@ -70,6 +70,10 @@ const addCol = () => seatsStore.addCol(currentActivityId.value);
 const unassignedList = ref<SeatPerson[]>([]);
 const updateUnassignedList = () => {
   const currentSeats = activitySeats[currentActivityId.value];
+  if (!currentSeats) {
+    unassignedList.value = [...allParticipants.value];
+    return;
+  }
   const seatedIds = currentSeats.filter((s: Seat) => s.attendee.length > 0).map((s: Seat) => (s.attendee[0] as SeatPerson).id);
   unassignedList.value = allParticipants.value.filter((p) => !seatedIds.includes(p.id));
 };
@@ -90,11 +94,12 @@ watch(currentActivityId, () => updateUnassignedList(), { immediate: true });
 watch(allParticipants, () => updateUnassignedList());
 
 onMounted(async () => {
+  seatsStore.ensureActivity(currentActivityId.value);
   const event = eventsStore.currentEvent;
   if (event?.id) {
     await participantsStore.fetchParticipants({ event: String(event.id) });
-    updateUnassignedList();
   }
+  updateUnassignedList();
 });
 
 // 儲存座位到後端
