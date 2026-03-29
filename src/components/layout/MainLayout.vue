@@ -5,7 +5,6 @@ import { useUserStore } from "@/stores/user";
 import { useEventsStore } from "@/stores/events";
 import { useToast } from "@/composables/useToast";
 import OnboardingModal from "@/components/onboarding/OnboardingModal.vue";
-import EventSwitcher from "@/components/EventSwitcher.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -14,12 +13,11 @@ const eventsStore = useEventsStore();
 const { success } = useToast();
 
 const sidebarOpen = ref(false);
+const globalSearch = ref("");
 
-// 初始化用戶狀態與上次選擇的活動
 userStore.checkAuth();
 if (userStore.user?.id) eventsStore.initFromStorage(userStore.user.id);
 
-// 進入時載入後端活動列表
 onMounted(async () => {
   try {
     await eventsStore.fetchEvents({
@@ -29,33 +27,30 @@ onMounted(async () => {
   } catch { /* silent */ }
 });
 
-// 沒有選擇活動時顯示選擇彈窗
 const showOnboarding = ref(!eventsStore.currentEvent);
 const onboardingMode = ref("select");
 
-// 依據功能邏輯重新整理的選單 (兩層架構)
 const mainMenuItems = computed(() => [
-  { id: 1, name: "主辦中心", path: "/admin/dashboard" },
-  { id: 2, name: "活動列表", path: "/admin/events" },
-  { id: 3, name: "總人員名單", path: "/admin/all-participants" },
-  ...(userStore.isSuperAdmin ? [{ id: 4, name: "帳戶權限", path: "/admin/account" }] : []),
+  { id: 1, name: "主辦中心", icon: "📊", path: "/admin/dashboard" },
+  { id: 2, name: "總人員名單", icon: "👥", path: "/admin/all-participants" },
+  { id: 3, name: "活動列表", icon: "📅", path: "/admin/events" },
+  ...(userStore.isSuperAdmin ? [{ id: 4, name: "帳戶權限", icon: "🔐", path: "/admin/account" }] : []),
 ]);
 
 const eventMenuItems = [
-  { id: 1, name: "報名頁面設定", path: "/admin/registration-setting" },
-  { id: 6, name: "參與者資訊", path: "/admin/participants" },
-  // { id: 2, name: "參與貴賓", path: "/admin/guests" },
-  { id: 3, name: "座次劃位管理", path: "/admin/seating-plan" },
-  { id: 4, name: "報名表欄位", path: "/admin/form-fields" },
-  { id: 5, name: "通知信設定", path: "/admin/notifications" },
-  { id: 7, name: "現場報到紀錄", path: "/admin/checkin-history" },
-  { id: 8, name: "識別證列印", path: "/admin/badge-printing" },
-  { id: 9, name: "中獎名單管理", path: "/admin/lottery-winners" },
-  { id: 10, name: "主辦單位資訊", path: "/admin/organizer-info" },
-  { id: 11, name: "AI客服設定", path: "/admin/ai-service" },
+  { id: 1, name: "報名頁面設定", icon: "⚙️", path: "/admin/registration-setting" },
+  { id: 6, name: "參與者資訊", icon: "👤", path: "/admin/participants" },
+  { id: 3, name: "座次劃位管理", icon: "💺", path: "/admin/seating-plan" },
+  { id: 4, name: "報名表欄位", icon: "📝", path: "/admin/form-fields" },
+  { id: 5, name: "通知信設定", icon: "✉️", path: "/admin/notifications" },
+  { id: 7, name: "現場報到紀錄", icon: "📋", path: "/admin/checkin-history" },
+  { id: 8, name: "識別證列印", icon: "🪪", path: "/admin/badge-printing" },
+  { id: 9, name: "中獎名單管理", icon: "🎯", path: "/admin/lottery-winners" },
+  { id: 10, name: "主辦單位資訊", icon: "🏢", path: "/admin/organizer-info" },
+  { id: 11, name: "AI客服設定", icon: "🤖", path: "/admin/ai-service" },
 ];
 
-const navigateTo = (path) => {
+const navigateTo = (path: string) => {
   if (path === "/admin/form-fields" && eventsStore.currentEvent?.id) {
     router.push({ path, query: { eventId: eventsStore.currentEvent.id } });
   } else {
@@ -64,20 +59,24 @@ const navigateTo = (path) => {
   sidebarOpen.value = false;
 };
 
-const handleOnboardingComplete = (data) => {
+const handleOnboardingComplete = (data: any) => {
   eventsStore.setCurrentEvent(data.event, userStore.user?.id);
   showOnboarding.value = false;
 };
 
-const handleOnboardingClose = () => {
-  // 可以選擇不允許關閉，或提供跳過選項
-  // showOnboarding.value = false;
-};
+const handleOnboardingClose = () => {};
 
 const handleLogout = async () => {
   await userStore.logout();
   success("已成功登出");
   router.push("/login");
+};
+
+// 活動切換下拉
+const showEventDropdown = ref(false);
+const selectEvent = (event: any) => {
+  eventsStore.setCurrentEvent(event, userStore.user?.id);
+  showEventDropdown.value = false;
 };
 </script>
 
@@ -88,16 +87,21 @@ const handleLogout = async () => {
       <div v-if="sidebarOpen" class="sidebar-overlay" @click="sidebarOpen = false"></div>
     </Transition>
 
+    <!-- ===== SIDEBAR ===== -->
     <aside class="sidebar" :class="{ open: sidebarOpen }">
       <div class="sidebar-header">
-        <div class="logo-box"></div>
-        <h2 class="system-name">報到系統</h2>
+        <div class="logo-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <rect width="24" height="24" rx="6" fill="#6366f1"/>
+            <path d="M7 12l3 3 7-7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="brand-name">Dabang</span>
       </div>
 
       <nav class="menu">
         <!-- 主選單 -->
         <div class="menu-section">
-          <div class="section-label">主要功能</div>
           <div
             v-for="item in mainMenuItems"
             :key="'main-' + item.id"
@@ -105,50 +109,85 @@ const handleLogout = async () => {
             :class="{ active: route.path === item.path }"
             @click="navigateTo(item.path)"
           >
-            <span class="label">{{ item.name }}</span>
+            <span class="menu-icon">{{ item.icon }}</span>
+            <span class="menu-label">{{ item.name }}</span>
           </div>
         </div>
 
         <!-- 活動管理選單 -->
         <div class="menu-section" v-if="eventsStore.currentEvent">
-          <div class="section-label">
-            活動管理
-            <span class="event-badge">{{ eventsStore.currentEvent.name }}</span>
+          <div class="section-divider">
+            <span class="divider-text">{{ eventsStore.currentEvent.name }}</span>
           </div>
           <div
             v-for="item in eventMenuItems"
             :key="'event-' + item.id"
-            class="menu-item sub-item"
+            class="menu-item"
             :class="{ active: route.path === item.path }"
             @click="navigateTo(item.path)"
           >
-            <span class="label">{{ item.name }}</span>
+            <span class="menu-icon">{{ item.icon }}</span>
+            <span class="menu-label">{{ item.name }}</span>
           </div>
         </div>
       </nav>
 
       <div class="sidebar-footer">
-        <button class="logout-btn" @click="handleLogout">LOGOUT</button>
+        <button class="logout-btn" @click="handleLogout">
+          <span>🚪</span> 登出
+        </button>
       </div>
     </aside>
 
+    <!-- ===== MAIN CONTENT ===== -->
     <main class="content-area">
+      <!-- NAVBAR -->
       <header class="content-header">
-        <button class="hamburger-btn" @click="sidebarOpen = !sidebarOpen">
+        <button class="hamburger-btn" @click="sidebarOpen = !sidebarOpen" aria-label="選單">
           <span class="hamburger-line"></span>
           <span class="hamburger-line"></span>
           <span class="hamburger-line"></span>
         </button>
-        <div class="header-actions">
-          <!-- <EventSwitcher /> -->
-          <div class="current-user" v-if="userStore.user">
-            <span class="user-avatar">{{ (userStore.user.username || userStore.user.email || '?')[0].toUpperCase() }}</span>
-            <span class="user-name">{{ userStore.user.username || userStore.user.email }}</span>
-            <span v-if="userStore.isSuperAdmin" class="user-role-badge">Super Admin</span>
+
+        <!-- 活動切換器 -->
+        <div class="event-switcher" v-if="eventsStore.currentEvent">
+          <div class="event-chip" @click="showEventDropdown = !showEventDropdown">
+            <div class="chip-dot"></div>
+            <span class="chip-name">{{ eventsStore.currentEvent.name }}</span>
+            <svg class="chip-arrow" :class="{ flipped: showEventDropdown }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
+          <Transition name="dropdown-fade">
+            <div v-if="showEventDropdown" class="event-dropdown">
+              <div
+                v-for="ev in eventsStore.events"
+                :key="ev.id"
+                class="dropdown-item"
+                :class="{ current: ev.id === eventsStore.currentEvent?.id }"
+                @click="selectEvent(ev)"
+              >
+                {{ ev.name }}
+                <span v-if="ev.id === eventsStore.currentEvent?.id" class="check-mark">✓</span>
+              </div>
+            </div>
+          </Transition>
+        </div>
+
+        <div class="header-spacer"></div>
+
+        <!-- 搜尋框 -->
+        <div class="header-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input v-model="globalSearch" type="text" placeholder="搜尋名字、票號、電話..." />
+        </div>
+
+        <!-- 使用者區域 -->
+        <div class="header-user" v-if="userStore.user">
+          <span v-if="userStore.isSuperAdmin" class="role-badge">Super Admin</span>
+          <div class="user-avatar">{{ (userStore.user.username || userStore.user.email || '?')[0].toUpperCase() }}</div>
         </div>
       </header>
 
+      <!-- 頁面內容 -->
       <section class="view-port">
         <router-view :key="route.fullPath" />
       </section>
@@ -165,40 +204,40 @@ const handleLogout = async () => {
 </template>
 
 <style lang="scss" scoped>
-/* 這裡保留您原本精美的 CSS 樣式，僅微調 icon 顯示 */
 .admin-layout {
   display: flex;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background-color: var(--bg-primary);
+  background: #f0f2f5;
 }
 
+/* ===== SIDEBAR ===== */
 .sidebar {
-  width: 260px;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
+  width: 240px;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+}
 
-  .sidebar-header {
-    padding: 30px 24px;
+.sidebar-header {
+  padding: 24px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .logo-icon {
     display: flex;
     align-items: center;
-    gap: 12px;
-    .logo-box {
-      width: 32px;
-      height: 32px;
-      background: var(--accent-blue);
-      clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-    }
-    .system-name {
-      font-size: 1.1rem;
-      letter-spacing: 2px;
-      color: var(--text-main);
-      margin: 0;
-    }
+  }
+
+  .brand-name {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #1f2937;
+    letter-spacing: -0.5px;
   }
 }
 
@@ -206,111 +245,101 @@ const handleLogout = async () => {
   flex: 1;
   padding: 0 12px;
   overflow-y: auto;
+}
 
-  .menu-section {
-    margin-bottom: 28px;
+.menu-section {
+  margin-bottom: 8px;
+}
 
-    &:last-child {
-      margin-bottom: 0;
-    }
+.section-divider {
+  padding: 16px 12px 8px;
+  display: flex;
+  align-items: center;
 
-    .section-label {
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text-muted);
-      padding: 8px 16px;
-      opacity: 0.6;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      .event-badge {
-        font-size: 0.75rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 4px 12px;
-        border-radius: 12px;
-        text-transform: none;
-        font-weight: 700;
-        max-width: 140px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-        letter-spacing: 0.5px;
-      }
-    }
+  .divider-text {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #6366f1;
+    background: #eef2ff;
+    padding: 4px 12px;
+    border-radius: 12px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
+}
 
-  .menu-item {
-    padding: 12px 16px;
-    margin-bottom: 4px;
-    border-radius: 8px;
-    cursor: pointer;
-    color: var(--text-muted);
-    transition: all 0.2s ease;
+.menu-item {
+  padding: 10px 12px;
+  margin-bottom: 2px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+
+  .menu-icon {
+    font-size: 1.1rem;
+    width: 24px;
     display: flex;
     align-items: center;
+    justify-content: center;
+  }
 
-    &.sub-item {
-      padding-left: 20px;
-      font-size: 0.9rem;
+  .menu-label {
+    flex: 1;
+  }
 
-      .icon-span {
-        font-size: 1rem;
-      }
-    }
+  &:hover {
+    background: #f8fafc;
+    color: #334155;
+  }
 
-    .icon-span {
-      margin-right: 12px;
-      font-size: 1.2rem;
-      min-width: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+  &.active {
+    background: #eef2ff;
+    color: #4f46e5;
+    font-weight: 600;
 
-    .label {
-      font-size: 0.95rem;
-      letter-spacing: 0.3px;
-    }
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.03);
-      color: var(--text-main);
-    }
-
-    &.active {
-      background: rgba(56, 189, 248, 0.1);
-      color: var(--accent-blue);
-      box-shadow: inset 3px 0 0 var(--accent-blue);
-      font-weight: 600;
+    .menu-icon {
+      filter: none;
     }
   }
 }
 
 .sidebar-footer {
-  padding: 20px;
-  border-top: 1px solid var(--border-color);
+  padding: 16px;
+  border-top: 1px solid #f1f5f9;
+
   .logout-btn {
     width: 100%;
     padding: 10px;
     background: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-muted);
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    color: #64748b;
     cursor: pointer;
-    font-size: 0.8rem;
-    letter-spacing: 2px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+
     &:hover {
       border-color: #f87171;
-      color: #f87171;
-      background: rgba(248, 113, 113, 0.05);
+      color: #ef4444;
+      background: #fef2f2;
     }
   }
 }
 
+/* ===== HEADER / NAVBAR ===== */
 .content-area {
   flex: 1;
   display: flex;
@@ -322,72 +351,160 @@ const handleLogout = async () => {
   height: 64px;
   padding: 0 24px;
   display: flex;
-  justify-content: flex-end;
   align-items: center;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
-  .header-actions {
-    display: flex;
-    align-items: center;
+  gap: 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.event-switcher {
+  position: relative;
+}
+
+.event-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 160px;
+
+  &:hover {
+    border-color: #cbd5e1;
+    background: #f1f5f9;
   }
-  .current-user {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    .user-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      font-weight: 700;
-      font-size: 0.85rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .user-name {
-      color: var(--text-main);
-      font-size: 0.9rem;
-      font-weight: 500;
-    }
-    .user-role-badge {
-      font-size: 0.7rem;
-      background: rgba(56, 189, 248, 0.15);
-      color: var(--accent-blue);
-      border: 1px solid var(--accent-blue);
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
+
+  .chip-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    flex-shrink: 0;
+  }
+
+  .chip-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #1e293b;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .chip-arrow {
+    color: #94a3b8;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+    &.flipped { transform: rotate(180deg); }
   }
 }
 
+.event-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  z-index: 100;
+  padding: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+
+  .dropdown-item {
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: #334155;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.15s;
+
+    &:hover { background: #f8fafc; }
+    &.current { background: #eef2ff; color: #4f46e5; font-weight: 600; }
+    .check-mark { color: #4f46e5; font-weight: 700; }
+  }
+}
+
+.dropdown-fade-enter-active, .dropdown-fade-leave-active { transition: all 0.2s ease; }
+.dropdown-fade-enter-from, .dropdown-fade-leave-to { opacity: 0; transform: translateY(-6px); }
+
+.header-spacer { flex: 1; }
+
+.header-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 14px;
+  min-width: 240px;
+  transition: all 0.2s;
+
+  &:focus-within {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 0.88rem;
+    color: #1e293b;
+    width: 100%;
+    &::placeholder { color: #94a3b8; }
+  }
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .role-badge {
+    font-size: 0.72rem;
+    background: #ef4444;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white;
+    font-weight: 700;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* ===== VIEW PORT ===== */
 .view-port {
   flex: 1;
-  padding: 15px;
+  padding: 24px;
   overflow-y: auto;
-  background: var(--bg-primary);
+  background: #f0f2f5;
 }
 
-/* 頁面切換動畫 */
-.page-fade-enter-active,
-.page-fade-leave-active {
-  transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
-}
-.page-fade-enter-from {
-  opacity: 0;
-  transform: translateY(10px);
-}
-.page-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-/* 漢堡按鈕 — 桌機隱藏 */
+/* ===== HAMBURGER ===== */
 .hamburger-btn {
   display: none;
   background: none;
@@ -401,31 +518,18 @@ const handleLogout = async () => {
     display: block;
     width: 22px;
     height: 2px;
-    background: var(--text-main);
+    background: #334155;
     border-radius: 2px;
-    transition: all 0.3s ease;
   }
 }
 
-/* 遮罩 — 桌機隱藏 */
-.sidebar-overlay {
-  display: none;
-}
+.sidebar-overlay { display: none; }
+.overlay-fade-enter-active, .overlay-fade-leave-active { transition: opacity 0.3s ease; }
+.overlay-fade-enter-from, .overlay-fade-leave-to { opacity: 0; }
 
-.overlay-fade-enter-active,
-.overlay-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-.overlay-fade-enter-from,
-.overlay-fade-leave-to {
-  opacity: 0;
-}
-
-/* ====== 手機版 ≤ 768px ====== */
+/* ===== MOBILE ===== */
 @media (max-width: 768px) {
-  .hamburger-btn {
-    display: flex;
-  }
+  .hamburger-btn { display: flex; }
 
   .sidebar {
     position: fixed;
@@ -439,7 +543,7 @@ const handleLogout = async () => {
 
     &.open {
       transform: translateX(0);
-      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
     }
   }
 
@@ -448,16 +552,30 @@ const handleLogout = async () => {
     position: fixed;
     inset: 0;
     z-index: 999;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(2px);
   }
 
   .content-header {
     justify-content: space-between;
+    padding: 0 16px;
+    gap: 8px;
   }
 
-  .view-port {
-    padding: 12px;
+  .header-search {
+    min-width: 0;
+    flex: 1;
   }
+
+  .event-switcher { display: none; }
+
+  .view-port {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-search { display: none; }
+  .role-badge { display: none; }
 }
 </style>
