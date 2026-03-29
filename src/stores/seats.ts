@@ -68,6 +68,7 @@ export const useSeatsStore = defineStore("seats", () => {
   }
 
   const addRow = (actId: string) => {
+    ensureActivity(actId)
     layout.rows++
     const seats = activitySeats[actId]
     const newCount = layout.rows * layout.cols
@@ -77,6 +78,7 @@ export const useSeatsStore = defineStore("seats", () => {
   }
 
   const addCol = (actId: string) => {
+    ensureActivity(actId)
     layout.cols++
     const seats = activitySeats[actId]
     const newCount = layout.rows * layout.cols

@@ -34,11 +34,10 @@ onMounted(async () => {
     }
   }
 
-  // 首次載入：從後端拉座位資料（之後靠 localStorage 跨分頁即時同步）
+  // 確保座位資料存在（從 localStorage 載入，不打後端）
   const eventId = eventsStore.currentEvent?.id;
-  if (eventId && !seatsStore.activitySeats[`event_${eventId}`]) {
-    await seatsStore.loadEventSeats(eventId);
-  }
+  const actId = eventId ? `event_${eventId}` : "act_01";
+  seatsStore.ensureActivity(actId);
 
   clockTimer = setInterval(() => { now.value = new Date(); }, 1000);
   // 每 10 秒刷新參與者報到狀態
