@@ -30,24 +30,43 @@ onMounted(async () => {
 const showOnboarding = ref(!eventsStore.currentEvent);
 const onboardingMode = ref("select");
 
+// SVG icon paths (Lucide style)
+const icons = {
+  dashboard: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  lock: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  grid: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+  list: '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
+  mail: '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
+  clipboard: '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>',
+  badge: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+  award: '<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',
+  building: '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>',
+  bot: '<rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/>',
+  logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+};
+
 const mainMenuItems = computed(() => [
-  { id: 1, name: "主辦中心", icon: "📊", path: "/admin/dashboard" },
-  { id: 2, name: "總人員名單", icon: "👥", path: "/admin/all-participants" },
-  { id: 3, name: "活動列表", icon: "📅", path: "/admin/events" },
-  ...(userStore.isSuperAdmin ? [{ id: 4, name: "帳戶權限", icon: "🔐", path: "/admin/account" }] : []),
+  { id: 1, name: "主辦中心", icon: icons.dashboard, path: "/admin/dashboard" },
+  { id: 2, name: "總人員名單", icon: icons.users, path: "/admin/all-participants" },
+  { id: 3, name: "活動列表", icon: icons.calendar, path: "/admin/events" },
+  ...(userStore.isSuperAdmin ? [{ id: 4, name: "帳戶權限", icon: icons.lock, path: "/admin/account" }] : []),
 ]);
 
 const eventMenuItems = [
-  { id: 1, name: "報名頁面設定", icon: "⚙️", path: "/admin/registration-setting" },
-  { id: 6, name: "參與者資訊", icon: "👤", path: "/admin/participants" },
-  { id: 3, name: "座次劃位管理", icon: "💺", path: "/admin/seating-plan" },
-  { id: 4, name: "報名表欄位", icon: "📝", path: "/admin/form-fields" },
-  { id: 5, name: "通知信設定", icon: "✉️", path: "/admin/notifications" },
-  { id: 7, name: "現場報到紀錄", icon: "📋", path: "/admin/checkin-history" },
-  { id: 8, name: "識別證列印", icon: "🪪", path: "/admin/badge-printing" },
-  { id: 9, name: "中獎名單管理", icon: "🎯", path: "/admin/lottery-winners" },
-  { id: 10, name: "主辦單位資訊", icon: "🏢", path: "/admin/organizer-info" },
-  { id: 11, name: "AI客服設定", icon: "🤖", path: "/admin/ai-service" },
+  { id: 1, name: "報名頁面設定", icon: icons.settings, path: "/admin/registration-setting" },
+  { id: 6, name: "參與者資訊", icon: icons.user, path: "/admin/participants" },
+  { id: 3, name: "座次劃位管理", icon: icons.grid, path: "/admin/seating-plan" },
+  { id: 4, name: "報名表欄位", icon: icons.list, path: "/admin/form-fields" },
+  { id: 5, name: "通知信設定", icon: icons.mail, path: "/admin/notifications" },
+  { id: 7, name: "現場報到紀錄", icon: icons.clipboard, path: "/admin/checkin-history" },
+  { id: 8, name: "識別證列印", icon: icons.badge, path: "/admin/badge-printing" },
+  { id: 9, name: "中獎名單管理", icon: icons.award, path: "/admin/lottery-winners" },
+  { id: 10, name: "主辦單位資訊", icon: icons.building, path: "/admin/organizer-info" },
+  { id: 11, name: "AI客服設定", icon: icons.bot, path: "/admin/ai-service" },
 ];
 
 const navigateTo = (path: string) => {
@@ -109,7 +128,7 @@ const selectEvent = (event: any) => {
             :class="{ active: route.path === item.path }"
             @click="navigateTo(item.path)"
           >
-            <span class="menu-icon">{{ item.icon }}</span>
+            <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" v-html="item.icon"></svg>
             <span class="menu-label">{{ item.name }}</span>
           </div>
         </div>
@@ -126,7 +145,7 @@ const selectEvent = (event: any) => {
             :class="{ active: route.path === item.path }"
             @click="navigateTo(item.path)"
           >
-            <span class="menu-icon">{{ item.icon }}</span>
+            <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" v-html="item.icon"></svg>
             <span class="menu-label">{{ item.name }}</span>
           </div>
         </div>
@@ -134,7 +153,8 @@ const selectEvent = (event: any) => {
 
       <div class="sidebar-footer">
         <button class="logout-btn" @click="handleLogout">
-          <span>🚪</span> 登出
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" v-html="icons.logout"></svg>
+          登出
         </button>
       </div>
     </aside>
@@ -180,8 +200,11 @@ const selectEvent = (event: any) => {
           <input v-model="globalSearch" type="text" placeholder="搜尋名字、票號、電話..." />
         </div>
 
-        <!-- 使用者區域 -->
+        <!-- 通知鈴鐺 + 使用者區域 -->
         <div class="header-user" v-if="userStore.user">
+          <button class="notify-btn" aria-label="通知">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </button>
           <span v-if="userStore.isSuperAdmin" class="role-badge">Super Admin</span>
           <div class="user-avatar">{{ (userStore.user.username || userStore.user.email || '?')[0].toUpperCase() }}</div>
         </div>
@@ -284,11 +307,10 @@ const selectEvent = (event: any) => {
   font-weight: 500;
 
   .menu-icon {
-    font-size: 1.1rem;
-    width: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    color: #94a3b8;
   }
 
   .menu-label {
@@ -306,7 +328,7 @@ const selectEvent = (event: any) => {
     font-weight: 600;
 
     .menu-icon {
-      filter: none;
+      color: #4f46e5;
     }
   }
 }
@@ -465,6 +487,18 @@ const selectEvent = (event: any) => {
     width: 100%;
     &::placeholder { color: #94a3b8; }
   }
+}
+
+.notify-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  transition: background 0.15s;
+  &:hover { background: #f1f5f9; }
 }
 
 .header-user {
