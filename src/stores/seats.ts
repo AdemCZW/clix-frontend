@@ -1,5 +1,6 @@
 import { defineStore } from "pinia"
 import { reactive, watch } from "vue"
+import { apiRequest } from "@/utils/api"
 import type { SeatLayout, Seat, ActivitySeats } from "@/types"
 
 const LS_LAYOUT = "seatMgr_layout"
@@ -87,5 +88,58 @@ export const useSeatsStore = defineStore("seats", () => {
     }
   }
 
-  return { layout, activitySeats, ensureActivity, addRow, addCol }
+  // 從後端載入座位（只在 localStorage 沒有該活動資料時呼叫）
+  const loadFromBackend = async (eventId: number) => {
+    const actId = `event_${eventId}`
+    // 如果 localStorage 已有資料，不覆蓋
+    if (activitySeats[actId] && activitySeats[actId].length > 0) {
+      const hasAnyPerson = activitySeats[actId].some((s: Seat) => s.attendee.length > 0)
+      if (hasAnyPerson) return // 本地已有分配，不從後端拉
+    }
+
+    try {
+      // 拉 layout
+      const layoutRes = await apiRequest(`/api/seats/layout/${eventId}/`)
+      if (layoutRes.ok) {
+        const data = await layoutRes.json()
+        layout.rows = data.rows
+        layout.cols = data.cols
+      }
+
+      // 拉 assignments
+      const assignRes = await apiRequest(`/api/seats/assignments/${eventId}/`)
+      if (!assignRes.ok) return
+      const assignments: Array<{
+        seat_index: number; seat_label: string;
+        participant: number; participant_name: string;
+        participant_type: string; participant_company: string;
+      }> = await assignRes.json()
+
+      // 沒有後端資料就不覆蓋
+      if (assignments.length === 0) return
+
+      // 建立座位陣列
+      const totalSeats = layout.rows * layout.cols
+      const seats: Seat[] = Array.from({ length: totalSeats }, (_, i) => makeSeat(i))
+      for (const a of assignments) {
+        if (a.seat_index < seats.length) {
+          seats[a.seat_index] = {
+            id: `s-${a.seat_index}`,
+            label: a.seat_label || `座-${a.seat_index + 1}`,
+            attendee: [{
+              id: a.participant,
+              name: a.participant_name,
+              type: a.participant_type,
+              company: a.participant_company,
+            }],
+          }
+        }
+      }
+      activitySeats[actId] = seats
+    } catch (err) {
+      console.error('loadFromBackend error:', err)
+    }
+  }
+
+  return { layout, activitySeats, ensureActivity, addRow, addCol, loadFromBackend }
 })

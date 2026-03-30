@@ -104,11 +104,13 @@ watch(currentActivityId, () => updateUnassignedList(), { immediate: true });
 watch(allParticipants, () => updateUnassignedList());
 
 onMounted(async () => {
-  seatsStore.ensureActivity(currentActivityId.value);
   const event = eventsStore.currentEvent;
   if (event?.id) {
+    // 先嘗試從後端載入（只在 localStorage 沒資料時才拉）
+    await seatsStore.loadFromBackend(event.id);
     await participantsStore.fetchParticipants({ event: String(event.id) });
   }
+  seatsStore.ensureActivity(currentActivityId.value);
   updateUnassignedList();
 });
 
