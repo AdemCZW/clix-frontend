@@ -6,6 +6,7 @@ import { useToast } from "@/composables/useToast";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { apiRequest } from "@/utils/api";
+import { setupQuillImageUpload } from "@/composables/useQuillImageUpload";
 import type { Participant } from "@/types";
 
 interface EmailTemplate {
@@ -244,6 +245,10 @@ const editorOptions = {
 
 onMounted(async () => {
   loadTemplates();
+  // Quill 圖片上傳（取代 base64）
+  setTimeout(() => {
+    if (myQuill.value) setupQuillImageUpload(myQuill.value);
+  }, 100);
   try {
     const eventId = eventsStore.currentEvent?.id;
     await participantsStore.fetchParticipants(eventId ? { event: String(eventId) } : {});

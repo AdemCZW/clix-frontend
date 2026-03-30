@@ -10,6 +10,7 @@ import { useEventsStore } from "@/stores/events";
 import { useRegistrationPagesStore } from "@/stores/registrationPages";
 import { useUserStore } from "@/stores/user";
 import { useToast } from "@/composables/useToast";
+import { setupQuillImageUpload } from "@/composables/useQuillImageUpload";
 import { useRouter } from "vue-router";
 import type { Guest, Participant } from "@/types";
 
@@ -189,6 +190,11 @@ onMounted(async () => {
     }
   } finally {
     loading.value = false;
+    // Quill 圖片上傳（取代 base64）
+    setTimeout(() => {
+      if (myQuill.value) setupQuillImageUpload(myQuill.value);
+      if (emailQuill.value) setupQuillImageUpload(emailQuill.value);
+    }, 100);
   }
 });
 
