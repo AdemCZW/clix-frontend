@@ -56,7 +56,7 @@
             v-if="selectedAdmin"
             class="btn-primary"
             @click="showAddStaffModal = true"
-            :disabled="!canAddStaff(selectedAdminId!)"
+            :disabled="!selectedAdminId || !canAddStaff(selectedAdminId)"
           >
             <span class="btn-icon">+</span>
             新增員工
@@ -70,7 +70,7 @@
             <button
               class="btn-primary"
               @click="showAddStaffModal = true"
-              :disabled="!canAddStaff(selectedAdminId!)"
+              :disabled="!selectedAdminId || !canAddStaff(selectedAdminId)"
             >
               新增第一個員工
             </button>
@@ -169,7 +169,7 @@
         <div class="selected-manager-display">
           {{ selectedAdmin?.email }}
           <span class="quota-info">
-            ({{ getStaffCountByAdmin(selectedAdminId!) }}/{{ selectedAdmin?.staffQuota }})
+            ({{ selectedAdminId ? getStaffCountByAdmin(selectedAdminId) : 0 }}/{{ selectedAdmin?.staffQuota }})
           </span>
         </div>
       </div>
@@ -213,7 +213,7 @@
       <div class="form-group">
         <label class="form-label">目前使用數</label>
         <div class="info-display">
-          {{ editingAdmin ? getStaffCountByAdmin(editingAdmin!.id) : 0 }} 位員工
+          {{ editingAdmin ? getStaffCountByAdmin(editingAdmin.id) : 0 }} 位員工
         </div>
       </div>
       <div class="form-group">
@@ -222,7 +222,7 @@
           v-model.number="editQuotaValue"
           type="number"
           class="form-input"
-          :min="editingAdmin ? getStaffCountByAdmin(editingAdmin!.id) : 0"
+          :min="editingAdmin ? getStaffCountByAdmin(editingAdmin.id) : 0"
           placeholder="不可低於目前使用數"
         />
       </div>
@@ -430,7 +430,7 @@ const openEditQuotaModal = (admin: Manager) => {
 const saveQuota = async () => {
   if (!editingAdmin.value) return;
 
-  const currentUsage = getStaffCountByAdmin(editingAdmin.value!.id);
+  const currentUsage = getStaffCountByAdmin(editingAdmin.value.id);
 
   if (editQuotaValue.value < currentUsage) {
     warning(`新配額不可低於目前使用數 (${currentUsage})`);
@@ -438,7 +438,7 @@ const saveQuota = async () => {
   }
 
   try {
-    await adminStore.updateAdminQuota(editingAdmin.value!.id, editQuotaValue.value);
+    await adminStore.updateAdminQuota(editingAdmin.value.id, editQuotaValue.value);
     success("配額已更新");
     showEditQuotaModal.value = false;
     editingAdmin.value = null;

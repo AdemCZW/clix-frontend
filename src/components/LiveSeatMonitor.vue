@@ -75,6 +75,7 @@ const doRefresh = async () => {
 const getSeatStatus = (seat) => {
   if (!seat.attendee || seat.attendee.length === 0) return "empty";
   const person = seat.attendee[0];
+  if (!person || !person.id) return "empty";
   const p = participantsStore.participants.find((x) => x.id === person.id);
   if (!p) return "assigned";
   return p.status === "已報到" ? "checked" : "assigned";
@@ -83,6 +84,7 @@ const getSeatStatus = (seat) => {
 const getSeatPerson = (seat) => {
   if (!seat.attendee || seat.attendee.length === 0) return null;
   const person = seat.attendee[0];
+  if (!person) return null;
   return participantsStore.participants.find((x) => x.id === person.id) || person;
 };
 

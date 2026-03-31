@@ -94,11 +94,19 @@ const handleSubmit = async () => {
   }
 }
 
-// 報名狀態（目前為佔位實作，可接入後端資料）
-const participantsCount = computed(() => 0)
-const maxParticipants = computed(() => '∞')
-const isFull = computed(() => false)
-const statusText = computed(() => '報名中')
+// 報名狀態（從後端公開頁面 API 取得）
+const participantsCount = computed(() => (pageData.value as Record<string, unknown>)?.participants_count ?? 0)
+const maxParticipants = computed(() => (pageData.value as Record<string, unknown>)?.max_participants ?? '∞')
+const isFull = computed(() => {
+  const max = (pageData.value as Record<string, unknown>)?.max_participants as number | undefined
+  const count = (pageData.value as Record<string, unknown>)?.participants_count as number | undefined
+  if (max && count !== undefined) return count >= max
+  return false
+})
+const statusText = computed(() => {
+  if (isFull.value) return '已額滿'
+  return ((pageData.value as Record<string, unknown>)?.event_status_text as string) || '報名中'
+})
 
 const openForm = () => { showForm.value = true }
 const backToInfo = () => { showForm.value = false }

@@ -114,11 +114,6 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
       <div class="edit-panel">
         <div class="section-title">自定義欄位 (可拖拽排序)</div>
 
-        <!-- 診斷：確認載入狀態 -->
-        <div class="debug-status" style="font-size:11px;color:#64748b;margin-bottom:8px;">
-          pageId={{ pageId }}, fields.length={{ fields.length }}, isInit={{ isInitializing }}
-        </div>
-
         <div v-show="!pageId" class="loading-placeholder">載入欄位設定中...</div>
         <div v-show="pageId" class="field-list">
           <div
