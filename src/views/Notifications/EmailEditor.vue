@@ -7,6 +7,7 @@ import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { apiRequest } from "@/utils/api";
 import { setupQuillImageUpload } from "@/composables/useQuillImageUpload";
+import PageLoader from "@/components/shared/PageLoader.vue";
 import type { Participant } from "@/types";
 
 interface EmailTemplate {
@@ -19,6 +20,8 @@ interface EmailTemplate {
 const { success, warning } = useToast();
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
+
+const pageLoading = ref(true);
 
 // 1. 通知信資料模型
 const mailSettings = reactive({
@@ -254,12 +257,17 @@ onMounted(async () => {
     await participantsStore.fetchParticipants(eventId ? { event: String(eventId) } : {});
   } catch {
     warning("載入參與者資料失敗");
+  } finally {
+    pageLoading.value = false;
   }
 });
 </script>
 
 <template>
   <div class="email-editor-view">
+    <PageLoader v-if="pageLoading" text="載入中..." />
+
+    <template v-else>
     <div class="page-header">
       <div class="header-actions">
         <button class="btn-send" :disabled="sending || cooldown > 0" @click="sendEmail">{{ sendBtnText }}</button>
@@ -376,6 +384,7 @@ onMounted(async () => {
       </Transition>
     </Teleport>
 
+    </template>
   </div>
 </template>
 

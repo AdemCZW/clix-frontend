@@ -1,5 +1,8 @@
 <template>
   <div class="all-participants-view">
+    <PageLoader v-if="pageLoading" text="載入中..." />
+
+    <template v-else>
     <!-- 篩選工具列 -->
     <div class="filter-bar">
       <div class="search-box">
@@ -101,6 +104,7 @@
       <h3>暫無報名資料</h3>
       <p>目前沒有符合條件的參與者資料</p>
     </div>
+    </template>
   </div>
 </template>
 
@@ -110,6 +114,7 @@ const loadXLSX = () => import("xlsx");
 import { useAdminAccountsStore } from "@/stores/adminAccounts";
 import { useParticipantsStore } from "@/stores/participants";
 import { storeToRefs } from "pinia";
+import PageLoader from "@/components/shared/PageLoader.vue";
 import type { Participant } from "@/types";
 
 interface LocalEvent {
@@ -141,34 +146,39 @@ const expandedEvents = ref<number[]>([]);
 
 // 活動資料（從全部參與者資料重建）
 const events = ref<LocalEvent[]>([]);
+const pageLoading = ref(true);
 
 onMounted(async () => {
-  // 確保管理者列表已載入
-  if (!adminAccounts.value.length) {
-    await adminStore.fetchManagers();
-  }
-
-  // 拉取全部參與者（不限活動），並重建成以活動為單位的資料結構
-  const all = await participantsStore.fetchParticipants({});
-  const eventMap: Record<number, LocalEvent> = {};
-  all.forEach((p: Participant) => {
-    if (!p.eventId) return;
-    if (!eventMap[p.eventId]) {
-      eventMap[p.eventId] = {
-        id: p.eventId,
-        name: p.eventName || `活動 #${p.eventId}`,
-        date: "",
-        managerId: p.managerId,
-        participants: [],
-      };
+  try {
+    // 確保管理者列表已載入
+    if (!adminAccounts.value.length) {
+      await adminStore.fetchManagers();
     }
-    eventMap[p.eventId].participants.push({
-      ...p,
-      checkedIn: p.status === "已報到",
-      registeredAt: p.createdAt,
+
+    // 拉取全部參與者（不限活動），並重建成以活動為單位的資料結構
+    const all = await participantsStore.fetchParticipants({});
+    const eventMap: Record<number, LocalEvent> = {};
+    all.forEach((p: Participant) => {
+      if (!p.eventId) return;
+      if (!eventMap[p.eventId]) {
+        eventMap[p.eventId] = {
+          id: p.eventId,
+          name: p.eventName || `活動 #${p.eventId}`,
+          date: "",
+          managerId: p.managerId,
+          participants: [],
+        };
+      }
+      eventMap[p.eventId].participants.push({
+        ...p,
+        checkedIn: p.status === "已報到",
+        registeredAt: p.createdAt,
+      });
     });
-  });
-  events.value = Object.values(eventMap);
+    events.value = Object.values(eventMap);
+  } finally {
+    pageLoading.value = false;
+  }
 });
 
 // 根據選擇的管理者篩選活動

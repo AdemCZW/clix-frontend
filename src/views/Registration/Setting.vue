@@ -12,6 +12,7 @@ import { useUserStore } from "@/stores/user";
 import { useToast } from "@/composables/useToast";
 import { setupQuillImageUpload } from "@/composables/useQuillImageUpload";
 import { useRouter } from "vue-router";
+import PageLoader from "@/components/shared/PageLoader.vue";
 import type { Guest, Participant } from "@/types";
 
 // 使用 stores
@@ -330,6 +331,9 @@ const closeGuestDetail = () => {
 
 <template>
   <div class="registration-view">
+    <PageLoader v-if="loading" text="載入中..." />
+
+    <template v-else>
     <Teleport to="body">
       <Transition name="slide-down">
         <div v-if="showToast" class="toast-box">報名頁面已成功生產並發布！</div>
@@ -647,6 +651,7 @@ const closeGuestDetail = () => {
         </div>
       </Transition>
     </Teleport>
+    </template>
   </div>
 </template>
 

@@ -5,6 +5,7 @@ import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import QRCodeLib from "qrcode";
 import jsQR from "jsqr";
+import PageLoader from "@/components/shared/PageLoader.vue";
 
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();

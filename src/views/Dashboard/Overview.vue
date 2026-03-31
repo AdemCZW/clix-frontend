@@ -1,7 +1,9 @@
 <template>
   <div class="dashboard-view">
+    <PageLoader v-if="dashboardLoading" text="載入中..." />
+
     <!-- 載入失敗 -->
-    <div v-if="dashboardError" class="dashboard-error">
+    <div v-else-if="dashboardError" class="dashboard-error">
       <p>{{ dashboardError }}</p>
       <button class="btn-retry" @click="loadDashboard">重新載入</button>
     </div>
@@ -205,6 +207,7 @@ import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { useUserStore } from "@/stores/user";
 import { useCheckinStats } from "@/composables/useCheckinStats";
+import PageLoader from "@/components/shared/PageLoader.vue";
 
 const router = useRouter();
 const participantsStore = useParticipantsStore();

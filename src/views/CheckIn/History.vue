@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useToast } from "@/composables/useToast";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { useCheckinStats } from "@/composables/useCheckinStats";
 import BaseModal from "@/components/shared/BaseModal.vue";
+import PageLoader from "@/components/shared/PageLoader.vue";
 import type { Participant } from "@/types";
 
 const { success, warning } = useToast();
@@ -14,6 +15,7 @@ const { stats, checkInRate } = useCheckinStats();
 
 const showManualModal = ref(false);
 const searchName = ref("");
+const pageLoading = ref(true);
 
 // 篩選條件
 const filterType = ref("all");
@@ -28,11 +30,15 @@ watch(
   async (event) => {
     if (!event?.id) {
       participantsStore.clear();
+      pageLoading.value = false;
       return;
     }
     try {
       await participantsStore.fetchParticipants({ event: String(event.id) });
     } catch { /* silent */ }
+    finally {
+      pageLoading.value = false;
+    }
   },
   { immediate: true }
 );
@@ -186,6 +192,9 @@ const hasActiveFilters = computed(() =>
 
 <template>
   <div class="checkin-view">
+    <PageLoader v-if="pageLoading" text="載入中..." />
+
+    <template v-else>
     <!-- 頂部統計列 -->
     <div class="stats-bar">
       <div class="stat-item">
@@ -321,6 +330,7 @@ const hasActiveFilters = computed(() =>
         <button class="btn-dialog confirm" @click="confirmCancel">確認取消</button>
       </template>
     </BaseModal>
+    </template>
   </div>
 </template>
 

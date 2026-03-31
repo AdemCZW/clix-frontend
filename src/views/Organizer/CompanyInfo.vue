@@ -1,5 +1,8 @@
 <template>
   <div class="company-info-page">
+    <PageLoader v-if="loading" text="載入中..." />
+
+    <template v-else>
     <div class="page-container">
       <div class="page-header">
         <h1 class="page-title">主辦單位資訊</h1>
@@ -120,6 +123,7 @@
         </form>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
@@ -128,6 +132,7 @@ import { reactive, ref, onMounted } from "vue";
 import { useToast } from "@/composables/useToast";
 import { apiRequest } from "@/utils/api";
 import { parseApiError } from "@/utils/parseApiError";
+import PageLoader from "@/components/shared/PageLoader.vue";
 
 const { success, error: toastError } = useToast();
 

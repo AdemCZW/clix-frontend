@@ -1,5 +1,8 @@
 <template>
   <div v-if="isSuperAdmin" class="account-view">
+    <PageLoader v-if="pageLoading" text="載入中..." />
+
+    <template v-else>
     <!-- 載入中遮罩 -->
     <div v-if="loading" class="loading-overlay">
       <div class="loading-spinner">載入中...</div>
@@ -228,6 +231,7 @@
         <button class="btn-primary" @click="saveQuota">確認修改</button>
       </template>
     </BaseModal>
+    </template>
   </div>
   <div v-else class="no-permission">
     <p>您沒有權限檢視此頁面</p>
@@ -241,6 +245,7 @@ import { useUserStore } from "@/stores/user";
 import { storeToRefs } from "pinia";
 import { useToast } from "@/composables/useToast";
 import BaseModal from "@/components/shared/BaseModal.vue";
+import PageLoader from "@/components/shared/PageLoader.vue";
 import type { Manager } from "@/types";
 
 const { success, error, warning } = useToast();
@@ -251,11 +256,15 @@ const { isSuperAdmin } = storeToRefs(userStore);
 const adminStore = useAdminAccountsStore();
 const { adminAccounts, staffAccounts, loading } = storeToRefs(adminStore);
 
+const pageLoading = ref(true);
+
 onMounted(async () => {
   try {
     await Promise.all([adminStore.fetchManagers(), adminStore.fetchStaff()]);
   } catch (err: unknown) {
     error((err as Error).message || "載入資料失敗");
+  } finally {
+    pageLoading.value = false;
   }
 });
 

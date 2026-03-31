@@ -7,11 +7,14 @@ import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import BasePanel from "@/components/shared/BasePanel.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
+import PageLoader from "@/components/shared/PageLoader.vue";
 import type { Participant } from "@/types";
 
 const { success, warning, error: showError } = useToast();
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
+
+const pageLoading = ref(true);
 
 // 頁面載入時獲取資料
 onMounted(async () => {
@@ -20,6 +23,8 @@ onMounted(async () => {
     await participantsStore.fetchParticipants(eventId ? { event: String(eventId) } : {});
   } catch (err) {
     showError("無法載入參與者資料");
+  } finally {
+    pageLoading.value = false;
   }
 
   // 監聽點擊外部關閉選單
@@ -364,6 +369,9 @@ const toggleVIP = (participant: Participant) => {
 
 <template>
   <div class="participants-view">
+    <PageLoader v-if="pageLoading" text="載入中..." />
+
+    <template v-else>
     <!-- 加載遮罩 -->
     <div v-if="participantsStore.loading" class="loading-overlay">
       <div class="loading-spinner"></div>
@@ -677,6 +685,7 @@ const toggleVIP = (participant: Participant) => {
       @confirm="confirmDelete"
       @cancel="confirmDialog.show = false"
     />
+    </template>
   </div>
 </template>
 

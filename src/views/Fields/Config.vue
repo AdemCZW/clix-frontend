@@ -6,6 +6,7 @@ import { useRegistrationFormFieldsStore } from "@/stores/registrationFormFields"
 import { useRegistrationPagesStore } from "@/stores/registrationPages";
 import { useEventsStore } from "@/stores/events";
 import { useToast } from "@/composables/useToast";
+import PageLoader from "@/components/shared/PageLoader.vue";
 import type { FormField, FieldType } from "@/types";
 
 const route = useRoute();
@@ -97,9 +98,12 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
 <template>
   <div class="fields-config">
+    <PageLoader v-if="isInitializing" text="載入中..." />
+
+    <template v-else>
     <div class="page-header">
       <div class="header-actions">
-        <span v-if="isInitializing || fieldsStore.loading" class="status-tag">載入中...</span>
+        <span v-if="fieldsStore.loading" class="status-tag">載入中...</span>
         <button v-else class="btn-save-fields" :disabled="fieldsStore.saving || !pageId" @click="saveFields">
           {{ fieldsStore.saving ? "儲存中..." : "儲存欄位設定" }}
         </button>
@@ -217,6 +221,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>
 

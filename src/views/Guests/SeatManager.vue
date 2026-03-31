@@ -5,6 +5,7 @@ import { useEventsStore } from "@/stores/events";
 import { useSeatsStore } from "@/stores/seats";
 import { useToast } from "@/composables/useToast";
 import { apiRequest } from "@/utils/api";
+import PageLoader from "@/components/shared/PageLoader.vue";
 import type { ParticipantType, Seat, SeatAttendee } from "@/types";
 
 interface SeatPerson { id: number; serial: string; name: string; company: string; type: ParticipantType; }
@@ -254,6 +255,7 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 });
 
 const initialized = ref(false);
+const pageLoading = ref(true);
 
 onMounted(async () => {
   const event = eventsStore.currentEvent;
@@ -264,6 +266,7 @@ onMounted(async () => {
   }
   updateUnassignedList();
   initialized.value = true;
+  pageLoading.value = false;
 });
 
 // participants 載入完成後重算一次（只在初始化階段）
@@ -275,6 +278,9 @@ watch(() => participantsStore.participants.length, () => {
 
 <template>
   <div class="sp">
+    <PageLoader v-if="pageLoading" text="載入中..." />
+
+    <template v-else>
     <!-- 左側 -->
     <aside class="sp-left">
       <label class="sp-toggle">
@@ -388,6 +394,7 @@ watch(() => participantsStore.participants.length, () => {
         <button @click="zoomOut">−</button>
       </div>
     </main>
+    </template>
   </div>
 </template>
 
