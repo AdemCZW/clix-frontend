@@ -237,7 +237,7 @@ const saveSeats = async () => {
     for (const key of Object.keys(seatsStore.seatMetasMap)) {
       if (key.startsWith(actId + '_')) {
         const idx = parseInt(key.replace(actId + '_', ''));
-        seat_metas.push({ seat_index: idx, status: seatsStore.seatMetasMap[key] as string });
+        seat_metas.push({ seat_index: idx, status: seatsStore.seatMetasMap[key] });
       }
     }
     await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, { method: "POST", body: JSON.stringify({ assignments, seat_metas }) });
@@ -253,13 +253,22 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
   updateUnassignedList();
 });
 
+const initialized = ref(false);
+
 onMounted(async () => {
   const event = eventsStore.currentEvent;
+  seatsStore.ensureActivity(currentActivityId.value);
   if (event?.id) {
     await seatsStore.loadFromBackend(event.id);
     await participantsStore.fetchParticipants({ event: String(event.id) });
   }
-  seatsStore.ensureActivity(currentActivityId.value);
+  updateUnassignedList();
+  initialized.value = true;
+});
+
+// participants 載入完成後重算一次（只在初始化階段）
+watch(() => participantsStore.participants.length, () => {
+  if (initialized.value) return; // 初始化完成後不再自動重算
   updateUnassignedList();
 });
 </script>
