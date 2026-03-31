@@ -41,9 +41,17 @@ export const useSeatsStore = defineStore("seats", () => {
     })),
   })
 
-  // 寫入 localStorage（只在本分頁修改時）
-  watch(layout, (val) => localStorage.setItem(LS_LAYOUT, JSON.stringify(val)), { deep: true })
-  watch(activitySeats, (val) => localStorage.setItem(LS_SEATS, JSON.stringify(val)), { deep: true })
+  // 寫入 localStorage（加 debounce 避免拖曳時過度寫入）
+  let layoutTimer: ReturnType<typeof setTimeout> | null = null
+  let seatsTimer: ReturnType<typeof setTimeout> | null = null
+  watch(layout, (val) => {
+    if (layoutTimer) clearTimeout(layoutTimer)
+    layoutTimer = setTimeout(() => localStorage.setItem(LS_LAYOUT, JSON.stringify(val)), 500)
+  }, { deep: true })
+  watch(activitySeats, (val) => {
+    if (seatsTimer) clearTimeout(seatsTimer)
+    seatsTimer = setTimeout(() => localStorage.setItem(LS_SEATS, JSON.stringify(val)), 500)
+  }, { deep: true })
 
   // 跨分頁同步：監聽其他分頁寫入 localStorage 的 storage 事件
   const onStorage = (e: StorageEvent) => {
