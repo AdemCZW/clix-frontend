@@ -223,7 +223,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 <style lang="scss" scoped>
 .fields-config {
   padding: 12px;
-  --primary-blue: #3b82f6;
+  --primary: #6366f1;
   --deep-dark: #0f172a;
   --text-gray: #64748b;
   --bg-soft: #f8fafc;
@@ -266,7 +266,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
     font-weight: 700;
     color: white;
     padding: 8px 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     border: none;
     border-radius: 20px;
     cursor: pointer;
@@ -354,8 +354,8 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 }
 
 .chosen-card {
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2);
-  border-color: var(--primary-blue);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+  border-color: #6366f1;
 }
 
 .field-card-main {
@@ -391,12 +391,12 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   }
 
   &:hover {
-    color: var(--primary-blue);
+    color: #6366f1;
   }
 
   &:active {
     cursor: grabbing;
-    color: var(--primary-blue);
+    color: #6366f1;
   }
 }
 
@@ -413,7 +413,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
   &:focus {
     outline: none;
-    border-bottom-color: var(--primary-blue);
+    border-bottom-color: #6366f1;
     background: var(--bg-soft);
   }
 
@@ -425,11 +425,11 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
 .type-badge {
   font-size: 0.7rem;
-  color: var(--primary-blue);
-  background: #eff6ff;
+  color: #6366f1;
+  background: #eef2ff;
   padding: 4px 10px;
   border-radius: 6px;
-  border: 1px solid #dbeafe;
+  border: 1px solid #e0e7ff;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -492,7 +492,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
     width: 18px;
     height: 18px;
     cursor: pointer;
-    accent-color: var(--primary-blue);
+    accent-color: #6366f1;
   }
 
   &:hover {
@@ -581,7 +581,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   }
 
   &:hover {
-    color: var(--primary-blue);
+    color: #6366f1;
   }
 
   &:active {
@@ -599,7 +599,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   font-weight: 500;
 
   &:focus {
-    color: var(--primary-blue);
+    color: #6366f1;
   }
 }
 
@@ -636,9 +636,9 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   transition: all 0.3s;
 
   &:hover {
-    border-color: var(--primary-blue);
-    color: var(--primary-blue);
-    background: #eff6ff;
+    border-color: #6366f1;
+    color: #6366f1;
+    background: #eef2ff;
   }
 }
 
@@ -663,9 +663,9 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
   &:focus {
     outline: none;
-    border-color: var(--primary-blue);
+    border-color: #6366f1;
     background: white;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   }
 
   &::placeholder {
@@ -686,14 +686,14 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
   &:focus {
     outline: none;
-    border-color: var(--primary-blue);
+    border-color: #6366f1;
     background: white;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   }
 }
 
 .btn-add-field {
-  background: var(--primary-blue);
+  background: #6366f1;
   color: white;
   width: 48px;
   height: 48px;
@@ -703,12 +703,12 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   font-size: 1.5rem;
   font-weight: 700;
   transition: all 0.3s;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
 
   &:hover {
-    background: #2563eb;
+    background: #4f46e5;
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35);
   }
 
   &:active {
@@ -796,14 +796,14 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 .dummy-submit {
   width: 100%;
   padding: 14px;
-  background: var(--primary-blue);
+  background: #6366f1;
   color: white;
   border: none;
   border-radius: 12px;
   font-weight: 700;
   margin-top: 12px;
   font-size: 0.95rem;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
 }
 
 .loading-placeholder {

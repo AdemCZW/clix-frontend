@@ -348,7 +348,7 @@ onUnmounted(() => stopScanning());
 .scan-desc { color: #94a3b8; font-size: 1rem; margin-bottom: 8px; }
 .scan-error { color: #f87171; font-size: 0.9rem; margin-bottom: 12px; }
 .btn-start {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
   color: white; border: none; padding: 14px 40px;
   border-radius: 12px; font-size: 1rem; font-weight: 700;
   cursor: pointer; margin-top: 8px;
@@ -382,13 +382,13 @@ onUnmounted(() => stopScanning());
 .scan-frame {
   width: 100%;
   height: 100%;
-  border: 3px solid #3b82f6;
+  border: 3px solid #6366f1;
   border-radius: 16px;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
   animation: pulse-frame 2s ease-in-out infinite;
 }
 @keyframes pulse-frame {
-  0%, 100% { border-color: #3b82f6; }
+  0%, 100% { border-color: #6366f1; }
   50% { border-color: #60a5fa; }
 }
 .scan-hint { color: #cbd5e1; margin: 16px 0 12px; }
@@ -401,7 +401,7 @@ onUnmounted(() => stopScanning());
 .spinner {
   width: 48px; height: 48px;
   border: 4px solid #334155;
-  border-top-color: #3b82f6;
+  border-top-color: #6366f1;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 20px;
@@ -468,10 +468,10 @@ onUnmounted(() => stopScanning());
   min-width: 90px;
 }
 .btn-station:hover {
-  border-color: #3b82f6;
+  border-color: #6366f1;
   background: #1e3a5f;
   transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.2);
 }
 .btn-station:active { transform: translateY(0); }
 .station-icon { font-size: 2rem; }
@@ -487,11 +487,11 @@ onUnmounted(() => stopScanning());
 /* 傳送成功 */
 .sent-icon {
   width: 80px; height: 80px; border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
   font-size: 2.5rem; font-weight: 900; color: white;
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 16px;
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
 }
 .sent-name { color: #94a3b8; font-size: 0.95rem; margin: 8px 0 28px; }
 .btn-next {

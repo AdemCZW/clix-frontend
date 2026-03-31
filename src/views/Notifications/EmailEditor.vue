@@ -389,7 +389,7 @@ onMounted(async () => {
   min-height: 100vh;
   padding: 24px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --primary-blue: #3b82f6;
+  --primary: #6366f1;
   --deep-dark: #0f172a;
   --text-gray: #475569;
   --bg-soft: #f8fafc;
@@ -456,14 +456,14 @@ onMounted(async () => {
 }
 
 .btn-save {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 .btn-save:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
 }
 
 .btn-view-templates {
@@ -585,9 +585,9 @@ onMounted(async () => {
 }
 
 .custom-input:focus {
-  border-color: var(--primary-blue);
+  border-color: #6366f1;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
 /* ===========================================
@@ -605,9 +605,9 @@ onMounted(async () => {
 }
 
 .tag-item {
-  background: #eff6ff;
-  border: 1px solid #dbeafe;
-  color: var(--primary-blue);
+  background: #eef2ff;
+  border: 1px solid #e0e7ff;
+  color: #6366f1;
   padding: 5px 12px;
   border-radius: 8px;
   font-size: 0.8rem;
@@ -617,10 +617,10 @@ onMounted(async () => {
 }
 
 .tag-item:hover {
-  background: var(--primary-blue);
+  background: #6366f1;
   color: white;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
 .tag-item span {
@@ -652,8 +652,8 @@ onMounted(async () => {
 }
 
 .quill-container-fixed:focus-within {
-  border-color: var(--primary-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
 /* ===========================================
@@ -676,8 +676,8 @@ onMounted(async () => {
 .selection-info {
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--primary-blue);
-  background: #eff6ff;
+  color: #6366f1;
+  background: #eef2ff;
   padding: 4px 10px;
   border-radius: 8px;
   white-space: nowrap;
@@ -708,8 +708,8 @@ onMounted(async () => {
 
 .filter-select:focus {
   outline: none;
-  border-color: var(--primary-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
 .search-input {
@@ -729,8 +729,8 @@ onMounted(async () => {
 
 .search-input:focus {
   outline: none;
-  border-color: var(--primary-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
 .action-buttons {
@@ -762,8 +762,8 @@ onMounted(async () => {
 }
 
 .participant-item.selected {
-  background: #eff6ff;
-  border-left: 3px solid var(--primary-blue);
+  background: #eef2ff;
+  border-left: 3px solid #6366f1;
 }
 
 .participant-info {

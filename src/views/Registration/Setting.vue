@@ -654,7 +654,7 @@ const closeGuestDetail = () => {
 /* 原有樣式保持不動 */
 .registration-view {
   padding: 20px;
-  --primary-blue: #3b82f6;
+  --primary: #6366f1;
   --deep-dark: #0f172a;
   --text-gray: #475569;
   --text-gray-light: #64748b;
@@ -712,7 +712,7 @@ const closeGuestDetail = () => {
   color: var(--text-gray-light);
   margin-top: 4px;
   .link-go {
-    color: var(--primary-blue);
+    color: #6366f1;
     cursor: pointer;
     text-decoration: underline;
     margin: 0 2px;
@@ -815,7 +815,7 @@ const closeGuestDetail = () => {
     height: 100%;
     left: 0;
     top: 0;
-    background: var(--primary-blue);
+    background: #6366f1;
     opacity: 0;
     border-radius: 50px;
     z-index: 1;
@@ -846,7 +846,7 @@ const closeGuestDetail = () => {
 }
 
 .section-title-bar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   padding: 24px 28px;
   border-radius: 16px;
   margin-bottom: 20px;
@@ -992,10 +992,10 @@ const closeGuestDetail = () => {
     height: 160px;
   }
   &:hover {
-    border-color: var(--primary-blue);
-    background: #eff6ff;
+    border-color: #6366f1;
+    background: #eef2ff;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
   }
   .placeholder {
     color: var(--text-gray);
@@ -1014,9 +1014,9 @@ const closeGuestDetail = () => {
     border-color: #cbd5e1;
   }
   &:focus {
-    border-color: var(--primary-blue);
+    border-color: #6366f1;
     outline: none;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
   }
 }
 
@@ -1031,9 +1031,9 @@ const closeGuestDetail = () => {
   }
 }
 .btn-mini-tag {
-  background: #eff6ff;
-  border: 1px solid #dbeafe;
-  color: var(--primary-blue);
+  background: #eef2ff;
+  border: 1px solid #e0e7ff;
+  color: #6366f1;
   padding: 5px 12px;
   border-radius: 8px;
   font-size: 0.8rem;
@@ -1042,10 +1042,10 @@ const closeGuestDetail = () => {
   margin-left: 6px;
   transition: 0.2s;
   &:hover {
-    background: var(--primary-blue);
+    background: #6366f1;
     color: white;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
   }
 }
 .quill-editor-wrapper {
@@ -1102,7 +1102,7 @@ const closeGuestDetail = () => {
     margin: 20px 0;
   }
   :deep(a) {
-    color: #3b82f6;
+    color: #6366f1;
     text-decoration: none;
     font-weight: 600;
     &:hover {
@@ -1178,7 +1178,7 @@ label {
 
   .btn-copy {
     flex: 1;
-    background: linear-gradient(135deg, var(--primary-blue) 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: white;
     border: none;
     border-right: 1px solid rgba(255, 255, 255, 0.2);
@@ -1190,7 +1190,7 @@ label {
     font-size: 0.9rem;
 
     &:hover {
-      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
       box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
     }
   }
@@ -1243,14 +1243,14 @@ label {
     min-width: 0;
 
     &:focus {
-      border-color: var(--primary-blue);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
   }
 
   .btn-update-slug {
     padding: 7px 14px;
-    background: var(--primary-blue);
+    background: #6366f1;
     color: white;
     border: none;
     border-radius: 8px;
@@ -1261,7 +1261,7 @@ label {
     transition: all 0.2s;
 
     &:hover {
-      background: #2563eb;
+      background: #4f46e5;
     }
   }
 }
@@ -1357,7 +1357,7 @@ label {
   width: 95%;
   max-width: 1400px;
   height: 90vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   border-radius: 24px;
   display: flex;
   flex-direction: column;
@@ -1391,8 +1391,8 @@ label {
       transition: all 0.3s;
       &.active {
         background: #e0e7ff;
-        color: var(--primary-blue);
-        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+        color: #6366f1;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
         transform: scale(1.02);
       }
     }
@@ -1505,7 +1505,7 @@ label {
   width: 100%;
   box-sizing: border-box;
   .p-tag {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: white;
     padding: 8px 20px;
     border-radius: 20px;
@@ -1535,23 +1535,23 @@ label {
     margin-bottom: 32px;
     flex-wrap: wrap;
     span {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.15) 100%);
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(37, 99, 235, 0.15) 100%);
       backdrop-filter: blur(10px);
-      color: #1e40af;
+      color: #3730a3;
       padding: 12px 20px;
       border-radius: 16px;
       font-size: 0.95rem;
       font-weight: 700;
       white-space: nowrap;
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-      border: 1.5px solid rgba(59, 130, 246, 0.3);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+      border: 1.5px solid rgba(99, 102, 241, 0.3);
       transition: all 0.3s;
       &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.25);
+        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.25);
         background: linear-gradient(
           135deg,
-          rgba(59, 130, 246, 0.15) 0%,
+          rgba(99, 102, 241, 0.15) 0%,
           rgba(37, 99, 235, 0.2) 100%
         );
       }
@@ -1591,7 +1591,7 @@ label {
     &:hover {
       transform: translateY(-4px);
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-      border-color: var(--primary-blue);
+      border-color: #6366f1;
     }
   }
 
@@ -1599,7 +1599,7 @@ label {
     width: 70px;
     height: 70px;
     margin: 0 auto 16px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -1696,7 +1696,7 @@ label {
   }
   .btn-apply-blue {
     position: relative;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: white;
     border: none;
     padding: 16px 50px;
@@ -1714,7 +1714,7 @@ label {
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
       opacity: 0;
       transition: opacity 0.3s;
     }
@@ -1879,8 +1879,8 @@ label {
   left: 50%;
   transform: translateX(-50%);
   background: white;
-  color: var(--primary-blue);
-  border: 1px solid var(--primary-blue);
+  color: #6366f1;
+  border: 1px solid #6366f1;
   padding: 12px 30px;
   border-radius: 50px;
   z-index: 10001;
@@ -1942,13 +1942,13 @@ label {
   }
 
   &.selected {
-    border-color: var(--primary-blue);
-    background: #eff6ff;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    border-color: #6366f1;
+    background: #eef2ff;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
 
     .guest-checkbox {
-      background: var(--primary-blue);
-      border-color: var(--primary-blue);
+      background: #6366f1;
+      border-color: #6366f1;
     }
   }
 }
@@ -1974,7 +1974,7 @@ label {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   background-size: cover;
   background-position: center;
   display: flex;
@@ -2057,7 +2057,7 @@ label {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(59, 130, 246, 0.95);
+    background: rgba(99, 102, 241, 0.95);
     color: white;
     display: flex;
     align-items: center;
@@ -2083,7 +2083,7 @@ label {
   width: 100%;
   aspect-ratio: 1;
   border-radius: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   background-size: cover;
   background-position: center;
   display: flex;
@@ -2168,7 +2168,7 @@ label {
   width: 160px;
   height: 160px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   background-size: cover;
   background-position: center;
   display: flex;
@@ -2211,7 +2211,7 @@ label {
   color: var(--text-gray);
 
   svg {
-    color: var(--primary-blue);
+    color: #6366f1;
     flex-shrink: 0;
   }
 
@@ -2225,7 +2225,7 @@ label {
   padding: 24px;
   background: var(--bg-soft);
   border-radius: 16px;
-  border-left: 4px solid var(--primary-blue);
+  border-left: 4px solid #6366f1;
 
   h4 {
     font-size: 1rem;
@@ -2325,7 +2325,7 @@ label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   flex-shrink: 0;
 
   h3 {
@@ -2374,7 +2374,7 @@ label {
   height: 120px;
   border-radius: 50%;
   overflow: hidden;
-  border: 4px solid #667eea;
+  border: 4px solid #6366f1;
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
 
   .avatar-img {
@@ -2392,7 +2392,7 @@ label {
     justify-content: center;
     font-size: 48px;
     font-weight: 600;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: white;
   }
 }

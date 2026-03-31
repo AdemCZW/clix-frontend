@@ -736,7 +736,7 @@ watch(logoUrl, (val) => {
     color: #475569;
 
     strong { color: #0f172a; }
-    .highlight { color: #667eea; font-size: 1.1rem; }
+    .highlight { color: #6366f1; font-size: 1.1rem; }
   }
 }
 
@@ -753,7 +753,7 @@ watch(logoUrl, (val) => {
   font-weight: 600;
   cursor: pointer;
   border: none;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   transition: all 0.3s;
@@ -773,7 +773,7 @@ watch(logoUrl, (val) => {
   color: #475569;
   transition: all 0.2s;
 
-  &:hover, &.active { border-color: #667eea; color: #667eea; background: #f5f3ff; }
+  &:hover, &.active { border-color: #6366f1; color: #6366f1; background: #f5f3ff; }
 }
 
 /* ===== 站台管理 ===== */
@@ -826,7 +826,7 @@ watch(logoUrl, (val) => {
   background: white;
   color: #0f172a;
   transition: all 0.2s;
-  &:hover { background: #eff6ff; border-color: #3b82f6; color: #2563eb; }
+  &:hover { background: #eef2ff; border-color: #6366f1; color: #4f46e5; }
 }
 
 .btn-test {
@@ -839,7 +839,7 @@ watch(logoUrl, (val) => {
   background: white;
   color: #64748b;
   transition: all 0.2s;
-  &:hover:not(:disabled) { border-color: #3b82f6; color: #2563eb; }
+  &:hover:not(:disabled) { border-color: #6366f1; color: #4f46e5; }
   &:disabled { opacity: 0.6; cursor: default; }
   &.online  { border-color: #bbf7d0; color: #16a34a; background: #f0fdf4; }
   &.offline { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
@@ -882,7 +882,7 @@ watch(logoUrl, (val) => {
     font-size: 0.9rem;
     margin-bottom: 10px;
     transition: 0.2s;
-    &:focus { border-color: #667eea; outline: none; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+    &:focus { border-color: #6366f1; outline: none; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
   }
 }
 
@@ -921,13 +921,13 @@ watch(logoUrl, (val) => {
   }
 
   &.active .toggle-icon {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-color: #667eea;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border-color: #6366f1;
     color: white;
   }
 
-  &:hover { color: #667eea; }
-  &:hover .toggle-icon { border-color: #667eea; }
+  &:hover { color: #6366f1; }
+  &:hover .toggle-icon { border-color: #6366f1; }
 }
 
 .participant-list {
@@ -955,10 +955,10 @@ watch(logoUrl, (val) => {
   &:hover { border-color: #a5b4fc; background: #f5f3ff; }
 
   &.selected {
-    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
-    border-color: #667eea;
+    background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+    border-color: #6366f1;
 
-    .name { color: #667eea; }
+    .name { color: #6366f1; }
   }
 
   .p-info {
@@ -977,7 +977,7 @@ watch(logoUrl, (val) => {
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: white;
     font-size: 12px;
     font-weight: bold;
@@ -1024,7 +1024,7 @@ watch(logoUrl, (val) => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.2s;
-  &:hover { border-color: #3b82f6; color: #2563eb; background: #eff6ff; }
+  &:hover { border-color: #6366f1; color: #4f46e5; background: #eef2ff; }
   &.danger { border-color: #fca5a5; background: #fff1f2; color: #ef4444; &:hover { background: #fee2e2; } }
 }
 
@@ -1075,11 +1075,11 @@ watch(logoUrl, (val) => {
   border-radius: 4px;
   transition: border-color 0.2s, background 0.2s;
 
-  &:hover { background: rgba(59, 130, 246, 0.05); border-color: #cbd5e1; }
+  &:hover { background: rgba(99, 102, 241, 0.05); border-color: #cbd5e1; }
 
   &.active {
-    border: 2px dashed #3b82f6;
-    background: rgba(59, 130, 246, 0.08);
+    border: 2px dashed #6366f1;
+    background: rgba(99, 102, 241, 0.08);
 
     .drag-handle {
       position: absolute;
@@ -1087,7 +1087,7 @@ watch(logoUrl, (val) => {
       right: -6px;
       width: 12px;
       height: 12px;
-      background: #3b82f6;
+      background: #6366f1;
       border: 2px solid white;
       border-radius: 50%;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -1155,9 +1155,9 @@ watch(logoUrl, (val) => {
       width: 14px;
       height: 14px;
       border-radius: 50%;
-      background: #3b82f6;
+      background: #6366f1;
       cursor: pointer;
-      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.4);
+      box-shadow: 0 2px 4px rgba(99, 102, 241, 0.4);
     }
   }
 
@@ -1182,7 +1182,7 @@ watch(logoUrl, (val) => {
     font-size: 0.8rem;
     font-weight: 600;
     text-align: center;
-    &:focus { border-color: #3b82f6; outline: none; }
+    &:focus { border-color: #6366f1; outline: none; }
   }
 }
 
@@ -1243,9 +1243,9 @@ watch(logoUrl, (val) => {
   transition: all 0.2s;
 
   &:hover {
-    border-color: #667eea;
-    background: #eff6ff;
-    color: #667eea;
+    border-color: #6366f1;
+    background: #eef2ff;
+    color: #6366f1;
   }
 }
 
@@ -1364,7 +1364,7 @@ watch(logoUrl, (val) => {
   width: 40px;
   height: 40px;
   border: 3px solid #e2e8f0;
-  border-top-color: #667eea;
+  border-top-color: #6366f1;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -1449,8 +1449,8 @@ watch(logoUrl, (val) => {
     position: relative;
 
     &:hover {
-      border-color: #667eea;
-      background: #eff6ff;
+      border-color: #6366f1;
+      background: #eef2ff;
       color: #4338ca;
     }
 
@@ -1494,7 +1494,7 @@ watch(logoUrl, (val) => {
   }
 
   .btn-scan-done {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: white;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     &:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4); }

@@ -418,14 +418,14 @@ const getInitials = (name: string) => {
   }
 
   &:focus {
-    border-color: var(--primary-blue, #3b82f6);
+    border-color: #6366f1;
     outline: none;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
   }
 }
 
 .btn-add-guest {
-  background: var(--primary-blue, #3b82f6);
+  background: #6366f1;
   color: white;
   border: none;
   padding: 10px 24px;
@@ -437,11 +437,11 @@ const getInitials = (name: string) => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
 
   &:hover {
-    background: #2563eb;
-    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
+    background: #4f46e5;
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35);
     transform: translateY(-2px);
   }
 
@@ -464,7 +464,7 @@ const getInitials = (name: string) => {
     width: 96px;
     height: 96px;
     border-radius: 24px;
-    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
+    background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -523,8 +523,8 @@ const getInitials = (name: string) => {
   }
 
   &.active {
-    border-color: var(--primary-blue, #3b82f6);
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+    border-color: #6366f1;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
   }
 
   &.selected {
@@ -608,7 +608,7 @@ const getInitials = (name: string) => {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   background-size: cover;
   background-position: center;
   display: flex;
@@ -659,7 +659,7 @@ const getInitials = (name: string) => {
   border-radius: 50%;
   border: 2px solid var(--border-light, #e5e7eb);
   background: white;
-  color: var(--primary-blue, #3b82f6);
+  color: #6366f1;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -667,9 +667,9 @@ const getInitials = (name: string) => {
   transition: all 0.3s;
 
   &:hover {
-    background: var(--primary-blue, #3b82f6);
+    background: #6366f1;
     color: white;
-    border-color: var(--primary-blue, #3b82f6);
+    border-color: #6366f1;
     transform: rotate(90deg);
   }
 }
@@ -699,7 +699,7 @@ const getInitials = (name: string) => {
   overflow: hidden;
 
   &:hover {
-    border-color: var(--primary-blue, #3b82f6);
+    border-color: #6366f1;
     transform: scale(1.05);
 
     .change-overlay {
@@ -726,7 +726,7 @@ const getInitials = (name: string) => {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(59, 130, 246, 0.9);
+    background: rgba(99, 102, 241, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -792,9 +792,9 @@ const getInitials = (name: string) => {
   }
 
   &:focus {
-    border-color: var(--primary-blue, #3b82f6);
+    border-color: #6366f1;
     outline: none;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
   }
 }
 
@@ -822,9 +822,9 @@ const getInitials = (name: string) => {
   }
 
   &:focus {
-    border-color: var(--primary-blue, #3b82f6);
+    border-color: #6366f1;
     outline: none;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
   }
 }
 

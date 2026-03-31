@@ -348,7 +348,7 @@ const formatDate = (date, endDate, time) => {
   width: 44px;
   height: 44px;
   border: 3px solid #e2e8f0;
-  border-top-color: #667eea;
+  border-top-color: #6366f1;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -367,7 +367,7 @@ const formatDate = (date, endDate, time) => {
 .success-title {
   font-size: 2rem;
   font-weight: 900;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -451,7 +451,7 @@ const formatDate = (date, endDate, time) => {
 .event-header { margin-bottom: 32px; }
 .p-tag {
   display: inline-block;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   color: #fff;
   padding: 7px 20px;
   border-radius: 20px;
@@ -476,20 +476,20 @@ const formatDate = (date, endDate, time) => {
 }
 .p-badges { display: flex; flex-wrap: wrap; gap: 12px; }
 .p-badges span {
-  background: linear-gradient(135deg, rgba(59,130,246,0.09) 0%, rgba(37,99,235,0.14) 100%);
-  color: #1e40af;
+  background: linear-gradient(135deg, rgba(99,102,241,0.09) 0%, rgba(37,99,235,0.14) 100%);
+  color: #3730a3;
   padding: 10px 18px;
   border-radius: 14px;
   font-size: 0.92rem;
   font-weight: 700;
   white-space: nowrap;
-  border: 1.5px solid rgba(59,130,246,0.28);
-  box-shadow: 0 3px 10px rgba(59,130,246,0.12);
+  border: 1.5px solid rgba(99,102,241,0.28);
+  box-shadow: 0 3px 10px rgba(99,102,241,0.12);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 .p-badges span:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(59,130,246,0.22);
+  box-shadow: 0 6px 16px rgba(99,102,241,0.22);
 }
 
 /* ─── Rich Text ─── */
@@ -505,7 +505,7 @@ const formatDate = (date, endDate, time) => {
 .p-main-body-render :deep(h2),
 .p-main-body-render :deep(h3) { color: #0f172a; font-weight: 800; margin-top: 1.4em; }
 .p-main-body-render :deep(img) { max-width: 100%; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-.p-main-body-render :deep(a)   { color: #3b82f6; font-weight: 600; }
+.p-main-body-render :deep(a)   { color: #6366f1; font-weight: 600; }
 
 /* ─── Form View ─── */
 .form-view {
@@ -541,7 +541,7 @@ const formatDate = (date, endDate, time) => {
   transition: border-color 0.2s, color 0.2s, background 0.2s;
   white-space: nowrap;
 }
-.back-btn:hover { border-color: #667eea; color: #4338ca; background: rgba(102,126,234,0.06); }
+.back-btn:hover { border-color: #6366f1; color: #4338ca; background: rgba(102,126,234,0.06); }
 .form-view-ename {
   font-size: 0.95rem;
   font-weight: 700;
@@ -595,7 +595,7 @@ const formatDate = (date, endDate, time) => {
   font-family: inherit;
   transition: border-color 0.2s, box-shadow 0.2s;
   &:focus {
-    border-color: #667eea;
+    border-color: #6366f1;
     background: #fff;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.14);
   }
@@ -613,7 +613,7 @@ const formatDate = (date, endDate, time) => {
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   cursor: pointer;
   &:focus {
-    border-color: #667eea;
+    border-color: #6366f1;
     background: #fff;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.14);
   }
@@ -630,7 +630,7 @@ const formatDate = (date, endDate, time) => {
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
 .field-group input:focus {
-  border-color: #667eea;
+  border-color: #6366f1;
   background: #fff;
   box-shadow: 0 0 0 3px rgba(102,126,234,0.14);
 }
@@ -655,9 +655,9 @@ const formatDate = (date, endDate, time) => {
   background: #f8fafc;
   transition: border-color 0.2s, background 0.2s, color 0.2s;
 }
-.radio-item:hover { border-color: #667eea; background: #f0f0ff; }
+.radio-item:hover { border-color: #6366f1; background: #f0f0ff; }
 .radio-item.checked {
-  border-color: #667eea;
+  border-color: #6366f1;
   background: linear-gradient(135deg, rgba(102,126,234,0.08) 0%, rgba(118,75,162,0.1) 100%);
   color: #4338ca;
 }
@@ -670,8 +670,8 @@ const formatDate = (date, endDate, time) => {
   position: relative;
 }
 .radio-item.checked .radio-mark {
-  border-color: #667eea;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-color: #6366f1;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
   box-shadow: 0 0 0 3px rgba(102,126,234,0.2);
 }
 .radio-item.checked .radio-mark::after {
@@ -689,7 +689,7 @@ const formatDate = (date, endDate, time) => {
   margin-top: 4px;
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   color: #fff;
   border: none;
   border-radius: 14px;
@@ -757,7 +757,7 @@ const formatDate = (date, endDate, time) => {
 }
 .btn-apply {
   position: relative;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   color: #fff;
   border: none;
   padding: 14px 40px;

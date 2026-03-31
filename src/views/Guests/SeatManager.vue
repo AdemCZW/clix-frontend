@@ -585,7 +585,7 @@ const seatSize = computed(() => {
 <style lang="scss" scoped>
 /* CSS Variables - 統一設計系統 */
 :root {
-  --primary-blue: #3b82f6;
+  --primary: #6366f1;
   --deep-dark: #0f172a;
   --text-gray: #64748b;
   --bg-soft: #f8fafc;
@@ -664,9 +664,9 @@ const seatSize = computed(() => {
 }
 
 .badge-count {
-  background: #eff6ff;
-  border: 1px solid #dbeafe;
-  color: var(--primary-blue);
+  background: #eef2ff;
+  border: 1px solid #e0e7ff;
+  color: #6366f1;
   padding: 6px 14px;
   border-radius: 8px;
   font-size: 0.85rem;
@@ -690,9 +690,9 @@ const seatSize = computed(() => {
 }
 
 .btn-mini-tag {
-  background: #eff6ff;
-  border: 1px solid #dbeafe;
-  color: var(--primary-blue);
+  background: #eef2ff;
+  border: 1px solid #e0e7ff;
+  color: #6366f1;
   padding: 6px 14px;
   border-radius: 8px;
   font-size: 0.85rem;
@@ -701,11 +701,11 @@ const seatSize = computed(() => {
   transition: 0.2s;
 
   &:hover {
-    background: var(--primary-blue);
+    background: #6366f1;
     color: white;
-    border-color: var(--primary-blue);
+    border-color: #6366f1;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
   }
 
   &.save-btn {
@@ -751,17 +751,17 @@ const seatSize = computed(() => {
     gap: 8px;
 
     &:hover {
-      border-color: var(--primary-blue);
-      color: var(--primary-blue);
+      border-color: #6366f1;
+      color: #6366f1;
       transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(59, 130, 246, 0.15);
+      box-shadow: 0 4px 8px rgba(99, 102, 241, 0.15);
     }
 
     &.active {
-      background: var(--primary-blue);
+      background: #6366f1;
       color: var(--deep-dark);
-      border-color: var(--primary-blue);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      border-color: #6366f1;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 
       .tab-count {
         background: white;
@@ -806,11 +806,11 @@ const seatSize = computed(() => {
   .section-count {
     font-size: 0.8rem;
     font-weight: 700;
-    color: var(--primary-blue);
+    color: #6366f1;
     background: white;
     padding: 4px 10px;
     border-radius: 6px;
-    border: 1px solid #dbeafe;
+    border: 1px solid #e0e7ff;
   }
 }
 
@@ -849,10 +849,10 @@ const seatSize = computed(() => {
   transition: all 0.3s;
 
   &:hover {
-    border-color: var(--primary-blue);
+    border-color: #6366f1;
     background: white;
     transform: translateX(4px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
   }
 
   &:active {
@@ -885,12 +885,12 @@ const seatSize = computed(() => {
 
   .p-serial {
     font-size: 0.7rem;
-    color: var(--primary-blue);
+    color: #6366f1;
     font-weight: 800;
     background: white;
     padding: 4px 8px;
     border-radius: 6px;
-    border: 1px solid #dbeafe;
+    border: 1px solid #e0e7ff;
   }
 
   .p-name {
@@ -993,26 +993,26 @@ const seatSize = computed(() => {
   cursor: pointer;
 
   &:hover {
-    border-color: var(--primary-blue);
+    border-color: #6366f1;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
   }
 
   &.is-selected {
-    border: 3px solid var(--primary-blue);
+    border: 3px solid #6366f1;
     background: #ebf5ff;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
     transform: scale(1.05);
   }
 
   &.is-filled {
-    border: 2px solid var(--primary-blue);
+    border: 2px solid #6366f1;
     background: #f0f7ff;
     border-style: solid;
 
     &.is-selected {
-      border: 3px solid var(--primary-blue);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+      border: 3px solid #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
     }
   }
 
@@ -1059,7 +1059,7 @@ const seatSize = computed(() => {
 
   .s-serial {
     font-size: clamp(0.55rem, 0.65rem, 0.7rem);
-    color: var(--primary-blue);
+    color: #6366f1;
     font-weight: 800;
     background: white;
     padding: 2px 6px;
@@ -1113,7 +1113,7 @@ const seatSize = computed(() => {
 .my-ghost {
   opacity: 0.5;
   background: #ebf5ff !important;
-  border: 2px dashed var(--primary-blue) !important;
+  border: 2px dashed #6366f1 !important;
   border-radius: 12px;
   transform: rotate(2deg);
 
@@ -1124,10 +1124,10 @@ const seatSize = computed(() => {
 
 .my-drag {
   cursor: grabbing;
-  background: var(--primary-blue) !important;
-  border-color: var(--primary-blue) !important;
+  background: #6366f1 !important;
+  border-color: #6366f1 !important;
   transform: rotate(3deg) scale(1.05);
-  box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.5);
 
   * {
     color: white !important;
@@ -1155,7 +1155,7 @@ const seatSize = computed(() => {
 
   .history-count {
     background: white;
-    color: var(--primary-blue);
+    color: #6366f1;
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 0.75rem;
@@ -1285,8 +1285,8 @@ const seatSize = computed(() => {
   }
 
   &.history-swap {
-    border-left-color: var(--primary-blue);
-    background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+    border-left-color: #6366f1;
+    background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%);
   }
 
   &.history-move {
@@ -1350,11 +1350,11 @@ const seatSize = computed(() => {
 
     .person-name {
       font-weight: 800;
-      color: var(--primary-blue);
+      color: #6366f1;
       padding: 2px 8px;
-      background: #eff6ff;
+      background: #eef2ff;
       border-radius: 6px;
-      border: 1px solid #dbeafe;
+      border: 1px solid #e0e7ff;
 
       &.vip-name {
         color: #f59e0b;
@@ -1377,7 +1377,7 @@ const seatSize = computed(() => {
     }
 
     .swap-arrow {
-      color: var(--primary-blue);
+      color: #6366f1;
       font-weight: 800;
       font-size: 1.1rem;
     }

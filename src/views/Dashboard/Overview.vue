@@ -56,8 +56,8 @@
         >
           <defs>
             <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#667eea" stop-opacity="0.25" />
-              <stop offset="100%" stop-color="#667eea" stop-opacity="0.02" />
+              <stop offset="0%" stop-color="#6366f1" stop-opacity="0.25" />
+              <stop offset="100%" stop-color="#6366f1" stop-opacity="0.02" />
             </linearGradient>
           </defs>
 
@@ -119,8 +119,8 @@
 
           <defs>
             <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="#667eea" />
-              <stop offset="100%" stop-color="#764ba2" />
+              <stop offset="0%" stop-color="#6366f1" />
+              <stop offset="100%" stop-color="#4f46e5" />
             </linearGradient>
           </defs>
 
@@ -131,7 +131,7 @@
               :cy="pt.y"
               r="4"
               fill="white"
-              stroke="#667eea"
+              stroke="#6366f1"
               stroke-width="2"
               class="data-dot"
               @mouseenter="showTooltip(pt, i, $event)"
@@ -418,7 +418,7 @@ const selectEvent = (displayEvent) => {
   .stat-value {
     font-size: 2.25rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -484,7 +484,7 @@ const selectEvent = (displayEvent) => {
 
   &.active {
     background: white;
-    color: #667eea;
+    color: #6366f1;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   }
 
@@ -605,7 +605,7 @@ const selectEvent = (displayEvent) => {
   transition: all 0.3s;
 
   &:hover {
-    border-color: #3b82f6;
+    border-color: #6366f1;
     background: #f8fafc;
     transform: translateX(4px);
   }
@@ -613,7 +613,7 @@ const selectEvent = (displayEvent) => {
   .event-date {
     width: 60px;
     height: 60px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     border-radius: 12px;
     display: flex;
     flex-direction: column;
@@ -651,7 +651,7 @@ const selectEvent = (displayEvent) => {
     flex-shrink: 0;
 
     &.active { background: #d1fae5; color: #065f46; }
-    &.upcoming { background: #dbeafe; color: #1e40af; }
+    &.upcoming { background: #e0e7ff; color: #3730a3; }
     &.completed { background: #f3f4f6; color: #374151; }
   }
 }
@@ -767,7 +767,7 @@ const selectEvent = (displayEvent) => {
   padding: 10px 24px;
   border-radius: 10px;
   border: none;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   color: white;
   font-weight: 600;
   cursor: pointer;
@@ -775,7 +775,7 @@ const selectEvent = (displayEvent) => {
 
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
   }
 }
 </style>

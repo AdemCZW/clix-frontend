@@ -308,7 +308,7 @@ const exportEventData = async (event: LocalEvent) => {
 
   &:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #6366f1;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   }
 }
@@ -329,7 +329,7 @@ const exportEventData = async (event: LocalEvent) => {
 
   &:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #6366f1;
   }
 }
 
@@ -410,7 +410,7 @@ const exportEventData = async (event: LocalEvent) => {
 
   &:hover {
     .event-name {
-      color: #667eea;
+      color: #6366f1;
     }
   }
 }
@@ -483,7 +483,7 @@ table {
 }
 
 thead {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
 
   th {
     padding: 10px 12px;
@@ -525,7 +525,7 @@ tbody {
   }
 
   .email-cell {
-    color: #667eea;
+    color: #6366f1;
   }
 }
 

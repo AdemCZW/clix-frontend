@@ -263,8 +263,8 @@ const saveBotSettings = () => {
 
       &:focus {
         outline: none;
-        border-color: var(--primary-blue, #3b82f6);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
       }
 
       &::placeholder {
@@ -371,15 +371,15 @@ const saveBotSettings = () => {
   padding: 10px 16px;
   border: 2px dashed var(--border-light, #d1d5db);
   background: transparent;
-  color: var(--primary-blue, #3b82f6);
+  color: #6366f1;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    border-color: var(--primary-blue, #3b82f6);
-    background: #eff6ff;
+    border-color: #6366f1;
+    background: #eef2ff;
   }
 }
 
@@ -393,7 +393,7 @@ const saveBotSettings = () => {
 }
 
 .btn-primary {
-  background: var(--primary-blue, #3b82f6);
+  background: #6366f1;
   color: white;
   border: none;
   padding: 12px 28px;
@@ -404,9 +404,9 @@ const saveBotSettings = () => {
   transition: all 0.2s ease;
 
   &:hover {
-    background: #2563eb;
+    background: #4f46e5;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
   }
 
   &:active {

@@ -721,7 +721,7 @@ const toggleVIP = (participant: Participant) => {
       outline: none;
 
       &:focus {
-        border-color: #667eea;
+        border-color: #6366f1;
         box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
       }
     }
@@ -751,7 +751,7 @@ const toggleVIP = (participant: Participant) => {
     min-width: 140px;
 
     &:focus {
-      border-color: #667eea;
+      border-color: #6366f1;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
   }
@@ -793,7 +793,7 @@ const toggleVIP = (participant: Participant) => {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 
@@ -848,7 +848,7 @@ const toggleVIP = (participant: Participant) => {
   gap: 8px;
 
   &:hover {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: white;
   }
 
@@ -947,7 +947,7 @@ const toggleVIP = (participant: Participant) => {
 
   &.active {
     background: white;
-    color: #667eea;
+    color: #6366f1;
     border-color: #e2e8f0;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
     z-index: 1;
@@ -958,7 +958,7 @@ const toggleVIP = (participant: Participant) => {
     }
 
     .tab-count {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
       color: white;
       box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
     }
@@ -1018,8 +1018,8 @@ const toggleVIP = (participant: Participant) => {
     width: 0;
 
     &:checked ~ .checkmark {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-color: #667eea;
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      border-color: #6366f1;
 
       &::after {
         display: block;
@@ -1040,7 +1040,7 @@ const toggleVIP = (participant: Participant) => {
     justify-content: center;
 
     &:hover {
-      border-color: #667eea;
+      border-color: #6366f1;
       transform: scale(1.1);
     }
 
@@ -1151,7 +1151,7 @@ const toggleVIP = (participant: Participant) => {
   }
 
   &.edit {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: white;
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
 
@@ -1234,7 +1234,7 @@ const toggleVIP = (participant: Participant) => {
     background: white;
 
     &:focus {
-      border-color: #667eea;
+      border-color: #6366f1;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
   }
@@ -1282,14 +1282,14 @@ const toggleVIP = (participant: Participant) => {
 
   .btn-download-qr {
     font-size: 0.82rem;
-    color: #3b82f6;
+    color: #6366f1;
     text-decoration: none;
-    border: 1px solid #3b82f6;
+    border: 1px solid #6366f1;
     padding: 6px 16px;
     border-radius: 8px;
 
     &:hover {
-      background: rgba(59, 130, 246, 0.08);
+      background: rgba(99, 102, 241, 0.08);
     }
   }
 }
@@ -1314,7 +1314,7 @@ const toggleVIP = (participant: Participant) => {
 .btn-save {
   flex: 1;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   border: none;
   color: white;
   border-radius: 10px;
@@ -1354,7 +1354,7 @@ const toggleVIP = (participant: Participant) => {
   width: 48px;
   height: 48px;
   border: 4px solid #e2e8f0;
-  border-top-color: #667eea;
+  border-top-color: #6366f1;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

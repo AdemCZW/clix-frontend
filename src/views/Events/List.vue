@@ -436,7 +436,7 @@ const createEvent = async () => {
   }
 
   .btn-create {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: white;
     border: none;
     padding: 12px 24px;
@@ -449,8 +449,8 @@ const createEvent = async () => {
     transition: all 0.3s;
 
     &:hover {
-      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
       transform: translateY(-2px);
     }
 
@@ -468,7 +468,7 @@ const createEvent = async () => {
   justify-content: space-between;
 
   .btn-create {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: white;
     border: none;
     padding: 12px 24px;
@@ -482,8 +482,8 @@ const createEvent = async () => {
     white-space: nowrap;
 
     &:hover {
-      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
       transform: translateY(-2px);
     }
 
@@ -509,8 +509,8 @@ const createEvent = async () => {
 
     &:focus {
       outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+      border-color: #6366f1;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
     }
 
     &::placeholder {
@@ -537,14 +537,14 @@ const createEvent = async () => {
   transition: all 0.3s;
 
   &:hover {
-    border-color: #3b82f6;
-    color: #3b82f6;
+    border-color: #6366f1;
+    color: #6366f1;
   }
 
   &.active {
-    background: #3b82f6;
+    background: #6366f1;
     color: white;
-    border-color: #3b82f6;
+    border-color: #6366f1;
   }
 }
 
@@ -561,7 +561,7 @@ const createEvent = async () => {
     width: 96px;
     height: 96px;
     border-radius: 24px;
-    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
+    background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -626,7 +626,7 @@ const createEvent = async () => {
 
       &.upcoming {
         background: rgba(219, 234, 254, 0.95);
-        color: #1e40af;
+        color: #3730a3;
       }
 
       &.completed {
@@ -690,8 +690,8 @@ const createEvent = async () => {
         flex: 1;
         padding: 8px 16px;
         border-radius: 8px;
-        border: 1px solid #3b82f6;
-        background: #3b82f6;
+        border: 1px solid #6366f1;
+        background: #6366f1;
         color: white;
         font-weight: 600;
         font-size: 0.85rem;
@@ -699,15 +699,15 @@ const createEvent = async () => {
         transition: all 0.3s;
 
         &:hover {
-          background: #2563eb;
+          background: #4f46e5;
         }
 
         &.secondary {
           background: white;
-          color: #3b82f6;
+          color: #6366f1;
 
           &:hover {
-            background: #eff6ff;
+            background: #eef2ff;
           }
         }
       }
@@ -750,8 +750,8 @@ const createEvent = async () => {
 
     &:focus {
       outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
   }
 }
@@ -776,13 +776,13 @@ const createEvent = async () => {
   border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   border: none;
   color: white;
   transition: all 0.3s;
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
   }
 }
 
@@ -829,13 +829,13 @@ const createEvent = async () => {
   border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   border: none;
   color: white;
   transition: all 0.2s;
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
   }
 }
 

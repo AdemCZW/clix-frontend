@@ -372,7 +372,7 @@ const hasActiveFilters = computed(() =>
     line-height: 1;
 
     &.primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -390,7 +390,7 @@ const hasActiveFilters = computed(() =>
 
 .btn-manual {
   padding: 10px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   color: white;
   border: none;
   border-radius: 10px;
@@ -492,7 +492,7 @@ const hasActiveFilters = computed(() =>
   background: white;
 
   &:focus {
-    border-color: #667eea;
+    border-color: #6366f1;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   }
 }
@@ -602,7 +602,7 @@ const hasActiveFilters = computed(() =>
   font-weight: 600;
 
   &.method-qr {
-    background: #dbeafe;
+    background: #e0e7ff;
     color: #0284c7;
   }
 
@@ -653,7 +653,7 @@ const hasActiveFilters = computed(() =>
     transition: all 0.2s;
 
     &:focus {
-      border-color: #667eea;
+      border-color: #6366f1;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
   }
@@ -686,7 +686,7 @@ const hasActiveFilters = computed(() =>
 
   &:hover {
     background: white;
-    border-color: #667eea;
+    border-color: #6366f1;
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
   }
 }
@@ -710,7 +710,7 @@ const hasActiveFilters = computed(() =>
 
 .btn-check-action {
   padding: 7px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   color: white;
   border: none;
   border-radius: 8px;
