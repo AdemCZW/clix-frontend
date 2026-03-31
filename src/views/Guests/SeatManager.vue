@@ -277,8 +277,8 @@ watch(() => participantsStore.participants.length, () => {
 </script>
 
 <template>
-  <div class="sp">
-    <PageLoader v-if="pageLoading" text="載入中..." />
+  <div class="sp" :class="{ 'sp-loading': pageLoading }">
+    <PageLoader v-if="pageLoading" text="載入座位配置..." />
 
     <template v-else>
     <!-- 左側 -->
@@ -400,6 +400,7 @@ watch(() => participantsStore.participants.length, () => {
 
 <style scoped>
 .sp { display:flex; height:100%; min-height:calc(100vh - 64px); background:#f8f9fb; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+.sp.sp-loading { align-items:center; justify-content:center; }
 
 /* ── 左側 ── */
 .sp-left { width:272px; background:#fff; border-right:1px solid #e5e7eb; overflow-y:auto; flex-shrink:0; padding:14px; }
