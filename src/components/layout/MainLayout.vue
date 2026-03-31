@@ -232,14 +232,14 @@ const selectEvent = (event: any) => {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background: #f0f2f5;
+  background: var(--bg-primary);
 }
 
 /* ===== SIDEBAR ===== */
 .sidebar {
   width: 240px;
-  background: #ffffff;
-  border-right: 1px solid #e5e7eb;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -259,7 +259,7 @@ const selectEvent = (event: any) => {
   .brand-name {
     font-size: 1.25rem;
     font-weight: 800;
-    color: #1f2937;
+    color: var(--text-main);
     letter-spacing: -0.5px;
   }
 }
@@ -282,8 +282,8 @@ const selectEvent = (event: any) => {
   .divider-text {
     font-size: 0.75rem;
     font-weight: 700;
-    color: #6366f1;
-    background: #eef2ff;
+    color: var(--accent);
+    background: var(--accent-light);
     padding: 4px 12px;
     border-radius: 12px;
     max-width: 100%;
@@ -298,7 +298,7 @@ const selectEvent = (event: any) => {
   margin-bottom: 2px;
   border-radius: 10px;
   cursor: pointer;
-  color: #64748b;
+  color: var(--text-muted);
   transition: all 0.15s ease;
   display: flex;
   align-items: center;
@@ -310,7 +310,7 @@ const selectEvent = (event: any) => {
     width: 20px;
     height: 20px;
     flex-shrink: 0;
-    color: #94a3b8;
+    color: var(--text-muted);
   }
 
   .menu-label {
@@ -318,32 +318,32 @@ const selectEvent = (event: any) => {
   }
 
   &:hover {
-    background: #f8fafc;
-    color: #334155;
+    background: var(--bg-hover);
+    color: var(--text-main);
   }
 
   &.active {
-    background: #eef2ff;
-    color: #4f46e5;
+    background: var(--accent-light);
+    color: var(--accent);
     font-weight: 600;
 
     .menu-icon {
-      color: #4f46e5;
+      color: var(--accent);
     }
   }
 }
 
 .sidebar-footer {
   padding: 16px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--border-light);
 
   .logout-btn {
     width: 100%;
     padding: 10px;
     background: transparent;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border-color);
     border-radius: 10px;
-    color: #64748b;
+    color: var(--text-muted);
     cursor: pointer;
     font-size: 0.85rem;
     font-weight: 500;
@@ -375,8 +375,8 @@ const selectEvent = (event: any) => {
   display: flex;
   align-items: center;
   gap: 16px;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .event-switcher {
@@ -388,16 +388,16 @@ const selectEvent = (event: any) => {
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
   min-width: 160px;
 
   &:hover {
-    border-color: #cbd5e1;
-    background: #f1f5f9;
+    border-color: var(--text-muted);
+    background: var(--bg-hover);
   }
 
   .chip-dot {
@@ -411,7 +411,7 @@ const selectEvent = (event: any) => {
   .chip-name {
     font-size: 0.88rem;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--text-main);
     max-width: 180px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -419,7 +419,7 @@ const selectEvent = (event: any) => {
   }
 
   .chip-arrow {
-    color: #94a3b8;
+    color: var(--text-muted);
     transition: transform 0.2s;
     flex-shrink: 0;
     &.flipped { transform: rotate(180deg); }
@@ -431,10 +431,10 @@ const selectEvent = (event: any) => {
   top: calc(100% + 6px);
   left: 0;
   min-width: 220px;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-lg);
   z-index: 100;
   padding: 6px;
   max-height: 300px;
@@ -445,15 +445,15 @@ const selectEvent = (event: any) => {
     border-radius: 8px;
     cursor: pointer;
     font-size: 0.88rem;
-    color: #334155;
+    color: var(--text-main);
     display: flex;
     justify-content: space-between;
     align-items: center;
     transition: background 0.15s;
 
-    &:hover { background: #f8fafc; }
-    &.current { background: #eef2ff; color: #4f46e5; font-weight: 600; }
-    .check-mark { color: #4f46e5; font-weight: 700; }
+    &:hover { background: var(--bg-hover); }
+    &.current { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+    .check-mark { color: var(--accent); font-weight: 700; }
   }
 }
 
@@ -466,16 +466,16 @@ const selectEvent = (event: any) => {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 8px 14px;
   min-width: 240px;
   transition: all 0.2s;
 
   &:focus-within {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
   }
 
   input {
@@ -483,9 +483,9 @@ const selectEvent = (event: any) => {
     background: transparent;
     outline: none;
     font-size: 0.88rem;
-    color: #1e293b;
+    color: var(--text-main);
     width: 100%;
-    &::placeholder { color: #94a3b8; }
+    &::placeholder { color: var(--text-muted); }
   }
 }
 
@@ -498,7 +498,7 @@ const selectEvent = (event: any) => {
   display: flex;
   align-items: center;
   transition: background 0.15s;
-  &:hover { background: #f1f5f9; }
+  &:hover { background: var(--bg-hover); }
 }
 
 .header-user {
@@ -535,7 +535,7 @@ const selectEvent = (event: any) => {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
-  background: #f0f2f5;
+  background: var(--bg-primary);
 }
 
 /* ===== HAMBURGER ===== */
@@ -552,7 +552,7 @@ const selectEvent = (event: any) => {
     display: block;
     width: 22px;
     height: 2px;
-    background: #334155;
+    background: var(--text-main);
     border-radius: 2px;
   }
 }

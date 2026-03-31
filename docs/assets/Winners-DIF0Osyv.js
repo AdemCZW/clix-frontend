@@ -1,0 +1,1 @@
+import{N as e,t,v as n,x as r}from"./plugin-vue-export-helper-Bwq9o3qA.js";var i={name:`LotteryWinners`},a={class:`lottery-winners`};function o(t,i,o,s,c,l){return e(),r(`div`,a,[...i[0]||=[n(`h1`,null,`Lottery Winners`,-1),n(`p`,null,`這是中獎名單管理頁面。`,-1)]])}var s=t(i,[[`render`,o],[`__scopeId`,`data-v-52033afb`]]);export{s as default};

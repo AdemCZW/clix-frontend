@@ -1,0 +1,1 @@
+import{R as e,Y as t}from"./plugin-vue-export-helper-Bwq9o3qA.js";function n(n,r=300){let i=t(n.value),a=null;return e(n,e=>{a&&clearTimeout(a),a=setTimeout(()=>{i.value=e},r)}),i}export{n as t};
