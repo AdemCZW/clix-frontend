@@ -237,7 +237,7 @@ const saveSeats = async () => {
     for (const key of Object.keys(seatsStore.seatMetasMap)) {
       if (key.startsWith(actId + '_')) {
         const idx = parseInt(key.replace(actId + '_', ''));
-        seat_metas.push({ seat_index: idx, status: seatsStore.seatMetasMap[key] });
+        seat_metas.push({ seat_index: idx, status: seatsStore.seatMetasMap[key] as string });
       }
     }
     await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, { method: "POST", body: JSON.stringify({ assignments, seat_metas }) });

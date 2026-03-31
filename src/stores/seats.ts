@@ -1,5 +1,5 @@
 import { defineStore } from "pinia"
-import { reactive, watch } from "vue"
+import { reactive, ref, watch } from "vue"
 import { apiRequest } from "@/utils/api"
 import type { SeatLayout, Seat, ActivitySeats } from "@/types"
 
@@ -148,17 +148,19 @@ export const useSeatsStore = defineStore("seats", () => {
     }
   }
 
-  // 座位狀態（走道/保留座）— key: `${actId}_${seatIndex}`
-  const seatMetasMap = reactive<Record<string, string>>({})
+  // 座位狀態（走道/保留座）— 用 ref 確保響應式更新
+  const seatMetasMap = ref<Record<string, string>>({})
 
   const getSeatMeta = (actId: string, idx: number): string | null => {
-    return seatMetasMap[`${actId}_${idx}`] || null
+    return seatMetasMap.value[`${actId}_${idx}`] || null
   }
 
   const setSeatMeta = (actId: string, idx: number, status: string | null) => {
     const key = `${actId}_${idx}`
-    if (status) seatMetasMap[key] = status
-    else delete seatMetasMap[key]
+    const newMap = { ...seatMetasMap.value }
+    if (status) newMap[key] = status
+    else delete newMap[key]
+    seatMetasMap.value = newMap // 整個替換觸發響應式
   }
 
   return { layout, activitySeats, ensureActivity, addRow, addCol, loadFromBackend, seatMetasMap, getSeatMeta, setSeatMeta }
