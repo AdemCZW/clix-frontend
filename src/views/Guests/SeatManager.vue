@@ -166,22 +166,41 @@ const removePerson = (row: number, col: number) => {
 
 // 拖曳分配
 const dragPerson = ref<SeatPerson | null>(null);
+const dragFromSeat = ref<{ row: number; col: number } | null>(null);
 
-const onDragStart = (person: SeatPerson) => {
+const onDragStart = (person: SeatPerson, fromSeat?: { row: number; col: number }) => {
   dragPerson.value = person;
+  dragFromSeat.value = fromSeat || null;
 };
 
 const onDrop = (row: number, col: number) => {
   if (!dragPerson.value) return;
   const status = getSeatStatus(row, col);
   if (status === "aisle" || status === "reserved") return;
-  // 如果座位已有人，先移除
-  const seat = getSeat(row, col);
-  if (seat && seat.attendee.length > 0) {
-    removePerson(row, col);
+
+  // 如果是從另一個座位拖過來，先清除原座位
+  if (dragFromSeat.value) {
+    const { row: fromRow, col: fromCol } = dragFromSeat.value;
+    // 如果目標座位已有人，做互換
+    const targetSeat = getSeat(row, col);
+    if (targetSeat && targetSeat.attendee.length > 0) {
+      const targetPerson = targetSeat.attendee[0] as unknown as SeatPerson;
+      removePerson(row, col);
+      assignPerson(targetPerson, fromRow, fromCol);
+    } else {
+      removePerson(fromRow, fromCol);
+    }
+  } else {
+    // 從左側面板拖入，如果目標已有人先移除
+    const seat = getSeat(row, col);
+    if (seat && seat.attendee.length > 0) {
+      removePerson(row, col);
+    }
   }
+
   assignPerson(dragPerson.value, row, col);
   dragPerson.value = null;
+  dragFromSeat.value = null;
 };
 
 // ── 縮放 ──
@@ -368,7 +387,14 @@ onMounted(async () => {
                 <div class="seat-aisle"></div>
               </template>
               <template v-else-if="getSeatStatus(r - 1, c - 1) === 'assigned'">
-                <div class="seat-content assigned-content">
+                <div
+                  class="seat-content assigned-content"
+                  draggable="true"
+                  @dragstart.stop="onDragStart(
+                    getSeat(r - 1, c - 1)?.attendee[0] as any,
+                    { row: r - 1, col: c - 1 }
+                  )"
+                >
                   <span class="seat-serial">#{{ (getSeat(r - 1, c - 1)?.attendee[0] as any)?.serial || '' }}</span>
                   <span class="seat-person-name">{{ (getSeat(r - 1, c - 1)?.attendee[0] as any)?.name || '' }}</span>
                 </div>
@@ -719,6 +745,15 @@ onMounted(async () => {
 .seat-cell.reserved {
   background: #fef2f2;
   border-color: #fca5a5;
+}
+
+.seat-cell.assigned .assigned-content {
+  cursor: grab;
+}
+
+.seat-cell.assigned .assigned-content:active {
+  cursor: grabbing;
+  opacity: 0.6;
 }
 
 .seat-content {
