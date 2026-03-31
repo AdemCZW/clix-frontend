@@ -106,17 +106,24 @@ export const useSeatsStore = defineStore("seats", () => {
         layout.cols = data.cols
       }
 
-      // 拉 assignments
+      // 拉 assignments + seat_metas
       const assignRes = await apiRequest(`/api/seats/assignments/${eventId}/`)
       if (!assignRes.ok) return
+      const resData = await assignRes.json()
       const assignments: Array<{
         seat_index: number; seat_label: string;
         participant: number; participant_name: string;
         participant_type: string; participant_company: string;
-      }> = await assignRes.json()
+      }> = resData.assignments || resData
+      const metasData: Array<{ seat_index: number; status: string }> = resData.seat_metas || []
+
+      // 載入座位狀態
+      for (const m of metasData) {
+        setSeatMeta(actId, m.seat_index, m.status)
+      }
 
       // 沒有後端資料就不覆蓋
-      if (assignments.length === 0) return
+      if (assignments.length === 0 && metasData.length === 0) return
 
       // 建立座位陣列
       const totalSeats = layout.rows * layout.cols
@@ -141,5 +148,18 @@ export const useSeatsStore = defineStore("seats", () => {
     }
   }
 
-  return { layout, activitySeats, ensureActivity, addRow, addCol, loadFromBackend }
+  // 座位狀態（走道/保留座）— key: `${actId}_${seatIndex}`
+  const seatMetasMap = reactive<Record<string, string>>({})
+
+  const getSeatMeta = (actId: string, idx: number): string | null => {
+    return seatMetasMap[`${actId}_${idx}`] || null
+  }
+
+  const setSeatMeta = (actId: string, idx: number, status: string | null) => {
+    const key = `${actId}_${idx}`
+    if (status) seatMetasMap[key] = status
+    else delete seatMetasMap[key]
+  }
+
+  return { layout, activitySeats, ensureActivity, addRow, addCol, loadFromBackend, seatMetasMap, getSeatMeta, setSeatMeta }
 })

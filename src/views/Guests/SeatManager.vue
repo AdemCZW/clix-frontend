@@ -61,13 +61,13 @@ const filteredList = (type: "VIP" | "general") => {
 const vipList = computed(() => filteredList("VIP"));
 const generalList = computed(() => filteredList("general"));
 
-// ── 座位狀態 ──
+// ── 座位狀態（從 store 讀取，支援持久化）──
 type SeatStatus = "empty" | "assigned" | "aisle" | "reserved";
-const seatStatuses = ref<Record<number, SeatStatus>>({});
 
 const getSeatStatus = (r: number, c: number): SeatStatus => {
   const idx = getIdx(r, c);
-  if (seatStatuses.value[idx]) return seatStatuses.value[idx];
+  const meta = seatsStore.getSeatMeta(currentActivityId.value, idx);
+  if (meta === "aisle" || meta === "reserved") return meta as SeatStatus;
   const seat = getSeat(r, c);
   if (seat && seat.attendee.length > 0) return "assigned";
   return "empty";
@@ -116,9 +116,9 @@ const setSelectedAs = (status: SeatStatus) => {
       seats[idx].attendee = [];
     }
     if (status === "empty") {
-      delete seatStatuses.value[idx];
+      seatsStore.setSeatMeta(currentActivityId.value, idx, null);
     } else {
-      seatStatuses.value[idx] = status;
+      seatsStore.setSeatMeta(currentActivityId.value, idx, status);
     }
   }
   updateUnassignedList();
@@ -231,7 +231,16 @@ const saveSeats = async () => {
     await apiRequest(`/api/seats/layout/${eventId}/`, { method: "PATCH", body: JSON.stringify({ rows: layout.rows, cols: layout.cols }) });
     const seats = activitySeats[currentActivityId.value] || [];
     const assignments = seats.map((s: Seat, i: number) => s.attendee.length === 0 ? null : { seat_index: i, seat_label: s.label, participant_id: (s.attendee[0] as SeatAttendee).id }).filter(Boolean);
-    await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, { method: "POST", body: JSON.stringify({ assignments }) });
+    // 收集座位狀態
+    const seat_metas: Array<{ seat_index: number; status: string }> = [];
+    const actId = currentActivityId.value;
+    for (const key of Object.keys(seatsStore.seatMetasMap)) {
+      if (key.startsWith(actId + '_')) {
+        const idx = parseInt(key.replace(actId + '_', ''));
+        seat_metas.push({ seat_index: idx, status: seatsStore.seatMetasMap[key] });
+      }
+    }
+    await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, { method: "POST", body: JSON.stringify({ assignments, seat_metas }) });
     toastSuccess("座位分配已儲存");
   } catch { toastError("儲存失敗"); }
   finally { savingSeats.value = false; }
