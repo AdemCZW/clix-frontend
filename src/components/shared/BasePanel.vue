@@ -83,7 +83,7 @@ const close = () => emit("update:modelValue", false);
     border-radius: 50%;
 
     &:hover {
-      background: #f1f5f9;
+      background: var(--bg-hover);
       color: var(--text-main);
       transform: rotate(90deg);
     }
@@ -98,7 +98,7 @@ const close = () => emit("update:modelValue", false);
 
 .panel-footer {
   padding: 20px 28px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border-color);
   display: flex;
   gap: 12px;
   justify-content: flex-end;

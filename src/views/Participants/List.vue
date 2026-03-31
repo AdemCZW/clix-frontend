@@ -730,7 +730,7 @@ const toggleVIP = (participant: Participant) => {
       outline: none;
 
       &:focus {
-        border-color: #6366f1;
+        border-color: var(--accent);
         box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
       }
     }
@@ -760,7 +760,7 @@ const toggleVIP = (participant: Participant) => {
     min-width: 140px;
 
     &:focus {
-      border-color: #6366f1;
+      border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
   }
@@ -957,7 +957,7 @@ const toggleVIP = (participant: Participant) => {
   &.active {
     background: var(--bg-card);
     color: #6366f1;
-    border-color: #e2e8f0;
+    border-color: var(--border-color);
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
     z-index: 1;
 
@@ -1028,7 +1028,7 @@ const toggleVIP = (participant: Participant) => {
 
     &:checked ~ .checkmark {
       background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-      border-color: #6366f1;
+      border-color: var(--accent);
 
       &::after {
         display: block;
@@ -1049,7 +1049,7 @@ const toggleVIP = (participant: Participant) => {
     justify-content: center;
 
     &:hover {
-      border-color: #6366f1;
+      border-color: var(--accent);
       transform: scale(1.1);
     }
 
@@ -1216,7 +1216,7 @@ const toggleVIP = (participant: Participant) => {
     letter-spacing: 0.5px;
     margin: 0 0 16px 0;
     padding-bottom: 8px;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 2px solid var(--border-color);
   }
 }
 
@@ -1243,7 +1243,7 @@ const toggleVIP = (participant: Participant) => {
     background: var(--bg-card);
 
     &:focus {
-      border-color: #6366f1;
+      border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
   }
@@ -1362,7 +1362,7 @@ const toggleVIP = (participant: Participant) => {
 .loading-spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid #e2e8f0;
+  border: 4px solid var(--border-color);
   border-top-color: #6366f1;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;

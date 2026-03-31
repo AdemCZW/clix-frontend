@@ -318,7 +318,7 @@ const exportEventData = async (event: LocalEvent) => {
 
   &:focus {
     outline: none;
-    border-color: #6366f1;
+    border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   }
 }
@@ -339,7 +339,7 @@ const exportEventData = async (event: LocalEvent) => {
 
   &:focus {
     outline: none;
-    border-color: #6366f1;
+    border-color: var(--accent);
   }
 }
 

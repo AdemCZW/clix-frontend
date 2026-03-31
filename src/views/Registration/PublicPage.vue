@@ -355,7 +355,7 @@ const formatDate = (date, endDate, time) => {
 .spinner {
   width: 44px;
   height: 44px;
-  border: 3px solid #e2e8f0;
+  border: 3px solid var(--border-color);
   border-top-color: #6366f1;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -385,7 +385,7 @@ const formatDate = (date, endDate, time) => {
 
 .qr-card {
   background: var(--bg-card);
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--border-color);
   border-radius: 20px;
   padding: 28px 32px;
   box-shadow: 0 8px 30px rgba(0,0,0,0.08);
@@ -527,7 +527,7 @@ const formatDate = (date, endDate, time) => {
   z-index: 50;
   background: rgba(255,255,255,0.96);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-color);
   padding: 14px clamp(16px, 5vw, 48px);
   display: flex;
   align-items: center;
@@ -538,7 +538,7 @@ const formatDate = (date, endDate, time) => {
   align-items: center;
   gap: 6px;
   background: none;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--border-color);
   padding: 8px 16px;
   border-radius: 10px;
   font-size: 0.88rem;
@@ -549,7 +549,7 @@ const formatDate = (date, endDate, time) => {
   transition: border-color 0.2s, color 0.2s, background 0.2s;
   white-space: nowrap;
 }
-.back-btn:hover { border-color: #6366f1; color: #4338ca; background: rgba(102,126,234,0.06); }
+.back-btn:hover { border-color: var(--accent); color: #4338ca; background: rgba(102,126,234,0.06); }
 .form-view-ename {
   font-size: 0.95rem;
   font-weight: 700;
@@ -586,14 +586,14 @@ const formatDate = (date, endDate, time) => {
 @media (max-width: 520px) { .form-row.two-col { grid-template-columns: 1fr; } }
 
 .field-group { display: flex; flex-direction: column; gap: 6px; }
-.field-group label { font-size: 0.85rem; font-weight: 700; color: #374151; }
+.field-group label { font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); }
 .required { color: #ef4444; }
 .optional  { font-weight: 400; color: var(--text-muted); font-size: 0.8rem; }
 
 .custom-textarea {
   width: 100%;
   padding: 12px 16px;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--border-color);
   border-radius: 12px;
   font-size: 0.95rem;
   color: var(--text-main);
@@ -603,7 +603,7 @@ const formatDate = (date, endDate, time) => {
   font-family: inherit;
   transition: border-color 0.2s, box-shadow 0.2s;
   &:focus {
-    border-color: #6366f1;
+    border-color: var(--accent);
     background: var(--bg-card);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.14);
   }
@@ -612,7 +612,7 @@ const formatDate = (date, endDate, time) => {
 .custom-select {
   width: 100%;
   padding: 12px 16px;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--border-color);
   border-radius: 12px;
   font-size: 0.95rem;
   color: var(--text-main);
@@ -621,7 +621,7 @@ const formatDate = (date, endDate, time) => {
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   cursor: pointer;
   &:focus {
-    border-color: #6366f1;
+    border-color: var(--accent);
     background: var(--bg-card);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.14);
   }
@@ -629,7 +629,7 @@ const formatDate = (date, endDate, time) => {
 
 .field-group input {
   padding: 12px 16px;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--border-color);
   border-radius: 12px;
   font-size: 0.95rem;
   color: var(--text-main);
@@ -638,7 +638,7 @@ const formatDate = (date, endDate, time) => {
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
 .field-group input:focus {
-  border-color: #6366f1;
+  border-color: var(--accent);
   background: var(--bg-card);
   box-shadow: 0 0 0 3px rgba(102,126,234,0.14);
 }
@@ -654,18 +654,18 @@ const formatDate = (date, endDate, time) => {
   align-items: center;
   gap: 10px;
   padding: 12px 18px;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--border-color);
   border-radius: 12px;
   cursor: pointer;
   font-size: 0.95rem;
-  color: #374151;
+  color: var(--text-secondary);
   font-weight: 600;
   background: var(--bg-primary);
   transition: border-color 0.2s, background 0.2s, color 0.2s;
 }
-.radio-item:hover { border-color: #6366f1; background: #f0f0ff; }
+.radio-item:hover { border-color: var(--accent); background: #f0f0ff; }
 .radio-item.checked {
-  border-color: #6366f1;
+  border-color: var(--accent);
   background: linear-gradient(135deg, rgba(102,126,234,0.08) 0%, rgba(118,75,162,0.1) 100%);
   color: #4338ca;
 }
@@ -678,7 +678,7 @@ const formatDate = (date, endDate, time) => {
   position: relative;
 }
 .radio-item.checked .radio-mark {
-  border-color: #6366f1;
+  border-color: var(--accent);
   background: linear-gradient(135deg, #6366f1, #4f46e5);
   box-shadow: 0 0 0 3px rgba(102,126,234,0.2);
 }

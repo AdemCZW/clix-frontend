@@ -494,7 +494,7 @@ const hasActiveFilters = computed(() =>
 .filter-input,
 .filter-select {
   padding: 6px 12px;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--border-color);
   border-radius: 8px;
   font-size: 0.85rem;
   outline: none;
@@ -502,7 +502,7 @@ const hasActiveFilters = computed(() =>
   background: var(--bg-card);
 
   &:focus {
-    border-color: #6366f1;
+    border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   }
 }
@@ -516,7 +516,7 @@ const hasActiveFilters = computed(() =>
   padding: 6px 14px;
   background: var(--bg-hover);
   color: var(--text-muted);
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--border-color);
   border-radius: 8px;
   font-size: 0.82rem;
   font-weight: 600;
@@ -663,7 +663,7 @@ const hasActiveFilters = computed(() =>
     transition: all 0.2s;
 
     &:focus {
-      border-color: #6366f1;
+      border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
   }
@@ -696,7 +696,7 @@ const hasActiveFilters = computed(() =>
 
   &:hover {
     background: var(--bg-card);
-    border-color: #6366f1;
+    border-color: var(--accent);
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
   }
 }

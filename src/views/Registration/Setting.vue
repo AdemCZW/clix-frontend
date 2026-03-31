@@ -664,7 +664,7 @@ const closeGuestDetail = () => {
   --text-gray: #475569;
   --text-gray-light: #64748b;
   --bg-soft: #f8fafc;
-  --border-light: #e2e8f0;
+  --border-light: var(--border-color);
 }
 
 .published-badge {
@@ -997,7 +997,7 @@ const closeGuestDetail = () => {
     height: 160px;
   }
   &:hover {
-    border-color: #6366f1;
+    border-color: var(--accent);
     background: #eef2ff;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
@@ -1019,7 +1019,7 @@ const closeGuestDetail = () => {
     border-color: #cbd5e1;
   }
   &:focus {
-    border-color: #6366f1;
+    border-color: var(--accent);
     outline: none;
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
   }
@@ -1248,7 +1248,7 @@ label {
     min-width: 0;
 
     &:focus {
-      border-color: #6366f1;
+      border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
   }
@@ -1567,7 +1567,7 @@ label {
   .p-guests-section {
     margin-top: 40px;
     padding-top: 30px;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--border-color);
   }
 
   .p-section-title {
@@ -1596,7 +1596,7 @@ label {
     &:hover {
       transform: translateY(-4px);
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-      border-color: #6366f1;
+      border-color: var(--accent);
     }
   }
 
@@ -1947,13 +1947,13 @@ label {
   }
 
   &.selected {
-    border-color: #6366f1;
+    border-color: var(--accent);
     background: #eef2ff;
     box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
 
     .guest-checkbox {
       background: #6366f1;
-      border-color: #6366f1;
+      border-color: var(--accent);
     }
   }
 }

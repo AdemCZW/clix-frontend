@@ -774,7 +774,7 @@ watch(logoUrl, (val) => {
   color: var(--text-secondary);
   transition: all 0.2s;
 
-  &:hover, &.active { border-color: #6366f1; color: #6366f1; background: #f5f3ff; }
+  &:hover, &.active { border-color: var(--accent); color: #6366f1; background: #f5f3ff; }
 }
 
 /* ===== 站台管理 ===== */
@@ -827,7 +827,7 @@ watch(logoUrl, (val) => {
   background: var(--bg-card);
   color: var(--text-main);
   transition: all 0.2s;
-  &:hover { background: #eef2ff; border-color: #6366f1; color: #4f46e5; }
+  &:hover { background: #eef2ff; border-color: var(--accent); color: #4f46e5; }
 }
 
 .btn-test {
@@ -840,7 +840,7 @@ watch(logoUrl, (val) => {
   background: var(--bg-card);
   color: var(--text-muted);
   transition: all 0.2s;
-  &:hover:not(:disabled) { border-color: #6366f1; color: #4f46e5; }
+  &:hover:not(:disabled) { border-color: var(--accent); color: #4f46e5; }
   &:disabled { opacity: 0.6; cursor: default; }
   &.online  { border-color: #bbf7d0; color: #16a34a; background: #f0fdf4; }
   &.offline { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
@@ -883,7 +883,7 @@ watch(logoUrl, (val) => {
     font-size: 0.9rem;
     margin-bottom: 10px;
     transition: 0.2s;
-    &:focus { border-color: #6366f1; outline: none; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+    &:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
   }
 }
 
@@ -923,12 +923,12 @@ watch(logoUrl, (val) => {
 
   &.active .toggle-icon {
     background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    border-color: #6366f1;
+    border-color: var(--accent);
     color: white;
   }
 
   &:hover { color: #6366f1; }
-  &:hover .toggle-icon { border-color: #6366f1; }
+  &:hover .toggle-icon { border-color: var(--accent); }
 }
 
 .participant-list {
@@ -957,7 +957,7 @@ watch(logoUrl, (val) => {
 
   &.selected {
     background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
-    border-color: #6366f1;
+    border-color: var(--accent);
 
     .name { color: #6366f1; }
   }
@@ -1025,7 +1025,7 @@ watch(logoUrl, (val) => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.2s;
-  &:hover { border-color: #6366f1; color: #4f46e5; background: #eef2ff; }
+  &:hover { border-color: var(--accent); color: #4f46e5; background: #eef2ff; }
   &.danger { border-color: #fca5a5; background: #fff1f2; color: #ef4444; &:hover { background: #fee2e2; } }
 }
 
@@ -1183,7 +1183,7 @@ watch(logoUrl, (val) => {
     font-size: 0.8rem;
     font-weight: 600;
     text-align: center;
-    &:focus { border-color: #6366f1; outline: none; }
+    &:focus { border-color: var(--accent); outline: none; }
   }
 }
 
@@ -1244,7 +1244,7 @@ watch(logoUrl, (val) => {
   transition: all 0.2s;
 
   &:hover {
-    border-color: #6366f1;
+    border-color: var(--accent);
     background: #eef2ff;
     color: #6366f1;
   }
@@ -1364,7 +1364,7 @@ watch(logoUrl, (val) => {
 .scan-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #e2e8f0;
+  border: 3px solid var(--border-color);
   border-top-color: #6366f1;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -1438,7 +1438,7 @@ watch(logoUrl, (val) => {
     border-radius: 10px;
     border: 2px solid var(--border-color);
     background: var(--bg-primary);
-    color: #374151;
+    color: var(--text-secondary);
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
@@ -1450,7 +1450,7 @@ watch(logoUrl, (val) => {
     position: relative;
 
     &:hover {
-      border-color: #6366f1;
+      border-color: var(--accent);
       background: #eef2ff;
       color: #4338ca;
     }

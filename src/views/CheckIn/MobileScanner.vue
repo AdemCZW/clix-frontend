@@ -608,7 +608,7 @@ onUnmounted(() => {
 @keyframes pulse {
   0%,
   100% {
-    border-color: #6366f1;
+    border-color: var(--accent);
     box-shadow:
       0 0 0 9999px rgba(0, 0, 0, 0.5),
       0 0 20px rgba(99, 102, 241, 0.5);
@@ -709,7 +709,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .info-row:last-child {
@@ -747,7 +747,7 @@ onUnmounted(() => {
   color: var(--text-main); cursor: pointer; font-weight: 700; font-size: 0.85rem;
   transition: all 0.2s; min-width: 80px;
 }
-.btn-station:hover { border-color: #6366f1; background: #eef2ff; transform: translateY(-2px); }
+.btn-station:hover { border-color: var(--accent); background: #eef2ff; transform: translateY(-2px); }
 .station-icon { font-size: 1.6rem; }
 .send-status { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 600; }
 .success-text { color: #059669; }
@@ -794,7 +794,7 @@ onUnmounted(() => {
 
 .btn-login-now {
   background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
-  color: #0f172a !important;
+  color: var(--text-main) !important;
   margin-bottom: 10px;
 }
 

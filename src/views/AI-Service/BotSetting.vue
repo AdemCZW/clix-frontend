@@ -263,7 +263,7 @@ const saveBotSettings = () => {
 
       &:focus {
         outline: none;
-        border-color: #6366f1;
+        border-color: var(--accent);
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
       }
 
@@ -280,7 +280,7 @@ const saveBotSettings = () => {
     small {
       display: block;
       margin-top: 6px;
-      color: #374151;
+      color: var(--text-secondary);
       font-size: 0.85rem;
     }
   }
@@ -378,7 +378,7 @@ const saveBotSettings = () => {
   transition: all 0.2s ease;
 
   &:hover {
-    border-color: #6366f1;
+    border-color: var(--accent);
     background: #eef2ff;
   }
 }

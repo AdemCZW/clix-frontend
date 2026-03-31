@@ -227,7 +227,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   --deep-dark: #0f172a;
   --text-gray: #64748b;
   --bg-soft: #f8fafc;
-  --border-light: #e2e8f0;
+  --border-light: var(--border-color);
 }
 
 .page-header {
@@ -355,7 +355,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
 .chosen-card {
   box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
-  border-color: #6366f1;
+  border-color: var(--accent);
 }
 
 .field-card-main {
@@ -636,7 +636,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   transition: all 0.3s;
 
   &:hover {
-    border-color: #6366f1;
+    border-color: var(--accent);
     color: #6366f1;
     background: #eef2ff;
   }
@@ -663,7 +663,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
   &:focus {
     outline: none;
-    border-color: #6366f1;
+    border-color: var(--accent);
     background: var(--bg-card);
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   }
@@ -686,7 +686,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
   &:focus {
     outline: none;
-    border-color: #6366f1;
+    border-color: var(--accent);
     background: var(--bg-card);
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   }

@@ -509,7 +509,7 @@ const createEvent = async () => {
 
     &:focus {
       outline: none;
-      border-color: #6366f1;
+      border-color: var(--accent);
       box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
     }
 
@@ -537,14 +537,14 @@ const createEvent = async () => {
   transition: all 0.3s;
 
   &:hover {
-    border-color: #6366f1;
+    border-color: var(--accent);
     color: #6366f1;
   }
 
   &.active {
     background: #6366f1;
     color: white;
-    border-color: #6366f1;
+    border-color: var(--accent);
   }
 }
 
@@ -631,7 +631,7 @@ const createEvent = async () => {
 
       &.completed {
         background: rgba(243, 244, 246, 0.95);
-        color: #374151;
+        color: var(--text-secondary);
       }
     }
   }
@@ -750,7 +750,7 @@ const createEvent = async () => {
 
     &:focus {
       outline: none;
-      border-color: #6366f1;
+      border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
   }
@@ -800,8 +800,8 @@ const createEvent = async () => {
 /* 編輯活動按鈕 */
 .btn-edit-event {
   background: white !important;
-  color: #475569 !important;
-  border-color: #e2e8f0 !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border-color) !important;
 
   &:hover {
     background: #f8fafc !important;

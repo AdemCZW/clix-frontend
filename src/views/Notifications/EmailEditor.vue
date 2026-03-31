@@ -402,7 +402,7 @@ onMounted(async () => {
   --deep-dark: #0f172a;
   --text-gray: #475569;
   --bg-soft: #f8fafc;
-  --border-light: #e2e8f0;
+  --border-light: var(--border-color);
 }
 
 .email-editor-view *,
@@ -594,7 +594,7 @@ onMounted(async () => {
 }
 
 .custom-input:focus {
-  border-color: #6366f1;
+  border-color: var(--accent);
   outline: none;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
@@ -661,7 +661,7 @@ onMounted(async () => {
 }
 
 .quill-container-fixed:focus-within {
-  border-color: #6366f1;
+  border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
@@ -717,7 +717,7 @@ onMounted(async () => {
 
 .filter-select:focus {
   outline: none;
-  border-color: #6366f1;
+  border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
@@ -738,7 +738,7 @@ onMounted(async () => {
 
 .search-input:focus {
   outline: none;
-  border-color: #6366f1;
+  border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 

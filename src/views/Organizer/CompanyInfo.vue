@@ -306,7 +306,7 @@ const saveCompanyInfo = async () => {
 
       &:focus {
         outline: none;
-        border-color: #6366f1;
+        border-color: var(--accent);
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
       }
 

@@ -297,7 +297,7 @@ const handleLogin = async () => {
 
   &:focus {
     outline: none;
-    border-color: #6366f1;
+    border-color: var(--accent);
     background: var(--bg-card);
     box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
   }

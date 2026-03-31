@@ -354,7 +354,7 @@ onUnmounted(() => disconnectWebSocket());
   transition: all 0.2s;
 }
 .btn-reconnect:hover {
-  border-color: #6366f1;
+  border-color: var(--accent);
   color: #6366f1;
 }
 

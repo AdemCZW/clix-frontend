@@ -455,13 +455,13 @@ watch(() => participantsStore.participants.length, () => {
   gap:1px;
 }
 .sp-seat:hover { border-color:#c7d2fe; box-shadow:0 2px 8px rgba(99,102,241,.12); }
-.sp-seat.sel { border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,.2); }
+.sp-seat.sel { border-color: var(--accent); box-shadow:0 0 0 3px rgba(99,102,241,.2); }
 .sp-seat.filled { background:#f5f3ff; border-color:#c7d2fe; }
 .sp-seat.filled.vip-seat { background:#fffbeb; border-color:#fde68a; }
 .sp-seat.aisle { background:transparent; border:2px dashed #d1d5db; cursor:default; border-radius:8px; }
 .sp-seat.aisle:hover { box-shadow:none; border-color:#d1d5db; }
 .sp-seat.reserved { background:#fef2f2; border-color:#fca5a5; }
-.sp-seat.drag-over { border-color:#6366f1; background:#eef2ff; box-shadow:0 0 0 4px rgba(99,102,241,.25); transform:scale(1.05); }
+.sp-seat.drag-over { border-color: var(--accent); background:#eef2ff; box-shadow:0 0 0 4px rgba(99,102,241,.25); transform:scale(1.05); }
 
 .sp-seat-lbl { font-size:.78rem; font-weight:600; color:var(--text-muted); }
 
@@ -482,7 +482,7 @@ watch(() => participantsStore.participants.length, () => {
 /* ── 選取工具列 ── */
 .sp-sel-bar { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; background:var(--bg-card); padding:10px 18px; border-radius:14px; box-shadow:0 8px 28px rgba(0,0,0,.12); border:1px solid var(--border-color); z-index:50; }
 .sp-sel-count { font-size:.84rem; font-weight:700; color:var(--text-main); padding-right:8px; border-right:1px solid var(--border-color); white-space:nowrap; }
-.sp-sel-bar button { display:flex; align-items:center; gap:5px; padding:7px 12px; border:none; background:transparent; border-radius:7px; cursor:pointer; font-size:.8rem; font-weight:600; color:#475569; transition:.15s; white-space:nowrap; }
+.sp-sel-bar button { display:flex; align-items:center; gap:5px; padding:7px 12px; border:none; background:transparent; border-radius:7px; cursor:pointer; font-size:.8rem; font-weight:600; color: var(--text-secondary); transition:.15s; white-space:nowrap; }
 .sp-sel-bar button:hover { background:var(--bg-hover); }
 .sp-sel-bar button.cancel { color:#ef4444; }
 .sp-sel-bar button.cancel:hover { background:#fef2f2; }
@@ -495,14 +495,14 @@ watch(() => participantsStore.participants.length, () => {
 
 /* ── 縮放 ── */
 .sp-zoom { position:fixed; right:28px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; align-items:center; gap:2px; background:var(--bg-card); padding:6px; border-radius:10px; border:1px solid var(--border-color); box-shadow:0 2px 6px rgba(0,0,0,.06); z-index:20; }
-.sp-zoom button { width:30px; height:30px; border:none; background:transparent; border-radius:7px; cursor:pointer; font-size:1rem; font-weight:700; color:#475569; transition:.15s; }
+.sp-zoom button { width:30px; height:30px; border:none; background:transparent; border-radius:7px; cursor:pointer; font-size:1rem; font-weight:700; color: var(--text-secondary); transition:.15s; }
 .sp-zoom button:hover { background:var(--bg-hover); }
 .sp-zoom span { font-size:.68rem; font-weight:600; color:var(--text-muted); }
 
 /* ── RWD ── */
 @media(max-width:768px) {
   .sp { flex-direction:column; }
-  .sp-left { width:100%; max-height:180px; border-right:none; border-bottom:1px solid #e5e7eb; overflow-x:auto; }
+  .sp-left { width:100%; max-height:180px; border-right:none; border-bottom: 1px solid var(--border-color); overflow-x:auto; }
   .sp-zoom { display:none; }
   .sp-sel-bar { left:12px; right:12px; transform:none; flex-wrap:wrap; justify-content:center; }
 }

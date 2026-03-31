@@ -608,7 +608,7 @@ const selectEvent = (displayEvent) => {
   transition: all 0.3s;
 
   &:hover {
-    border-color: #6366f1;
+    border-color: var(--accent);
     background: var(--bg-primary);
     transform: translateX(4px);
   }
@@ -655,7 +655,7 @@ const selectEvent = (displayEvent) => {
 
     &.active { background: #d1fae5; color: #065f46; }
     &.upcoming { background: #e0e7ff; color: #3730a3; }
-    &.completed { background: #f3f4f6; color: #374151; }
+    &.completed { background: #f3f4f6; color: var(--text-secondary); }
   }
 }
 

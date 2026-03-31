@@ -447,7 +447,7 @@ watch(
   .series-item,
   .event-item {
     padding: 16px;
-    border: 2px solid #e5e7eb;
+    border: 2px solid var(--border-color);
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -524,7 +524,7 @@ watch(
     width: 100%;
     margin-top: 8px;
     padding: 12px;
-    border: 1px dashed #e2e8f0;
+    border: 1px dashed var(--border-color);
     border-radius: 12px;
     background: var(--bg-hover);
     color: var(--text-muted);
@@ -539,7 +539,7 @@ watch(
   label {
     display: block;
     font-weight: 600;
-    color: #374151;
+    color: var(--text-secondary);
     margin-bottom: 8px;
     font-size: 0.9rem;
   }
@@ -547,7 +547,7 @@ watch(
   .input-field {
     width: 100%;
     padding: 12px 16px;
-    border: 2px solid #e5e7eb;
+    border: 2px solid var(--border-color);
     border-radius: 8px;
     font-size: 1rem;
     transition: border-color 0.2s ease;
@@ -588,7 +588,7 @@ watch(
 
   .event-summary {
     h4 {
-      color: #374151;
+      color: var(--text-secondary);
       margin: 0 0 10px 0;
       font-size: 1rem;
     }
@@ -614,7 +614,7 @@ watch(
 
 .modal-footer {
   padding: 20px 40px 30px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   gap: 15px;
@@ -644,7 +644,7 @@ watch(
 .btn-secondary {
   background: var(--bg-card);
   color: #6b7280;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color);
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;

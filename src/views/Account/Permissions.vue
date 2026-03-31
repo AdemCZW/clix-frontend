@@ -551,7 +551,7 @@ const copyToClipboard = (text: string) => {
 
   &.active {
     background: #eef2ff;
-    border-color: #6366f1;
+    border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   }
 }
@@ -623,7 +623,7 @@ const copyToClipboard = (text: string) => {
   font-weight: 600;
 
   &:hover {
-    border-color: #6366f1;
+    border-color: var(--accent);
     color: #6366f1;
     background: #eef2ff;
   }
@@ -707,7 +707,7 @@ const copyToClipboard = (text: string) => {
       font-size: 0.85rem;
       font-weight: 700;
       color: var(--text-secondary);
-      border-bottom: 2px solid #e2e8f0;
+      border-bottom: 2px solid var(--border-color);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -871,7 +871,7 @@ const copyToClipboard = (text: string) => {
 
   &:focus {
     outline: none;
-    border-color: #6366f1;
+    border-color: var(--accent);
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
     background: var(--bg-card);
   }
@@ -948,7 +948,7 @@ const copyToClipboard = (text: string) => {
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     font-weight: 600;
-    color: #374151;
+    color: var(--text-secondary);
   }
 }
 

@@ -117,7 +117,7 @@ const emit = defineEmits(["confirm", "cancel"]);
     background: var(--bg-hover);
     border: 1px solid var(--border-color);
     color: var(--text-secondary);
-    &:hover { background: #f1f5f9; }
+    &:hover { background: var(--bg-hover); }
   }
 
   .btn-confirm {

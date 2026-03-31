@@ -388,7 +388,7 @@ onUnmounted(() => stopScanning());
   animation: pulse-frame 2s ease-in-out infinite;
 }
 @keyframes pulse-frame {
-  0%, 100% { border-color: #6366f1; }
+  0%, 100% { border-color: var(--accent); }
   50% { border-color: #60a5fa; }
 }
 .scan-hint { color: #cbd5e1; margin: 16px 0 12px; }
@@ -468,7 +468,7 @@ onUnmounted(() => stopScanning());
   min-width: 90px;
 }
 .btn-station:hover {
-  border-color: #6366f1;
+  border-color: var(--accent);
   background: #1e3a5f;
   transform: translateY(-3px);
   box-shadow: 0 8px 20px rgba(99, 102, 241, 0.2);
