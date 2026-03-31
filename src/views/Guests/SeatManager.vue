@@ -317,6 +317,7 @@ onMounted(async () => {
               :class="{
                 sel: isSeatSelected(r-1, c-1),
                 filled: getSeatStatus(r-1, c-1) === 'assigned',
+                'vip-seat': getSeatStatus(r-1, c-1) === 'assigned' && (getSeat(r-1, c-1)?.attendee[0] as any)?.type === 'VIP',
                 aisle: getSeatStatus(r-1, c-1) === 'aisle',
                 reserved: getSeatStatus(r-1, c-1) === 'reserved',
                 'drag-over': dragOverIdx === getIdx(r-1, c-1),
@@ -330,7 +331,13 @@ onMounted(async () => {
               <template v-if="getSeatStatus(r-1,c-1)==='aisle'"></template>
               <!-- 有人 -->
               <template v-else-if="getSeatStatus(r-1,c-1)==='assigned'">
-                <div class="sp-avatar" draggable="true" @dragstart.stop="onDragStartSeat(r-1,c-1,$event)" @dragend="onDragEnd">
+                <div
+                  class="sp-avatar"
+                  :class="{ vip: (getSeat(r-1,c-1)?.attendee[0] as any)?.type === 'VIP' }"
+                  draggable="true"
+                  @dragstart.stop="onDragStartSeat(r-1,c-1,$event)"
+                  @dragend="onDragEnd"
+                >
                   {{ (getSeat(r-1,c-1)?.attendee[0] as any)?.name?.charAt(0) || '?' }}
                 </div>
                 <span class="sp-seat-name">{{ (getSeat(r-1,c-1)?.attendee[0] as any)?.name || '' }}</span>
@@ -423,7 +430,8 @@ onMounted(async () => {
 }
 .sp-seat:hover { border-color:#c7d2fe; box-shadow:0 2px 8px rgba(99,102,241,.12); }
 .sp-seat.sel { border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,.2); }
-.sp-seat.filled { background:#fffbeb; border-color:#fde68a; }
+.sp-seat.filled { background:#f5f3ff; border-color:#c7d2fe; }
+.sp-seat.filled.vip-seat { background:#fffbeb; border-color:#fde68a; }
 .sp-seat.aisle { background:transparent; border:2px dashed #d1d5db; cursor:default; border-radius:8px; }
 .sp-seat.aisle:hover { box-shadow:none; border-color:#d1d5db; }
 .sp-seat.reserved { background:#fef2f2; border-color:#fca5a5; }
@@ -439,6 +447,7 @@ onMounted(async () => {
   display:flex; align-items:center; justify-content:center;
   cursor:grab; transition:.15s;
 }
+.sp-avatar.vip { background:linear-gradient(135deg,#f59e0b,#d97706); }
 .sp-avatar:active { cursor:grabbing; opacity:.6; transform:scale(.9); }
 .sp-seat-name { font-size:.62rem; font-weight:600; color:#334155; max-width:56px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.1; }
 .sp-x { position:absolute; top:-4px; right:-4px; width:16px; height:16px; border-radius:50%; background:#ef4444; color:#fff; border:2px solid #fff; font-size:.6rem; cursor:pointer; display:none; align-items:center; justify-content:center; line-height:1; }
