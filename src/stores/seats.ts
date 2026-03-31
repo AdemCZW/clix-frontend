@@ -88,14 +88,9 @@ export const useSeatsStore = defineStore("seats", () => {
     }
   }
 
-  // 從後端載入座位（只在 localStorage 沒有該活動資料時呼叫）
+  // 從後端載入座位（每次都拉 layout + assignments + seat_metas）
   const loadFromBackend = async (eventId: number) => {
     const actId = `event_${eventId}`
-    // 如果 localStorage 已有資料，不覆蓋
-    if (activitySeats[actId] && activitySeats[actId].length > 0) {
-      const hasAnyPerson = activitySeats[actId].some((s: Seat) => s.attendee.length > 0)
-      if (hasAnyPerson) return // 本地已有分配，不從後端拉
-    }
 
     try {
       // 拉 layout
@@ -117,15 +112,19 @@ export const useSeatsStore = defineStore("seats", () => {
       }> = resData.assignments || resData
       const metasData: Array<{ seat_index: number; status: string }> = resData.seat_metas || []
 
-      // 載入座位狀態
+      // 載入座位狀態（每次都覆蓋）
+      const newMetas: Record<string, string> = {}
       for (const m of metasData) {
-        setSeatMeta(actId, m.seat_index, m.status)
+        newMetas[`${actId}_${m.seat_index}`] = m.status
       }
+      // 清除舊的 meta，只保留其他活動的
+      const cleaned: Record<string, string> = {}
+      for (const [k, v] of Object.entries(seatMetasMap.value)) {
+        if (!k.startsWith(actId + '_')) cleaned[k] = v
+      }
+      seatMetasMap.value = { ...cleaned, ...newMetas }
 
-      // 沒有後端資料就不覆蓋
-      if (assignments.length === 0 && metasData.length === 0) return
-
-      // 建立座位陣列
+      // 建立座位陣列（每次都從後端重建）
       const totalSeats = layout.rows * layout.cols
       const seats: Seat[] = Array.from({ length: totalSeats }, (_, i) => makeSeat(i))
       for (const a of assignments) {
