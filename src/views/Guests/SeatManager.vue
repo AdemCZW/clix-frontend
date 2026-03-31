@@ -7,215 +7,218 @@ import { useToast } from "@/composables/useToast";
 import { apiRequest } from "@/utils/api";
 import type { ParticipantType, Seat, SeatAttendee } from "@/types";
 
-interface SeatPerson {
-  id: number;
-  serial: string;
-  name: string;
-  company: string;
-  type: ParticipantType;
-}
+interface SeatPerson { id: number; serial: string; name: string; company: string; type: ParticipantType; }
 
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
 const seatsStore = useSeatsStore();
 const { success: toastSuccess, error: toastError } = useToast();
 
-// ── 活動與座位 key ──
 const getActivityKey = (eventId?: number) => eventId ? `event_${eventId}` : "act_01";
 const currentActivityId = ref(getActivityKey(eventsStore.currentEvent?.id));
-
-// ── 座位資料 ──
 const layout = seatsStore.layout;
 const activitySeats = seatsStore.activitySeats;
 const cols = computed(() => layout.cols);
 const rows = computed(() => layout.rows);
-
-// 欄位字母標頭 A B C D...
-const colHeaders = computed(() =>
-  Array.from({ length: cols.value }, (_, i) => String.fromCharCode(65 + i))
-);
-
-// 取得座位 label（A1, B2...）
-const getSeatLabel = (row: number, col: number) =>
-  `${String.fromCharCode(65 + col)}${row + 1}`;
-
-// 取得座位物件
-const getSeat = (row: number, col: number): Seat | null => {
-  const seats = activitySeats[currentActivityId.value];
-  if (!seats) return null;
-  const idx = row * cols.value + col;
-  return seats[idx] || null;
+const colHeaders = computed(() => Array.from({ length: cols.value }, (_, i) => String.fromCharCode(65 + i)));
+const getSeatLabel = (r: number, c: number) => `${String.fromCharCode(65 + c)}${r + 1}`;
+const getSeat = (r: number, c: number): Seat | null => {
+  const s = activitySeats[currentActivityId.value];
+  return s ? s[r * cols.value + c] || null : null;
 };
+const getIdx = (r: number, c: number) => r * cols.value + c;
 
 // ── 參與者 ──
 const allParticipants = computed<SeatPerson[]>(() =>
   participantsStore.participants.map((p, i) => ({
-    id: p.id,
-    serial: String(i + 1).padStart(4, "0"),
-    name: p.name,
-    company: p.company || "",
+    id: p.id, serial: String(i + 1).padStart(4, "0"),
+    name: p.name, company: p.company || "",
     type: (p.type || "一般民眾") as ParticipantType,
   }))
 );
 
-// 未分配名單
 const searchQuery = ref("");
 const onlyUnassigned = ref(true);
-
 const unassignedList = ref<SeatPerson[]>([]);
+
 const updateUnassignedList = () => {
   const seats = activitySeats[currentActivityId.value];
-  if (!seats) {
-    unassignedList.value = [...allParticipants.value];
-    return;
-  }
-  const seatedIds = new Set(
-    seats.filter((s: Seat) => s.attendee.length > 0)
-      .map((s: Seat) => (s.attendee[0] as unknown as SeatPerson).id)
-  );
-  unassignedList.value = allParticipants.value.filter((p) => !seatedIds.has(p.id));
+  if (!seats) { unassignedList.value = [...allParticipants.value]; return; }
+  const ids = new Set(seats.filter((s: Seat) => s.attendee.length > 0).map((s: Seat) => (s.attendee[0] as unknown as SeatPerson).id));
+  unassignedList.value = allParticipants.value.filter(p => !ids.has(p.id));
 };
 
-const vipList = computed(() => {
+const filteredList = (type: "VIP" | "general") => {
   let list = onlyUnassigned.value ? unassignedList.value : allParticipants.value;
-  list = list.filter((p) => p.type === "VIP");
+  list = type === "VIP" ? list.filter(p => p.type === "VIP") : list.filter(p => p.type !== "VIP");
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase();
-    list = list.filter((p) => p.name.toLowerCase().includes(q) || p.company.toLowerCase().includes(q));
+    list = list.filter(p => p.name.toLowerCase().includes(q) || p.company.toLowerCase().includes(q));
   }
   return list;
-});
-
-const generalList = computed(() => {
-  let list = onlyUnassigned.value ? unassignedList.value : allParticipants.value;
-  list = list.filter((p) => p.type !== "VIP");
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase();
-    list = list.filter((p) => p.name.toLowerCase().includes(q) || p.company.toLowerCase().includes(q));
-  }
-  return list;
-});
-
-// ── 選取座位 ──
-const selectedSeats = ref<Set<number>>(new Set());
-const toolMode = ref<"select" | "drag">("select");
-
-const toggleSeatSelect = (row: number, col: number) => {
-  if (toolMode.value !== "select") return;
-  const idx = row * cols.value + col;
-  if (selectedSeats.value.has(idx)) {
-    selectedSeats.value.delete(idx);
-  } else {
-    selectedSeats.value.add(idx);
-  }
-  // 強制 reactivity
-  selectedSeats.value = new Set(selectedSeats.value);
 };
 
-const clearSelection = () => {
-  selectedSeats.value = new Set();
-};
-
-const isSeatSelected = (row: number, col: number) => {
-  return selectedSeats.value.has(row * cols.value + col);
-};
+const vipList = computed(() => filteredList("VIP"));
+const generalList = computed(() => filteredList("general"));
 
 // ── 座位狀態 ──
 type SeatStatus = "empty" | "assigned" | "aisle" | "reserved";
-
 const seatStatuses = ref<Record<number, SeatStatus>>({});
 
-const getSeatStatus = (row: number, col: number): SeatStatus => {
-  const idx = row * cols.value + col;
+const getSeatStatus = (r: number, c: number): SeatStatus => {
+  const idx = getIdx(r, c);
   if (seatStatuses.value[idx]) return seatStatuses.value[idx];
-  const seat = getSeat(row, col);
+  const seat = getSeat(r, c);
   if (seat && seat.attendee.length > 0) return "assigned";
   return "empty";
 };
 
+// ── 選取（點擊選取，跟拖曳共存）──
+const selectedSeats = ref<Set<number>>(new Set());
+const isSeatSelected = (r: number, c: number) => selectedSeats.value.has(getIdx(r, c));
+
+const toggleSeatSelect = (r: number, c: number) => {
+  const idx = getIdx(r, c);
+  const status = getSeatStatus(r, c);
+  if (status === "aisle") return;
+  if (selectedSeats.value.has(idx)) selectedSeats.value.delete(idx);
+  else selectedSeats.value.add(idx);
+  selectedSeats.value = new Set(selectedSeats.value);
+};
+
+const clearSelection = () => { selectedSeats.value = new Set(); };
+
+// 整排選取
+const selectRow = (r: number) => {
+  for (let c = 0; c < cols.value; c++) {
+    const idx = getIdx(r, c);
+    if (getSeatStatus(r, c) !== "aisle") selectedSeats.value.add(idx);
+  }
+  selectedSeats.value = new Set(selectedSeats.value);
+};
+
+// 整列選取
+const selectCol = (c: number) => {
+  for (let r = 0; r < rows.value; r++) {
+    const idx = getIdx(r, c);
+    if (getSeatStatus(r, c) !== "aisle") selectedSeats.value.add(idx);
+  }
+  selectedSeats.value = new Set(selectedSeats.value);
+};
+
+// 設定選取座位狀態（走道/保留座時，已有來賓放回未分配）
 const setSelectedAs = (status: SeatStatus) => {
+  const seats = activitySeats[currentActivityId.value];
+  if (!seats) return;
   for (const idx of selectedSeats.value) {
+    // 如果設為走道或保留座，且座位上有人，先移除
+    if ((status === "aisle" || status === "reserved") && seats[idx] && seats[idx].attendee.length > 0) {
+      seats[idx].attendee = [];
+    }
     if (status === "empty") {
       delete seatStatuses.value[idx];
     } else {
       seatStatuses.value[idx] = status;
     }
   }
+  updateUnassignedList();
   clearSelection();
 };
 
-// ── 分配人員到座位 ──
-const assignPerson = (person: SeatPerson, row: number, col: number) => {
+// ── 分配/移除 ──
+const assignPerson = (person: SeatPerson, r: number, c: number) => {
   const seats = activitySeats[currentActivityId.value];
   if (!seats) return;
-  const idx = row * cols.value + col;
+  const idx = getIdx(r, c);
   if (!seats[idx]) return;
   seats[idx].attendee = [person as unknown as SeatAttendee];
-  seats[idx].label = getSeatLabel(row, col);
+  seats[idx].label = getSeatLabel(r, c);
   updateUnassignedList();
 };
 
-const removePerson = (row: number, col: number) => {
+const removePerson = (r: number, c: number) => {
   const seats = activitySeats[currentActivityId.value];
   if (!seats) return;
-  const idx = row * cols.value + col;
-  if (!seats[idx]) return;
-  seats[idx].attendee = [];
+  seats[getIdx(r, c)].attendee = [];
   updateUnassignedList();
 };
 
-// 拖曳分配
+// ── 拖曳（從左側面板或座位上拖曳）──
 const dragPerson = ref<SeatPerson | null>(null);
-const dragFromSeat = ref<{ row: number; col: number } | null>(null);
+const dragFrom = ref<{ r: number; c: number } | null>(null);
+const dragOverIdx = ref<number | null>(null);
 
-const onDragStart = (person: SeatPerson, fromSeat?: { row: number; col: number }) => {
-  dragPerson.value = person;
-  dragFromSeat.value = fromSeat || null;
+const onDragStartPerson = (p: SeatPerson, e: DragEvent) => {
+  dragPerson.value = p;
+  dragFrom.value = null;
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", p.name);
+  }
 };
 
-const onDrop = (row: number, col: number) => {
+const onDragStartSeat = (r: number, c: number, e: DragEvent) => {
+  const seat = getSeat(r, c);
+  if (!seat || seat.attendee.length === 0) return;
+  dragPerson.value = seat.attendee[0] as unknown as SeatPerson;
+  dragFrom.value = { r, c };
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", dragPerson.value.name);
+  }
+};
+
+const onDragOver = (r: number, c: number, e: DragEvent) => {
+  e.preventDefault();
+  const status = getSeatStatus(r, c);
+  if (status === "aisle" || status === "reserved") return;
+  if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+  dragOverIdx.value = getIdx(r, c);
+};
+
+const onDragLeave = () => { dragOverIdx.value = null; };
+
+const onDrop = (r: number, c: number) => {
+  dragOverIdx.value = null;
   if (!dragPerson.value) return;
-  const status = getSeatStatus(row, col);
+  const status = getSeatStatus(r, c);
   if (status === "aisle" || status === "reserved") return;
 
-  // 如果是從另一個座位拖過來，先清除原座位
-  if (dragFromSeat.value) {
-    const { row: fromRow, col: fromCol } = dragFromSeat.value;
-    // 如果目標座位已有人，做互換
-    const targetSeat = getSeat(row, col);
-    if (targetSeat && targetSeat.attendee.length > 0) {
-      const targetPerson = targetSeat.attendee[0] as unknown as SeatPerson;
-      removePerson(row, col);
-      assignPerson(targetPerson, fromRow, fromCol);
+  if (dragFrom.value) {
+    const { r: fr, c: fc } = dragFrom.value;
+    const target = getSeat(r, c);
+    if (target && target.attendee.length > 0) {
+      const tp = target.attendee[0] as unknown as SeatPerson;
+      removePerson(r, c);
+      assignPerson(tp, fr, fc);
     } else {
-      removePerson(fromRow, fromCol);
+      removePerson(fr, fc);
     }
   } else {
-    // 從左側面板拖入，如果目標已有人先移除
-    const seat = getSeat(row, col);
-    if (seat && seat.attendee.length > 0) {
-      removePerson(row, col);
-    }
+    const seat = getSeat(r, c);
+    if (seat && seat.attendee.length > 0) removePerson(r, c);
   }
-
-  assignPerson(dragPerson.value, row, col);
+  assignPerson(dragPerson.value, r, c);
   dragPerson.value = null;
-  dragFromSeat.value = null;
+  dragFrom.value = null;
+};
+
+const onDragEnd = () => {
+  dragPerson.value = null;
+  dragFrom.value = null;
+  dragOverIdx.value = null;
 };
 
 // ── 縮放 ──
 const zoom = ref(100);
 const zoomIn = () => { if (zoom.value < 150) zoom.value += 10; };
 const zoomOut = () => { if (zoom.value > 50) zoom.value -= 10; };
-
-// ── 增加行列 ──
 const addRow = () => seatsStore.addRow(currentActivityId.value);
 const addCol = () => seatsStore.addCol(currentActivityId.value);
 
-// ── 監控頁 ──
+// ── 監控 ──
 const openMonitor = () => {
-  const url = window.location.href.replace(/#.*$/, "") + "#/seat-monitor";
-  window.open(url, "seat-monitor", "noopener");
+  window.open(window.location.href.replace(/#.*$/, "") + "#/seat-monitor", "seat-monitor", "noopener");
 };
 
 // ── 儲存 ──
@@ -225,32 +228,18 @@ const saveSeats = async () => {
   if (!eventId) return;
   savingSeats.value = true;
   try {
-    await apiRequest(`/api/seats/layout/${eventId}/`, {
-      method: "PATCH",
-      body: JSON.stringify({ rows: layout.rows, cols: layout.cols }),
-    });
+    await apiRequest(`/api/seats/layout/${eventId}/`, { method: "PATCH", body: JSON.stringify({ rows: layout.rows, cols: layout.cols }) });
     const seats = activitySeats[currentActivityId.value] || [];
-    const assignments = seats
-      .map((seat: Seat, index: number) => {
-        if (seat.attendee.length === 0) return null;
-        return { seat_index: index, seat_label: seat.label, participant_id: (seat.attendee[0] as SeatAttendee).id };
-      })
-      .filter(Boolean);
-    await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, {
-      method: "POST",
-      body: JSON.stringify({ assignments }),
-    });
+    const assignments = seats.map((s: Seat, i: number) => s.attendee.length === 0 ? null : { seat_index: i, seat_label: s.label, participant_id: (s.attendee[0] as SeatAttendee).id }).filter(Boolean);
+    await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, { method: "POST", body: JSON.stringify({ assignments }) });
     toastSuccess("座位分配已儲存");
-  } catch {
-    toastError("儲存失敗");
-  } finally {
-    savingSeats.value = false;
-  }
+  } catch { toastError("儲存失敗"); }
+  finally { savingSeats.value = false; }
 };
 
 // ── 初始化 ──
-watch(() => eventsStore.currentEvent?.id, (newId) => {
-  currentActivityId.value = getActivityKey(newId);
+watch(() => eventsStore.currentEvent?.id, (id) => {
+  currentActivityId.value = getActivityKey(id);
   seatsStore.ensureActivity(currentActivityId.value);
   updateUnassignedList();
 });
@@ -267,664 +256,219 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="seat-page">
-    <!-- 左側面板 -->
-    <aside class="left-panel">
-      <div class="panel-toggle">
-        <label class="toggle-row">
-          <span class="toggle-label">僅顯示未分配</span>
-          <input type="checkbox" v-model="onlyUnassigned" class="toggle-input" />
-          <span class="toggle-track"><span class="toggle-thumb"></span></span>
-        </label>
-      </div>
-
-      <div class="panel-search">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+  <div class="sp">
+    <!-- 左側 -->
+    <aside class="sp-left">
+      <label class="sp-toggle">
+        <span>僅顯示未分配</span>
+        <input type="checkbox" v-model="onlyUnassigned" />
+        <i></i>
+      </label>
+      <div class="sp-search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input v-model="searchQuery" placeholder="搜尋..." />
       </div>
 
-      <!-- VIP -->
-      <div class="person-section">
-        <div class="section-title vip">VIP ({{ vipList.length }})</div>
-        <div
-          v-for="p in vipList"
-          :key="'v-' + p.id"
-          class="person-card"
-          draggable="true"
-          @dragstart="onDragStart(p)"
-        >
-          <div class="person-info">
-            <div class="person-name">{{ p.name }}</div>
-            <div class="person-company">{{ p.company }}</div>
-          </div>
-          <div class="person-meta">
-            <span class="person-serial">#{{ p.serial }}</span>
-            <span class="badge badge-unassigned">未分配</span>
-          </div>
+      <div class="sp-group" v-if="vipList.length">
+        <div class="sp-group-title vip">VIP ({{ vipList.length }})</div>
+        <div v-for="p in vipList" :key="p.id" class="sp-person" draggable="true" @dragstart="onDragStartPerson(p, $event)" @dragend="onDragEnd">
+          <div class="sp-person-l"><b>{{ p.name }}</b><small>{{ p.company }}</small></div>
+          <div class="sp-person-r"><code>#{{ p.serial }}</code><span class="sp-badge">未分配</span></div>
         </div>
       </div>
 
-      <!-- 參加者 -->
-      <div class="person-section">
-        <div class="section-title general">參加者 ({{ generalList.length }})</div>
-        <div
-          v-for="p in generalList"
-          :key="'g-' + p.id"
-          class="person-card"
-          draggable="true"
-          @dragstart="onDragStart(p)"
-        >
-          <div class="person-info">
-            <div class="person-name">{{ p.name }}</div>
-            <div class="person-company">{{ p.company }}</div>
-          </div>
-          <div class="person-meta">
-            <span class="person-serial">#{{ p.serial }}</span>
-            <span class="badge badge-unassigned">未分配</span>
-          </div>
+      <div class="sp-group" v-if="generalList.length">
+        <div class="sp-group-title gen">參加者 ({{ generalList.length }})</div>
+        <div v-for="p in generalList" :key="p.id" class="sp-person" draggable="true" @dragstart="onDragStartPerson(p, $event)" @dragend="onDragEnd">
+          <div class="sp-person-l"><b>{{ p.name }}</b><small>{{ p.company }}</small></div>
+          <div class="sp-person-r"><code>#{{ p.serial }}</code><span class="sp-badge">未分配</span></div>
         </div>
       </div>
     </aside>
 
     <!-- 主區域 -->
-    <main class="main-area">
-      <!-- 頂部工具列 -->
-      <div class="top-bar">
-        <div class="top-bar-left">
-          <button class="tool-btn" :class="{ active: toolMode === 'select' }" @click="toolMode = 'select'" title="選取模式">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
-          </button>
-          <button class="tool-btn" :class="{ active: toolMode === 'drag' }" @click="toolMode = 'drag'" title="拖曳模式">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 13"/></svg>
-          </button>
-          <div class="tool-divider"></div>
-          <button class="tool-btn" @click="addCol" title="新增欄">→|</button>
-          <button class="tool-btn" @click="addRow" title="新增列">↓</button>
-          <div class="tool-divider"></div>
-          <button class="tool-btn" @click="openMonitor" title="即時監控">📡</button>
-          <button class="tool-btn save-tool" :disabled="savingSeats" @click="saveSeats">
-            {{ savingSeats ? '儲存中...' : '💾 儲存' }}
-          </button>
-        </div>
+    <main class="sp-main">
+      <!-- 工具列 -->
+      <div class="sp-toolbar">
+        <button class="sp-tb" @click="addCol" title="新增欄">+ 欄</button>
+        <button class="sp-tb" @click="addRow" title="新增列">+ 列</button>
+        <button class="sp-tb" @click="openMonitor">即時監控</button>
+        <div style="flex:1"></div>
+        <button class="sp-tb save" :disabled="savingSeats" @click="saveSeats">{{ savingSeats ? '儲存中...' : '儲存座位' }}</button>
       </div>
 
-      <!-- 舞台 -->
-      <div class="stage-area" :style="{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }">
-        <div class="stage-label">舞台</div>
-        <div class="stage-bar"></div>
+      <!-- 舞台+座位 -->
+      <div class="sp-stage-wrap" :style="{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }">
+        <div class="sp-stage-lbl">舞台</div>
+        <div class="sp-stage-bar"></div>
 
-        <!-- 座位表 -->
-        <div class="seat-grid-wrapper">
-          <!-- 欄位標頭 -->
-          <div class="grid-header" :style="{ gridTemplateColumns: `40px repeat(${cols}, 1fr)` }">
+        <div class="sp-grid">
+          <!-- 欄標頭 -->
+          <div class="sp-grid-head" :style="{ gridTemplateColumns: `36px repeat(${cols}, 72px)` }">
             <div></div>
-            <div v-for="h in colHeaders" :key="h" class="col-header">{{ h }}</div>
+            <div v-for="h in colHeaders" :key="h" class="sp-hdr" @click="selectCol(colHeaders.indexOf(h))">{{ h }}</div>
           </div>
-
-          <!-- 座位行 -->
-          <div
-            v-for="r in rows"
-            :key="'row-' + r"
-            class="grid-row"
-            :style="{ gridTemplateColumns: `40px repeat(${cols}, 1fr)` }"
-          >
-            <div class="row-header">{{ r }}</div>
+          <!-- 行 -->
+          <div v-for="r in rows" :key="r" class="sp-grid-row" :style="{ gridTemplateColumns: `36px repeat(${cols}, 72px)` }">
+            <div class="sp-hdr row-hdr" @click="selectRow(r - 1)">{{ r }}</div>
             <div
-              v-for="c in cols"
-              :key="'seat-' + r + '-' + c"
-              class="seat-cell"
+              v-for="c in cols" :key="c"
+              class="sp-seat"
               :class="{
-                selected: isSeatSelected(r - 1, c - 1),
-                assigned: getSeatStatus(r - 1, c - 1) === 'assigned',
-                aisle: getSeatStatus(r - 1, c - 1) === 'aisle',
-                reserved: getSeatStatus(r - 1, c - 1) === 'reserved',
+                sel: isSeatSelected(r-1, c-1),
+                filled: getSeatStatus(r-1, c-1) === 'assigned',
+                aisle: getSeatStatus(r-1, c-1) === 'aisle',
+                reserved: getSeatStatus(r-1, c-1) === 'reserved',
+                'drag-over': dragOverIdx === getIdx(r-1, c-1),
               }"
-              @click="toggleSeatSelect(r - 1, c - 1)"
-              @dragover.prevent
-              @drop="onDrop(r - 1, c - 1)"
+              @click="toggleSeatSelect(r-1, c-1)"
+              @dragover="onDragOver(r-1, c-1, $event)"
+              @dragleave="onDragLeave"
+              @drop="onDrop(r-1, c-1)"
             >
-              <template v-if="getSeatStatus(r - 1, c - 1) === 'aisle'">
-                <div class="seat-aisle"></div>
-              </template>
-              <template v-else-if="getSeatStatus(r - 1, c - 1) === 'assigned'">
-                <div
-                  class="seat-content assigned-content"
-                  draggable="true"
-                  @dragstart.stop="onDragStart(
-                    getSeat(r - 1, c - 1)?.attendee[0] as any,
-                    { row: r - 1, col: c - 1 }
-                  )"
-                >
-                  <span class="seat-serial">#{{ (getSeat(r - 1, c - 1)?.attendee[0] as any)?.serial || '' }}</span>
-                  <span class="seat-person-name">{{ (getSeat(r - 1, c - 1)?.attendee[0] as any)?.name || '' }}</span>
+              <!-- 走道 -->
+              <template v-if="getSeatStatus(r-1,c-1)==='aisle'"></template>
+              <!-- 有人 -->
+              <template v-else-if="getSeatStatus(r-1,c-1)==='assigned'">
+                <div class="sp-avatar" draggable="true" @dragstart.stop="onDragStartSeat(r-1,c-1,$event)" @dragend="onDragEnd">
+                  {{ (getSeat(r-1,c-1)?.attendee[0] as any)?.name?.charAt(0) || '?' }}
                 </div>
-                <button class="seat-remove" @click.stop="removePerson(r - 1, c - 1)">×</button>
+                <span class="sp-seat-name">{{ (getSeat(r-1,c-1)?.attendee[0] as any)?.name || '' }}</span>
+                <button class="sp-x" @click.stop="removePerson(r-1,c-1)">×</button>
               </template>
+              <!-- 空位 -->
               <template v-else>
-                <div class="seat-content">
-                  <span class="seat-label-text">{{ getSeatLabel(r - 1, c - 1) }}</span>
-                </div>
+                <span class="sp-seat-lbl">{{ getSeatLabel(r-1, c-1) }}</span>
               </template>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 底部選取工具列 -->
-      <Transition name="toolbar-slide">
-        <div v-if="selectedSeats.size > 0" class="selection-toolbar">
-          <span class="sel-count">已選取 {{ selectedSeats.size }} 個座位</span>
-          <button class="sel-btn" @click="setSelectedAs('empty')">
-            <span class="sel-dot empty-dot"></span> 恢復為空位
-          </button>
-          <button class="sel-btn" @click="setSelectedAs('aisle')">
-            <span class="sel-dot aisle-dot"></span> 設定為走道
-          </button>
-          <button class="sel-btn" @click="setSelectedAs('reserved')">
-            <span class="sel-dot reserved-dot"></span> 設定為保留座
-          </button>
-          <button class="sel-btn cancel" @click="clearSelection">取消選取</button>
+      <!-- 選取工具列 -->
+      <Transition name="tb-slide">
+        <div v-if="selectedSeats.size > 0" class="sp-sel-bar">
+          <span class="sp-sel-count">已選取 {{ selectedSeats.size }} 個座位</span>
+          <button @click="setSelectedAs('empty')"><i class="dot dot-e"></i>恢復為空位</button>
+          <button @click="setSelectedAs('aisle')"><i class="dot dot-a"></i>設定為走道</button>
+          <button @click="setSelectedAs('reserved')"><i class="dot dot-r"></i>設定為保留座</button>
+          <button class="cancel" @click="clearSelection">取消選取</button>
         </div>
       </Transition>
 
-      <!-- 縮放控制 -->
-      <div class="zoom-controls">
-        <button class="zoom-btn" @click="zoomIn">+</button>
-        <span class="zoom-label">{{ zoom }}%</span>
-        <button class="zoom-btn" @click="zoomOut">−</button>
+      <!-- 縮放 -->
+      <div class="sp-zoom">
+        <button @click="zoomIn">+</button>
+        <span>{{ zoom }}%</span>
+        <button @click="zoomOut">−</button>
       </div>
     </main>
   </div>
 </template>
 
 <style scoped>
-.seat-page {
-  display: flex;
-  height: 100%;
-  min-height: calc(100vh - 64px);
-  background: #f8f9fb;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+.sp { display:flex; height:100%; min-height:calc(100vh - 64px); background:#f8f9fb; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+
+/* ── 左側 ── */
+.sp-left { width:272px; background:#fff; border-right:1px solid #e5e7eb; overflow-y:auto; flex-shrink:0; padding:14px; }
+.sp-toggle { display:flex; align-items:center; justify-content:space-between; cursor:pointer; margin-bottom:10px; font-size:.86rem; font-weight:600; color:#334155; }
+.sp-toggle input { display:none; }
+.sp-toggle i { width:38px; height:20px; background:#cbd5e1; border-radius:10px; position:relative; transition:.2s; display:block; }
+.sp-toggle i::after { content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; background:#fff; border-radius:50%; transition:.2s; box-shadow:0 1px 2px rgba(0,0,0,.2); }
+.sp-toggle input:checked+i { background:#6366f1; }
+.sp-toggle input:checked+i::after { transform:translateX(18px); }
+.sp-search { display:flex; align-items:center; gap:6px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:7px 10px; margin-bottom:14px; }
+.sp-search input { border:none; background:transparent; outline:none; font-size:.84rem; color:#1e293b; width:100%; }
+.sp-group { margin-bottom:12px; }
+.sp-group-title { font-size:.74rem; font-weight:700; letter-spacing:.5px; padding:2px 0 6px; }
+.sp-group-title.vip { color:#6366f1; }
+.sp-group-title.gen { color:#f59e0b; }
+.sp-person { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; margin-bottom:5px; cursor:grab; transition:.15s; background:#fff; }
+.sp-person:hover { border-color:#c7d2fe; box-shadow:0 2px 6px rgba(99,102,241,.1); }
+.sp-person:active { cursor:grabbing; opacity:.7; }
+.sp-person-l b { display:block; font-size:.86rem; color:#1e293b; }
+.sp-person-l small { font-size:.72rem; color:#94a3b8; }
+.sp-person-r { text-align:right; }
+.sp-person-r code { font-size:.72rem; color:#64748b; display:block; }
+.sp-badge { font-size:.62rem; font-weight:700; padding:2px 7px; border-radius:5px; background:#dbeafe; color:#1e40af; }
+
+/* ── 主區域 ── */
+.sp-main { flex:1; display:flex; flex-direction:column; position:relative; overflow:auto; padding:14px; }
+.sp-toolbar { display:flex; align-items:center; gap:6px; margin-bottom:12px; background:#fff; padding:6px 10px; border-radius:10px; border:1px solid #e5e7eb; }
+.sp-tb { padding:7px 12px; border:none; background:transparent; border-radius:7px; cursor:pointer; font-size:.82rem; font-weight:500; color:#64748b; transition:.15s; }
+.sp-tb:hover { background:#f1f5f9; color:#334155; }
+.sp-tb.save { background:#6366f1; color:#fff; font-weight:600; }
+.sp-tb.save:hover { background:#4f46e5; }
+.sp-tb.save:disabled { opacity:.5; cursor:not-allowed; }
+
+.sp-stage-wrap { flex:1; display:flex; flex-direction:column; align-items:center; transition:transform .2s; }
+.sp-stage-lbl { font-size:.82rem; font-weight:700; color:#94a3b8; letter-spacing:2px; margin-bottom:6px; }
+.sp-stage-bar { width:min(480px,55%); height:10px; background:linear-gradient(135deg,#334155,#1e293b); border-radius:5px; margin-bottom:20px; }
+
+/* ── 座位表 ── */
+.sp-grid { display:flex; flex-direction:column; gap:4px; }
+.sp-grid-head,.sp-grid-row { display:grid; gap:6px; }
+.sp-hdr { display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:700; color:#94a3b8; cursor:pointer; user-select:none; border-radius:6px; transition:.15s; }
+.sp-hdr:hover { background:#eef2ff; color:#6366f1; }
+.row-hdr { width:36px; }
+
+/* 座位圓形 */
+.sp-seat {
+  width:72px; height:72px;
+  border:2px solid #e2e8f0;
+  border-radius:50%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  cursor:pointer; transition:all .15s; position:relative; background:#fff;
+  gap:1px;
 }
+.sp-seat:hover { border-color:#c7d2fe; box-shadow:0 2px 8px rgba(99,102,241,.12); }
+.sp-seat.sel { border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,.2); }
+.sp-seat.filled { background:#fffbeb; border-color:#fde68a; }
+.sp-seat.aisle { background:transparent; border:2px dashed #d1d5db; cursor:default; border-radius:8px; }
+.sp-seat.aisle:hover { box-shadow:none; border-color:#d1d5db; }
+.sp-seat.reserved { background:#fef2f2; border-color:#fca5a5; }
+.sp-seat.drag-over { border-color:#6366f1; background:#eef2ff; box-shadow:0 0 0 4px rgba(99,102,241,.25); transform:scale(1.05); }
 
-/* ===== 左側面板 ===== */
-.left-panel {
-  width: 280px;
-  background: #fff;
-  border-right: 1px solid #e5e7eb;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  flex-shrink: 0;
-  padding: 16px;
+.sp-seat-lbl { font-size:.78rem; font-weight:600; color:#94a3b8; }
+
+/* 已分配：頭像 */
+.sp-avatar {
+  width:32px; height:32px; border-radius:50%;
+  background:linear-gradient(135deg,#6366f1,#4f46e5);
+  color:#fff; font-size:.82rem; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+  cursor:grab; transition:.15s;
 }
+.sp-avatar:active { cursor:grabbing; opacity:.6; transform:scale(.9); }
+.sp-seat-name { font-size:.62rem; font-weight:600; color:#334155; max-width:56px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.1; }
+.sp-x { position:absolute; top:-4px; right:-4px; width:16px; height:16px; border-radius:50%; background:#ef4444; color:#fff; border:2px solid #fff; font-size:.6rem; cursor:pointer; display:none; align-items:center; justify-content:center; line-height:1; }
+.sp-seat:hover .sp-x { display:flex; }
 
-.panel-toggle {
-  margin-bottom: 12px;
-}
+/* ── 選取工具列 ── */
+.sp-sel-bar { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; background:#fff; padding:10px 18px; border-radius:14px; box-shadow:0 8px 28px rgba(0,0,0,.12); border:1px solid #e5e7eb; z-index:50; }
+.sp-sel-count { font-size:.84rem; font-weight:700; color:#1e293b; padding-right:8px; border-right:1px solid #e5e7eb; white-space:nowrap; }
+.sp-sel-bar button { display:flex; align-items:center; gap:5px; padding:7px 12px; border:none; background:transparent; border-radius:7px; cursor:pointer; font-size:.8rem; font-weight:600; color:#475569; transition:.15s; white-space:nowrap; }
+.sp-sel-bar button:hover { background:#f1f5f9; }
+.sp-sel-bar button.cancel { color:#ef4444; }
+.sp-sel-bar button.cancel:hover { background:#fef2f2; }
+.dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+.dot-e { background:#e2e8f0; border:1px solid #cbd5e1; }
+.dot-a { background:#ef4444; }
+.dot-r { background:#f59e0b; }
+.tb-slide-enter-active,.tb-slide-leave-active { transition:all .3s ease; }
+.tb-slide-enter-from,.tb-slide-leave-to { opacity:0; transform:translateX(-50%) translateY(16px); }
 
-.toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-}
+/* ── 縮放 ── */
+.sp-zoom { position:fixed; right:28px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; align-items:center; gap:2px; background:#fff; padding:6px; border-radius:10px; border:1px solid #e5e7eb; box-shadow:0 2px 6px rgba(0,0,0,.06); z-index:20; }
+.sp-zoom button { width:30px; height:30px; border:none; background:transparent; border-radius:7px; cursor:pointer; font-size:1rem; font-weight:700; color:#475569; transition:.15s; }
+.sp-zoom button:hover { background:#f1f5f9; }
+.sp-zoom span { font-size:.68rem; font-weight:600; color:#94a3b8; }
 
-.toggle-label {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #334155;
-}
-
-.toggle-input { display: none; }
-
-.toggle-track {
-  width: 40px;
-  height: 22px;
-  background: #cbd5e1;
-  border-radius: 11px;
-  position: relative;
-  transition: background 0.2s;
-}
-
-.toggle-input:checked + .toggle-track {
-  background: #6366f1;
-}
-
-.toggle-thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 18px;
-  height: 18px;
-  background: #fff;
-  border-radius: 50%;
-  transition: transform 0.2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
-
-.toggle-input:checked + .toggle-track .toggle-thumb {
-  transform: translateX(18px);
-}
-
-.panel-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 8px 12px;
-  margin-bottom: 16px;
-}
-
-.panel-search input {
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 0.85rem;
-  color: #1e293b;
-  width: 100%;
-}
-
-.person-section { margin-bottom: 16px; }
-
-.section-title {
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 4px 0 8px;
-}
-
-.section-title.vip { color: #6366f1; }
-.section-title.general { color: #f59e0b; }
-
-.person-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  margin-bottom: 6px;
-  cursor: grab;
-  transition: all 0.15s;
-  background: #fff;
-}
-
-.person-card:hover {
-  border-color: #c7d2fe;
-  box-shadow: 0 2px 8px rgba(99,102,241,0.1);
-}
-
-.person-card:active { cursor: grabbing; }
-
-.person-name {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.person-company {
-  font-size: 0.75rem;
-  color: #94a3b8;
-}
-
-.person-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-
-.person-serial {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #64748b;
-  font-family: monospace;
-}
-
-.badge {
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 6px;
-}
-
-.badge-unassigned {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-/* ===== 主區域 ===== */
-.main-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: auto;
-  padding: 16px;
-}
-
-/* 頂部工具列 */
-.top-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-  background: #fff;
-  padding: 8px 12px;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
-
-.top-bar-left {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.tool-btn {
-  padding: 8px 10px;
-  border: none;
-  background: transparent;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  color: #64748b;
-  transition: all 0.15s;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.tool-btn:hover { background: #f1f5f9; color: #334155; }
-.tool-btn.active { background: #eef2ff; color: #4f46e5; }
-.tool-btn.save-tool {
-  background: #6366f1;
-  color: #fff;
-  font-weight: 600;
-  padding: 8px 16px;
-}
-.tool-btn.save-tool:hover { background: #4f46e5; }
-.tool-btn.save-tool:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.tool-divider {
-  width: 1px;
-  height: 20px;
-  background: #e2e8f0;
-  margin: 0 4px;
-}
-
-/* 舞台 */
-.stage-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transition: transform 0.2s;
-}
-
-.stage-label {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #94a3b8;
-  letter-spacing: 2px;
-  margin-bottom: 8px;
-}
-
-.stage-bar {
-  width: min(500px, 60%);
-  height: 12px;
-  background: linear-gradient(135deg, #334155, #1e293b);
-  border-radius: 6px;
-  margin-bottom: 24px;
-}
-
-/* 座位表 */
-.seat-grid-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.grid-header, .grid-row {
-  display: grid;
-  gap: 6px;
-}
-
-.col-header, .row-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #94a3b8;
-}
-
-.row-header {
-  width: 40px;
-}
-
-/* 座位格 */
-.seat-cell {
-  width: 72px;
-  height: 72px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s;
-  position: relative;
-  background: #fff;
-}
-
-.seat-cell:hover {
-  border-color: #c7d2fe;
-  box-shadow: 0 2px 8px rgba(99,102,241,0.15);
-}
-
-.seat-cell.selected {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
-}
-
-.seat-cell.assigned {
-  background: #fefce8;
-  border-color: #fde68a;
-}
-
-.seat-cell.aisle {
-  background: transparent;
-  border: 2px dashed #e2e8f0;
-  cursor: default;
-}
-
-.seat-cell.reserved {
-  background: #fef2f2;
-  border-color: #fca5a5;
-}
-
-.seat-cell.assigned .assigned-content {
-  cursor: grab;
-}
-
-.seat-cell.assigned .assigned-content:active {
-  cursor: grabbing;
-  opacity: 0.6;
-}
-
-.seat-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.seat-label-text {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #94a3b8;
-}
-
-.assigned-content {
-  text-align: center;
-}
-
-.seat-serial {
-  font-size: 0.65rem;
-  color: #94a3b8;
-  font-family: monospace;
-}
-
-.seat-person-name {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #1e293b;
-  max-width: 60px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.seat-remove {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #ef4444;
-  color: #fff;
-  border: 2px solid #fff;
-  font-size: 0.7rem;
-  cursor: pointer;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-.seat-cell:hover .seat-remove { display: flex; }
-
-.seat-aisle {
-  width: 100%;
-  height: 100%;
-}
-
-/* 底部選取工具列 */
-.selection-toolbar {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #fff;
-  padding: 12px 20px;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-  border: 1px solid #e5e7eb;
-  z-index: 50;
-}
-
-.sel-count {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #1e293b;
-  padding-right: 8px;
-  border-right: 1px solid #e5e7eb;
-}
-
-.sel-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: none;
-  background: transparent;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #475569;
-  transition: background 0.15s;
-}
-
-.sel-btn:hover { background: #f1f5f9; }
-.sel-btn.cancel { color: #ef4444; }
-.sel-btn.cancel:hover { background: #fef2f2; }
-
-.sel-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.empty-dot { background: #e2e8f0; border: 1px solid #cbd5e1; }
-.aisle-dot { background: #ef4444; }
-.reserved-dot { background: #f59e0b; }
-
-.toolbar-slide-enter-active, .toolbar-slide-leave-active { transition: all 0.3s ease; }
-.toolbar-slide-enter-from, .toolbar-slide-leave-to { opacity: 0; transform: translateX(-50%) translateY(20px); }
-
-/* 縮放 */
-.zoom-controls {
-  position: fixed;
-  right: 32px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  background: #fff;
-  padding: 8px;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  z-index: 20;
-}
-
-.zoom-btn {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: transparent;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #475569;
-  transition: background 0.15s;
-}
-
-.zoom-btn:hover { background: #f1f5f9; }
-
-.zoom-label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #94a3b8;
-}
-
-/* ===== RWD ===== */
-@media (max-width: 768px) {
-  .seat-page { flex-direction: column; }
-  .left-panel {
-    width: 100%;
-    max-height: 200px;
-    border-right: none;
-    border-bottom: 1px solid #e5e7eb;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 8px;
-    overflow-x: auto;
-  }
-  .person-section { min-width: 200px; }
-  .zoom-controls { display: none; }
-  .selection-toolbar { left: 16px; right: 16px; transform: none; }
+/* ── RWD ── */
+@media(max-width:768px) {
+  .sp { flex-direction:column; }
+  .sp-left { width:100%; max-height:180px; border-right:none; border-bottom:1px solid #e5e7eb; overflow-x:auto; }
+  .sp-zoom { display:none; }
+  .sp-sel-bar { left:12px; right:12px; transform:none; flex-wrap:wrap; justify-content:center; }
 }
 </style>
