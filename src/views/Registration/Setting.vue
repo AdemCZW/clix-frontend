@@ -682,7 +682,7 @@ const closeGuestDetail = () => {
 .published-dot {
   width: 8px;
   height: 8px;
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 50%;
   display: inline-block;
   margin-right: 5px;
@@ -731,10 +731,10 @@ const closeGuestDetail = () => {
   gap: 6px;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-muted);
   margin-bottom: 10px;
   padding: 4px 10px;
-  background: #f1f5f9;
+  background: var(--bg-hover);
   border-radius: 20px;
   .status-dot {
     width: 8px;
@@ -779,7 +779,7 @@ const closeGuestDetail = () => {
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-light);
   .title {
     font-size: 1.6rem;
     font-weight: 800;
@@ -964,7 +964,7 @@ const closeGuestDetail = () => {
 }
 
 .tech-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   border: 1px solid var(--border-light);
   padding: 16px;
@@ -979,7 +979,7 @@ const closeGuestDetail = () => {
     color: var(--deep-dark);
     margin-bottom: 10px;
     padding-bottom: 8px;
-    border-bottom: 2px solid #f1f5f9;
+    border-bottom: 2px solid var(--border-light);
   }
 }
 .drop-zone {
@@ -1059,7 +1059,7 @@ const closeGuestDetail = () => {
   overflow: hidden;
   :deep(.ql-toolbar) {
     border: none;
-    background: #f8fafc;
+    background: var(--bg-primary);
     border-bottom: 1px solid var(--border-light);
   }
   :deep(.ql-container) {
@@ -1073,7 +1073,7 @@ const closeGuestDetail = () => {
 /* 預覽 HTML 渲染 */
 .p-main-body-render {
   line-height: 1.9;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 1.05rem;
   margin-top: 10px;
   :deep(h1, h2, h3) {
@@ -1115,7 +1115,7 @@ const closeGuestDetail = () => {
     }
   }
   :deep(strong) {
-    color: #1e293b;
+    color: var(--text-main);
     font-weight: 800;
   }
 }
@@ -1132,7 +1132,7 @@ label {
   display: block;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #475569;
+  color: var(--text-secondary);
   margin-bottom: 5px;
 }
 
@@ -1226,10 +1226,10 @@ label {
   padding: 10px 12px;
   gap: 6px;
   border-bottom: 1px solid var(--border-light);
-  background: white;
+  background: var(--bg-card);
 
   .url-base-label {
-    color: #94a3b8;
+    color: var(--text-muted);
     font-size: 0.78rem;
     white-space: nowrap;
     flex-shrink: 0;
@@ -1237,7 +1237,7 @@ label {
 
   .slug-input {
     flex: 1;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 7px 10px;
     font-size: 0.88rem;
@@ -1378,7 +1378,7 @@ label {
   justify-content: space-between;
   align-items: center;
   .device-switcher {
-    background: #f1f5f9;
+    background: var(--bg-hover);
     padding: 4px;
     border-radius: 50px;
     display: flex;
@@ -1407,7 +1407,7 @@ label {
     height: 36px;
     border-radius: 50%;
     border: none;
-    background: #f1f5f9;
+    background: var(--bg-hover);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1469,7 +1469,7 @@ label {
   }
 }
 .preview-content-box {
-  background: white;
+  background: var(--bg-card);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1586,7 +1586,7 @@ label {
 
   .p-guest-card {
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
     border-radius: 16px;
     padding: 20px;
     text-align: center;
@@ -1638,7 +1638,7 @@ label {
 
   .p-guest-company {
     font-size: 0.85rem;
-    color: #475569; /* WCAG AA: 提升對比度到 6.57:1 */
+    color: var(--text-secondary); /* WCAG AA: 提升對比度到 6.57:1 */
   }
 
   .p-placeholder-block {
@@ -1756,7 +1756,7 @@ label {
 
 /* 重新產生連結確認彈窗 */
 .confirm-modal {
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
   width: 90%;
   max-width: 480px;
@@ -1824,7 +1824,7 @@ label {
   .confirm-question {
     font-size: 1rem;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--text-main);
     margin: 0;
     text-align: center;
   }
@@ -1883,7 +1883,7 @@ label {
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: white;
+  background: var(--bg-card);
   color: #6366f1;
   border: 1px solid #6366f1;
   padding: 12px 30px;
@@ -1939,7 +1939,7 @@ label {
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s;
-  background: white;
+  background: var(--bg-card);
 
   &:hover {
     border-color: #cbd5e1;
@@ -1968,7 +1968,7 @@ label {
   justify-content: center;
   flex-shrink: 0;
   transition: all 0.3s;
-  background: white;
+  background: var(--bg-card);
 
   svg {
     color: white;
@@ -2041,7 +2041,7 @@ label {
 }
 
 .p-guest-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 16px;
   border: 1px solid var(--border-light);
@@ -2133,7 +2133,7 @@ label {
   right: 0;
   width: 380px;
   height: 100%;
-  background: white;
+  background: var(--bg-card);
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.2);
   overflow-y: auto;
   z-index: 101;
@@ -2242,7 +2242,7 @@ label {
   p {
     font-size: 0.95rem;
     line-height: 1.8;
-    color: #475569;
+    color: var(--text-secondary);
     margin: 0;
   }
 }
@@ -2317,7 +2317,7 @@ label {
   right: 0;
   width: 480px;
   height: 100vh;
-  background: white;
+  background: var(--bg-card);
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
@@ -2326,7 +2326,7 @@ label {
 
 .guest-detail-header {
   padding: 24px 28px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2428,8 +2428,8 @@ label {
     background: #f9fafb;
     border-radius: 8px;
     font-size: 15px;
-    color: #1f2937;
-    border: 1px solid #e5e7eb;
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
     min-height: 44px;
     display: flex;
     align-items: center;

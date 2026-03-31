@@ -47,7 +47,7 @@ const close = () => emit("update:modelValue", false);
 .panel {
   max-width: 90vw;
   height: 100%;
-  background: white;
+  background: var(--bg-card);
   display: flex;
   flex-direction: column;
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
@@ -55,7 +55,7 @@ const close = () => emit("update:modelValue", false);
 
 .panel-header {
   padding: 24px 28px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -64,7 +64,7 @@ const close = () => emit("update:modelValue", false);
   h3 {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--text-main);
     margin: 0;
   }
 
@@ -72,7 +72,7 @@ const close = () => emit("update:modelValue", false);
     background: transparent;
     border: none;
     font-size: 1.4rem;
-    color: #475569;
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s;
     width: 32px;
@@ -84,7 +84,7 @@ const close = () => emit("update:modelValue", false);
 
     &:hover {
       background: #f1f5f9;
-      color: #0f172a;
+      color: var(--text-main);
       transform: rotate(90deg);
     }
   }

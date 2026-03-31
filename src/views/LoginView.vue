@@ -140,7 +140,7 @@ const handleLogin = async () => {
   .circle {
     position: absolute;
     border-radius: 50%;
-    background: white;
+    background: var(--bg-card);
     animation: float 20s infinite ease-in-out;
   }
 
@@ -189,7 +189,7 @@ const handleLogin = async () => {
 .login-card {
   width: 100%;
   max-width: 460px;
-  background: white;
+  background: var(--bg-card);
   border-radius: 24px;
   box-shadow:
     0 20px 60px rgba(0, 0, 0, 0.3),
@@ -213,7 +213,7 @@ const handleLogin = async () => {
   padding: 48px 40px 32px;
   text-align: center;
   background: linear-gradient(180deg, #f8fafc 0%, white 100%);
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .logo {
@@ -230,14 +230,14 @@ const handleLogin = async () => {
   .system-title {
     font-size: 1.75rem;
     font-weight: 800;
-    color: #0f172a;
+    color: var(--text-main);
     margin: 0 0 8px 0;
     letter-spacing: -0.02em;
   }
 
   .system-subtitle {
     font-size: 0.875rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0;
     font-weight: 500;
     letter-spacing: 0.5px;
@@ -273,7 +273,7 @@ const handleLogin = async () => {
   gap: 8px;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--text-secondary);
   margin-bottom: 10px;
 
   .label-icon {
@@ -284,21 +284,21 @@ const handleLogin = async () => {
 .form-input {
   width: 100%;
   padding: 14px 18px;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border-color);
   border-radius: 12px;
   font-size: 0.95rem;
-  color: #0f172a;
-  background: #f8fafc;
+  color: var(--text-main);
+  background: var(--bg-primary);
   transition: all 0.3s ease;
 
   &::placeholder {
-    color: #94a3b8;
+    color: var(--text-muted);
   }
 
   &:focus {
     outline: none;
     border-color: #6366f1;
-    background: white;
+    background: var(--bg-card);
     box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
   }
 
@@ -381,12 +381,12 @@ const handleLogin = async () => {
 .card-footer {
   padding: 20px 40px 32px;
   text-align: center;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--border-light);
 }
 
 .footer-text {
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin: 0;
 }
 

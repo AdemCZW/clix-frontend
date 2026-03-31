@@ -391,10 +391,10 @@ const selectEvent = (displayEvent) => {
 
 // Stats Bar
 .stats-bar {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 28px 32px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   margin-bottom: 24px;
   display: flex;
   align-items: center;
@@ -412,7 +412,7 @@ const selectEvent = (displayEvent) => {
 
   .stat-label {
     font-size: 0.85rem;
-    color: #64748b;
+    color: var(--text-muted);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -437,9 +437,9 @@ const selectEvent = (displayEvent) => {
 
 // Chart Card
 .chart-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   padding: 28px;
   margin-bottom: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -454,13 +454,13 @@ const selectEvent = (displayEvent) => {
   .chart-title {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--text-main);
     margin: 0 0 4px 0;
   }
 
   .chart-subtitle {
     font-size: 0.85rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0;
   }
 }
@@ -468,10 +468,10 @@ const selectEvent = (displayEvent) => {
 .range-tabs {
   display: flex;
   gap: 6px;
-  background: #f8fafc;
+  background: var(--bg-primary);
   padding: 4px;
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
 }
 
 .range-tab {
@@ -480,19 +480,19 @@ const selectEvent = (displayEvent) => {
   border-radius: 7px;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-muted);
   background: transparent;
   cursor: pointer;
   transition: all 0.2s;
 
   &.active {
-    background: white;
+    background: var(--bg-card);
     color: #6366f1;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   }
 
   &:hover:not(.active) {
-    color: #334155;
+    color: var(--text-secondary);
   }
 }
 
@@ -528,7 +528,7 @@ const selectEvent = (displayEvent) => {
 
   .tt-date {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: var(--text-muted);
     margin-bottom: 2px;
   }
 
@@ -545,7 +545,7 @@ const selectEvent = (displayEvent) => {
     transform: translateX(-50%);
     border: 5px solid transparent;
     border-bottom: none;
-    border-top-color: #0f172a;
+    border-top-color: var(--text-main);
   }
 }
 
@@ -553,7 +553,7 @@ const selectEvent = (displayEvent) => {
   display: flex;
   gap: 24px;
   padding-top: 16px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--border-light);
   margin-top: 16px;
 }
 
@@ -564,14 +564,14 @@ const selectEvent = (displayEvent) => {
 
   .s-label {
     font-size: 0.85rem;
-    color: #64748b;
+    color: var(--text-muted);
     font-weight: 500;
   }
 
   .s-value {
     font-size: 0.95rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--text-main);
   }
 }
 
@@ -579,15 +579,15 @@ const selectEvent = (displayEvent) => {
 .section-title {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-main);
   margin: 0 0 20px 0;
 }
 
 .recent-events-section {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 28px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
@@ -603,13 +603,13 @@ const selectEvent = (displayEvent) => {
   gap: 16px;
   padding: 16px;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   cursor: pointer;
   transition: all 0.3s;
 
   &:hover {
     border-color: #6366f1;
-    background: #f8fafc;
+    background: var(--bg-primary);
     transform: translateX(4px);
   }
 
@@ -635,13 +635,13 @@ const selectEvent = (displayEvent) => {
     .event-name {
       font-size: 1rem;
       font-weight: 700;
-      color: #0f172a;
+      color: var(--text-main);
       margin: 0 0 4px 0;
     }
 
     .event-meta {
       font-size: 0.85rem;
-      color: #475569;
+      color: var(--text-secondary);
       margin: 0;
     }
   }
@@ -662,7 +662,7 @@ const selectEvent = (displayEvent) => {
 .no-events {
   text-align: center;
   padding: 40px 20px;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 0.95rem;
 }
 
@@ -761,7 +761,7 @@ const selectEvent = (displayEvent) => {
 
   p {
     font-size: 1rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0;
   }
 }

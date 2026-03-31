@@ -424,13 +424,13 @@ const createEvent = async () => {
     .title {
       font-size: 2rem;
       font-weight: 800;
-      color: #0f172a;
+      color: var(--text-main);
       margin: 0 0 8px 0;
     }
 
     .subtitle {
       font-size: 0.95rem;
-      color: #475569;
+      color: var(--text-secondary);
       margin: 0;
     }
   }
@@ -499,8 +499,8 @@ const createEvent = async () => {
 
   input {
     width: 100%;
-    border: 2px solid #e2e8f0;
-    background: white;
+    border: 2px solid var(--border-color);
+    background: var(--bg-card);
     padding: 12px 18px;
     font-size: 0.95rem;
     border-radius: 10px;
@@ -514,7 +514,7 @@ const createEvent = async () => {
     }
 
     &::placeholder {
-      color: #64748b;
+      color: var(--text-muted);
       font-weight: 400;
     }
   }
@@ -527,13 +527,13 @@ const createEvent = async () => {
 
 .filter-tab {
   background: transparent;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   padding: 8px 16px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
-  color: #475569;
+  color: var(--text-secondary);
   transition: all 0.3s;
 
   &:hover {
@@ -572,13 +572,13 @@ const createEvent = async () => {
   h3 {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--text-main);
     margin: 0;
   }
 
   p {
     font-size: 0.9rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0 0 8px 0;
   }
 }
@@ -590,10 +590,10 @@ const createEvent = async () => {
 }
 
 .event-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   cursor: pointer;
   transition: all 0.3s;
 
@@ -642,7 +642,7 @@ const createEvent = async () => {
     .event-title {
       font-size: 1.1rem;
       font-weight: 700;
-      color: #0f172a;
+      color: var(--text-main);
       margin: 0 0 16px 0;
     }
 
@@ -657,7 +657,7 @@ const createEvent = async () => {
         align-items: center;
         gap: 8px;
         font-size: 0.85rem;
-        color: #475569;
+        color: var(--text-secondary);
 
         .meta-icon {
           font-size: 1rem;
@@ -669,7 +669,7 @@ const createEvent = async () => {
       display: flex;
       gap: 8px;
       padding-top: 16px;
-      border-top: 1px solid #f1f5f9;
+      border-top: 1px solid var(--border-light);
       align-items: center;
 
       .reg-page-badge {
@@ -677,8 +677,8 @@ const createEvent = async () => {
         font-weight: 600;
         padding: 4px 10px;
         border-radius: 20px;
-        background: #f1f5f9;
-        color: #94a3b8;
+        background: var(--bg-hover);
+        color: var(--text-muted);
         flex-shrink: 0;
         &.has {
           background: #d1fae5;
@@ -703,7 +703,7 @@ const createEvent = async () => {
         }
 
         &.secondary {
-          background: white;
+          background: var(--bg-card);
           color: #6366f1;
 
           &:hover {
@@ -736,14 +736,14 @@ const createEvent = async () => {
     display: block;
     font-size: 0.9rem;
     font-weight: 600;
-    color: #0f172a;
+    color: var(--text-main);
     margin-bottom: 8px;
   }
 
   input {
     width: 100%;
     padding: 12px 16px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border-color);
     border-radius: 10px;
     font-size: 0.95rem;
     transition: all 0.3s;
@@ -761,13 +761,13 @@ const createEvent = async () => {
   border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
-  background: white;
-  border: 1px solid #e5e7eb;
-  color: #475569;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
   transition: all 0.3s;
 
   &:hover {
-    background: #f8fafc;
+    background: var(--bg-primary);
   }
 }
 
@@ -814,13 +814,13 @@ const createEvent = async () => {
   border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
-  background: white;
-  border: 1px solid #e5e7eb;
-  color: #475569;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
   transition: all 0.2s;
 
   &:hover {
-    background: #f8fafc;
+    background: var(--bg-primary);
   }
 }
 

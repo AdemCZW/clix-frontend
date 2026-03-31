@@ -714,7 +714,7 @@ watch(logoUrl, (val) => {
 <style lang="scss" scoped>
 .badge-printer-view {
   padding: 24px;
-  background: #f8fafc;
+  background: var(--bg-primary);
   min-height: 100vh;
 }
 
@@ -723,20 +723,20 @@ watch(logoUrl, (val) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
+  background: var(--bg-card);
   border-radius: 14px;
   padding: 14px 24px;
   margin-bottom: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .toolbar-left {
   .toolbar-stat {
     font-size: 0.9rem;
-    color: #475569;
+    color: var(--text-secondary);
 
-    strong { color: #0f172a; }
+    strong { color: var(--text-main); }
     .highlight { color: #6366f1; font-size: 1.1rem; }
   }
 }
@@ -769,9 +769,9 @@ watch(logoUrl, (val) => {
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  border: 1px solid #e2e8f0;
-  background: white;
-  color: #475569;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
   transition: all 0.2s;
 
   &:hover, &.active { border-color: #6366f1; color: #6366f1; background: #f5f3ff; }
@@ -782,8 +782,8 @@ watch(logoUrl, (val) => {
   display: flex;
   align-items: center;
   gap: 20px;
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 14px 20px;
   margin-bottom: 16px;
@@ -800,8 +800,8 @@ watch(logoUrl, (val) => {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 6px 10px;
 }
@@ -823,9 +823,9 @@ watch(logoUrl, (val) => {
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
-  border: 1px solid #e2e8f0;
-  background: white;
-  color: #0f172a;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-main);
   transition: all 0.2s;
   &:hover { background: #eef2ff; border-color: #6366f1; color: #4f46e5; }
 }
@@ -836,9 +836,9 @@ watch(logoUrl, (val) => {
   font-weight: 600;
   font-size: 0.75rem;
   cursor: pointer;
-  border: 1px solid #e2e8f0;
-  background: white;
-  color: #64748b;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-muted);
   transition: all 0.2s;
   &:hover:not(:disabled) { border-color: #6366f1; color: #4f46e5; }
   &:disabled { opacity: 0.6; cursor: default; }
@@ -853,8 +853,8 @@ watch(logoUrl, (val) => {
   gap: 4px;
   flex-shrink: 0;
 
-  .qr-img { width: 64px; height: 64px; border-radius: 6px; border: 1px solid #e2e8f0; }
-  .qr-label { font-size: 0.7rem; color: #94a3b8; }
+  .qr-img { width: 64px; height: 64px; border-radius: 6px; border: 1px solid var(--border-color); }
+  .qr-label { font-size: 0.7rem; color: var(--text-muted); }
 }
 
 /* ===== 主區塊 ===== */
@@ -867,9 +867,9 @@ watch(logoUrl, (val) => {
 
 /* 左側人員選擇 */
 .selection-panel {
-  background: white;
+  background: var(--bg-card);
   border-radius: 14px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   padding: 16px;
   height: calc(100vh - 180px);
   display: flex;
@@ -879,7 +879,7 @@ watch(logoUrl, (val) => {
     width: 100%;
     padding: 10px 14px;
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
     font-size: 0.9rem;
     margin-bottom: 10px;
     transition: 0.2s;
@@ -892,16 +892,16 @@ watch(logoUrl, (val) => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 10px;
-  background: #f8fafc;
+  background: var(--bg-primary);
   border-radius: 8px;
   margin-bottom: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
 }
 
 .btn-toggle {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-main);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -949,7 +949,7 @@ watch(logoUrl, (val) => {
   border-radius: 10px;
   margin-bottom: 4px;
   border: 2px solid transparent;
-  background: #f8fafc;
+  background: var(--bg-primary);
   cursor: pointer;
   transition: all 0.2s;
 
@@ -967,8 +967,8 @@ watch(logoUrl, (val) => {
     flex-direction: column;
     gap: 2px;
 
-    .name { font-weight: 700; color: #0f172a; font-size: 0.9rem; }
-    .comp { font-size: 0.75rem; color: #64748b; }
+    .name { font-weight: 700; color: var(--text-main); font-size: 0.9rem; }
+    .comp { font-size: 0.75rem; color: var(--text-muted); }
   }
 
   .check-mark {
@@ -987,9 +987,9 @@ watch(logoUrl, (val) => {
 
 /* ===== 右側設計區域 ===== */
 .design-area {
-  background: white;
+  background: var(--bg-card);
   border-radius: 14px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   padding: 20px;
 }
 
@@ -1005,7 +1005,7 @@ watch(logoUrl, (val) => {
 .canvas-title {
   font-size: 1rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 .canvas-actions {
@@ -1019,9 +1019,9 @@ watch(logoUrl, (val) => {
   font-size: 0.75rem;
   padding: 4px 10px;
   border-radius: 6px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: #475569;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   cursor: pointer;
   font-weight: 600;
   transition: all 0.2s;
@@ -1038,23 +1038,23 @@ watch(logoUrl, (val) => {
 
 .size-label {
   font-size: 0.72rem;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 700;
-  background: #f8fafc;
+  background: var(--bg-primary);
   padding: 3px 8px;
   border-radius: 4px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
 }
 
 .canvas-box {
   width: 90mm;
   height: 60mm;
-  background: white;
+  background: var(--bg-card);
   position: relative;
   overflow: hidden;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
   border-radius: 4px;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border-color);
   margin: 0 auto;
 }
 
@@ -1099,7 +1099,7 @@ watch(logoUrl, (val) => {
 .qr-placeholder {
   width: 80px;
   height: 80px;
-  background: #f1f5f9;
+  background: var(--bg-hover);
   border-radius: 4px;
 }
 
@@ -1110,8 +1110,8 @@ watch(logoUrl, (val) => {
   gap: 16px;
   margin-top: 14px;
   padding: 12px 16px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   flex-wrap: wrap;
 }
@@ -1119,7 +1119,7 @@ watch(logoUrl, (val) => {
 .style-bar-label {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-main);
   white-space: nowrap;
 }
 
@@ -1131,14 +1131,14 @@ watch(logoUrl, (val) => {
   label {
     font-size: 0.78rem;
     font-weight: 600;
-    color: #64748b;
+    color: var(--text-muted);
     white-space: nowrap;
   }
 
   .val {
     font-size: 0.75rem;
     font-weight: 700;
-    color: #64748b;
+    color: var(--text-muted);
     font-family: monospace;
     min-width: 36px;
   }
@@ -1172,14 +1172,14 @@ watch(logoUrl, (val) => {
     overflow: hidden;
 
     &::-webkit-color-swatch-wrapper { padding: 0; }
-    &::-webkit-color-swatch { border: 2px solid #e2e8f0; border-radius: 6px; }
+    &::-webkit-color-swatch { border: 2px solid var(--border-color); border-radius: 6px; }
   }
 
   .num-input {
     width: 56px;
     padding: 4px 6px;
     border-radius: 6px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
     font-size: 0.8rem;
     font-weight: 600;
     text-align: center;
@@ -1234,9 +1234,9 @@ watch(logoUrl, (val) => {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: #475569;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1263,7 +1263,7 @@ watch(logoUrl, (val) => {
 }
 
 .scan-modal {
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
   width: 360px;
   max-width: calc(100vw - 32px);
@@ -1275,12 +1275,12 @@ watch(logoUrl, (val) => {
     align-items: center;
     justify-content: space-between;
     padding: 20px 24px 16px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--border-light);
 
     h3 {
       font-size: 1rem;
       font-weight: 700;
-      color: #0f172a;
+      color: var(--text-main);
       margin: 0;
     }
 
@@ -1288,9 +1288,9 @@ watch(logoUrl, (val) => {
       width: 32px;
       height: 32px;
       border-radius: 8px;
-      border: 1px solid #e2e8f0;
-      background: #f8fafc;
-      color: #64748b;
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      color: var(--text-muted);
       cursor: pointer;
       font-size: 0.85rem;
       display: flex;
@@ -1348,7 +1348,7 @@ watch(logoUrl, (val) => {
 
 .scan-hint {
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--text-muted);
   margin: 0;
   text-align: center;
 }
@@ -1398,13 +1398,13 @@ watch(logoUrl, (val) => {
   .result-name {
     font-size: 1.15rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--text-main);
     text-align: center;
   }
 
   .result-msg {
     font-size: 0.85rem;
-    color: #64748b;
+    color: var(--text-muted);
   }
 
   .result-tag {
@@ -1436,8 +1436,8 @@ watch(logoUrl, (val) => {
     flex: 1;
     padding: 12px 8px;
     border-radius: 10px;
-    border: 2px solid #e2e8f0;
-    background: #f8fafc;
+    border: 2px solid var(--border-color);
+    background: var(--bg-primary);
     color: #374151;
     font-size: 0.85rem;
     font-weight: 600;
@@ -1488,10 +1488,10 @@ watch(logoUrl, (val) => {
   }
 
   .btn-scan-again {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    color: #475569;
-    &:hover { background: #f1f5f9; }
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    &:hover { background: var(--bg-hover); }
   }
 
   .btn-scan-done {
@@ -1553,7 +1553,7 @@ watch(logoUrl, (val) => {
 
   .badge-printer-view {
     padding: 0;
-    background: white;
+    background: var(--bg-card);
 
     .toolbar,
     .station-mgmt,
@@ -1567,7 +1567,7 @@ watch(logoUrl, (val) => {
     width: 90mm;
     height: 60mm;
     overflow: hidden;
-    background: white;
+    background: var(--bg-card);
     page-break-after: always;
     margin: 0;
 

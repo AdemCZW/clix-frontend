@@ -103,7 +103,7 @@ const brandChars = 'Dabang'.split('');
 
 .loader-text {
   font-size: 0.82rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-weight: 500;
   margin: 0;
   letter-spacing: 0.5px;

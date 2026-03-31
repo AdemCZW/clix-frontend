@@ -322,7 +322,7 @@ onUnmounted(() => stopScanning());
 .event-badge {
   font-size: 0.8rem;
   background: #334155;
-  color: #94a3b8;
+  color: var(--text-muted);
   padding: 4px 12px;
   border-radius: 20px;
 }
@@ -345,7 +345,7 @@ onUnmounted(() => stopScanning());
 
 /* 掃描起始畫面 */
 .scan-icon { font-size: 4rem; margin-bottom: 16px; }
-.scan-desc { color: #94a3b8; font-size: 1rem; margin-bottom: 8px; }
+.scan-desc { color: var(--text-muted); font-size: 1rem; margin-bottom: 8px; }
 .scan-error { color: #f87171; font-size: 0.9rem; margin-bottom: 12px; }
 .btn-start {
   background: linear-gradient(135deg, #6366f1, #4f46e5);
@@ -436,14 +436,14 @@ onUnmounted(() => stopScanning());
   border-bottom: 1px solid #334155;
 }
 .p-row:last-child { border-bottom: none; }
-.p-label { font-size: 0.85rem; color: #64748b; font-weight: 600; }
+.p-label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
 .p-value { font-size: 0.95rem; color: #e2e8f0; font-weight: 500; }
 .p-value.name { font-size: 1.1rem; font-weight: 800; color: white; }
 
 /* 站台選擇 */
 .station-prompt {
   font-size: 0.95rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin-bottom: 16px;
   font-weight: 600;
 }
@@ -477,12 +477,12 @@ onUnmounted(() => stopScanning());
 .station-icon { font-size: 2rem; }
 .station-label { font-size: 0.9rem; }
 .btn-rescan {
-  background: transparent; color: #64748b;
+  background: transparent; color: var(--text-muted);
   border: 1px solid #334155; padding: 10px 24px;
   border-radius: 8px; cursor: pointer; font-size: 0.9rem;
   transition: all 0.2s;
 }
-.btn-rescan:hover { color: #94a3b8; border-color: #475569; }
+.btn-rescan:hover { color: var(--text-muted); border-color: var(--text-secondary); }
 
 /* 傳送成功 */
 .sent-icon {
@@ -493,7 +493,7 @@ onUnmounted(() => stopScanning());
   margin-bottom: 16px;
   box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
 }
-.sent-name { color: #94a3b8; font-size: 0.95rem; margin: 8px 0 28px; }
+.sent-name { color: var(--text-muted); font-size: 0.95rem; margin: 8px 0 28px; }
 .btn-next {
   background: linear-gradient(135deg, #10b981, #059669);
   color: white; border: none; padding: 14px 36px;

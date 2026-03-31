@@ -335,7 +335,7 @@ const formatDate = (date, endDate, time) => {
 /* ─── Base ─── */
 .public-page {
   min-height: 100vh;
-  background: #f1f5f9;
+  background: var(--bg-hover);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', sans-serif;
   padding-bottom: 90px;
 }
@@ -350,7 +350,7 @@ const formatDate = (date, endDate, time) => {
   gap: 16px;
   padding: 40px 24px;
   text-align: center;
-  background: #fff;
+  background: var(--bg-card);
 }
 .spinner {
   width: 44px;
@@ -363,7 +363,7 @@ const formatDate = (date, endDate, time) => {
 @keyframes spin { to { transform: rotate(360deg); } }
 .state-icon { font-size: 4rem; line-height: 1; }
 .error-screen h2 { color: #ef4444; margin: 0; font-size: 1.6rem; }
-.error-screen p  { color: #64748b; margin: 0; }
+.error-screen p  { color: var(--text-muted); margin: 0; }
 
 /* Success */
 .success-burst { animation: burst 0.5s ease-out; }
@@ -381,10 +381,10 @@ const formatDate = (date, endDate, time) => {
   -webkit-text-fill-color: transparent;
   margin: 0;
 }
-.success-sub { font-size: 1rem; color: #475569; margin: 0; max-width: 360px; }
+.success-sub { font-size: 1rem; color: var(--text-secondary); margin: 0; max-width: 360px; }
 
 .qr-card {
-  background: #fff;
+  background: var(--bg-card);
   border: 1.5px solid #e2e8f0;
   border-radius: 20px;
   padding: 28px 32px;
@@ -395,21 +395,21 @@ const formatDate = (date, endDate, time) => {
   gap: 12px;
   margin: 8px 0;
 }
-.qr-hint  { font-size: 0.88rem; color: #64748b; margin: 0; }
+.qr-hint  { font-size: 0.88rem; color: var(--text-muted); margin: 0; }
 .qr-img-wrap {
   width: 200px;
   height: 200px;
   padding: 12px;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border-color);
   border-radius: 14px;
-  background: #fff;
+  background: var(--bg-card);
 }
 .qr-img-wrap img { width: 100%; height: 100%; display: block; }
-.qr-token { font-size: 0.78rem; color: #94a3b8; font-family: monospace; letter-spacing: 1.5px; }
+.qr-token { font-size: 0.78rem; color: var(--text-muted); font-family: monospace; letter-spacing: 1.5px; }
 
 .reminder-box {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 14px;
   padding: 16px 24px;
   display: flex;
@@ -418,7 +418,7 @@ const formatDate = (date, endDate, time) => {
   width: 100%;
   max-width: 420px;
 }
-.reminder-row { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; color: #334155; }
+.reminder-row { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; color: var(--text-secondary); }
 .r-icon { font-size: 1.1rem; flex-shrink: 0; }
 
 /* ─── Banner ─── */
@@ -502,23 +502,23 @@ const formatDate = (date, endDate, time) => {
 
 /* ─── Rich Text ─── */
 .p-main-body-render {
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 1rem;
   line-height: 1.9;
   margin-bottom: 40px;
   padding-bottom: 40px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-light);
 }
 .p-main-body-render :deep(h1),
 .p-main-body-render :deep(h2),
-.p-main-body-render :deep(h3) { color: #0f172a; font-weight: 800; margin-top: 1.4em; }
+.p-main-body-render :deep(h3) { color: var(--text-main); font-weight: 800; margin-top: 1.4em; }
 .p-main-body-render :deep(img) { max-width: 100%; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
 .p-main-body-render :deep(a)   { color: #6366f1; font-weight: 600; }
 
 /* ─── Form View ─── */
 .form-view {
   min-height: 100vh;
-  background: #f8fafc;
+  background: var(--bg-primary);
   padding-bottom: 60px;
 }
 .form-view-header {
@@ -543,7 +543,7 @@ const formatDate = (date, endDate, time) => {
   border-radius: 10px;
   font-size: 0.88rem;
   font-weight: 700;
-  color: #475569;
+  color: var(--text-secondary);
   cursor: pointer;
   flex-shrink: 0;
   transition: border-color 0.2s, color 0.2s, background 0.2s;
@@ -553,7 +553,7 @@ const formatDate = (date, endDate, time) => {
 .form-view-ename {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-main);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -562,14 +562,14 @@ const formatDate = (date, endDate, time) => {
   max-width: 680px;
   width: calc(100% - 32px);
   margin: 32px auto 0;
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 20px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.07);
   padding: 36px clamp(16px, 5vw, 48px) 48px;
 }
 .form-wrap-header { margin-bottom: 28px; }
-.form-embed-title { font-size: 1.4rem; font-weight: 900; color: #0f172a; margin: 0 0 6px; }
-.form-embed-sub   { font-size: 0.88rem; color: #64748b; margin: 0; }
+.form-embed-title { font-size: 1.4rem; font-weight: 900; color: var(--text-main); margin: 0 0 6px; }
+.form-embed-sub   { font-size: 0.88rem; color: var(--text-muted); margin: 0; }
 
 .form-error-banner {
   background: #fef2f2;
@@ -588,7 +588,7 @@ const formatDate = (date, endDate, time) => {
 .field-group { display: flex; flex-direction: column; gap: 6px; }
 .field-group label { font-size: 0.85rem; font-weight: 700; color: #374151; }
 .required { color: #ef4444; }
-.optional  { font-weight: 400; color: #94a3b8; font-size: 0.8rem; }
+.optional  { font-weight: 400; color: var(--text-muted); font-size: 0.8rem; }
 
 .custom-textarea {
   width: 100%;
@@ -596,15 +596,15 @@ const formatDate = (date, endDate, time) => {
   border: 1.5px solid #e2e8f0;
   border-radius: 12px;
   font-size: 0.95rem;
-  color: #0f172a;
-  background: #f8fafc;
+  color: var(--text-main);
+  background: var(--bg-primary);
   outline: none;
   resize: vertical;
   font-family: inherit;
   transition: border-color 0.2s, box-shadow 0.2s;
   &:focus {
     border-color: #6366f1;
-    background: #fff;
+    background: var(--bg-card);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.14);
   }
 }
@@ -615,14 +615,14 @@ const formatDate = (date, endDate, time) => {
   border: 1.5px solid #e2e8f0;
   border-radius: 12px;
   font-size: 0.95rem;
-  color: #0f172a;
-  background: #f8fafc;
+  color: var(--text-main);
+  background: var(--bg-primary);
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   cursor: pointer;
   &:focus {
     border-color: #6366f1;
-    background: #fff;
+    background: var(--bg-card);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.14);
   }
 }
@@ -632,14 +632,14 @@ const formatDate = (date, endDate, time) => {
   border: 1.5px solid #e2e8f0;
   border-radius: 12px;
   font-size: 0.95rem;
-  color: #0f172a;
-  background: #f8fafc;
+  color: var(--text-main);
+  background: var(--bg-primary);
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
 .field-group input:focus {
   border-color: #6366f1;
-  background: #fff;
+  background: var(--bg-card);
   box-shadow: 0 0 0 3px rgba(102,126,234,0.14);
 }
 .field-group.has-error input { border-color: #ef4444; background: #fff5f5; }
@@ -660,7 +660,7 @@ const formatDate = (date, endDate, time) => {
   font-size: 0.95rem;
   color: #374151;
   font-weight: 600;
-  background: #f8fafc;
+  background: var(--bg-primary);
   transition: border-color 0.2s, background 0.2s, color 0.2s;
 }
 .radio-item:hover { border-color: #6366f1; background: #f0f0ff; }
@@ -689,7 +689,7 @@ const formatDate = (date, endDate, time) => {
   transform: translate(-50%, -50%);
   width: 7px; height: 7px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--bg-card);
 }
 
 /* Submit button */
@@ -757,7 +757,7 @@ const formatDate = (date, endDate, time) => {
 }
 .f-date {
   font-size: 0.82rem;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;

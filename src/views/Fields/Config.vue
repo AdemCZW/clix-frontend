@@ -236,7 +236,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-light);
 
   .title {
     font-size: 1.6rem;
@@ -254,10 +254,10 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
   .status-tag {
     font-size: 0.75rem;
-    color: #64748b;
+    color: var(--text-muted);
     font-weight: 700;
     padding: 6px 14px;
-    background: #f1f5f9;
+    background: var(--bg-hover);
     border-radius: 20px;
   }
 
@@ -303,7 +303,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 }
 
 .edit-panel {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -326,7 +326,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 }
 
 .field-card-container {
-  background: white;
+  background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: 12px;
   transition: all 0.3s;
@@ -343,7 +343,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
     opacity: 0.7;
 
     .field-label-input {
-      color: #64748b;
+      color: var(--text-muted);
     }
   }
 }
@@ -374,7 +374,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
 .drag-icon-main {
   cursor: grab;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 1.2rem;
   user-select: none;
   display: inline-flex;
@@ -418,7 +418,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   }
 
   &:disabled {
-    color: #475569;
+    color: var(--text-secondary);
     cursor: not-allowed;
   }
 }
@@ -456,7 +456,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   border-radius: 20px;
   border: 1px solid var(--border-light);
   cursor: pointer;
-  background: white;
+  background: var(--bg-card);
   color: var(--text-gray);
   font-weight: 600;
   transition: all 0.3s;
@@ -528,7 +528,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
 .options-header {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin-bottom: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -546,7 +546,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   display: flex;
   align-items: center;
   gap: 10px;
-  background: white;
+  background: var(--bg-card);
   padding: 10px 14px;
   border-radius: 8px;
   border: 1px solid var(--border-light);
@@ -626,7 +626,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 .btn-add-opt {
   width: 100%;
   border: 1px dashed #cbd5e1;
-  background: white;
+  background: var(--bg-card);
   padding: 10px;
   border-radius: 8px;
   color: var(--text-gray);
@@ -664,12 +664,12 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   &:focus {
     outline: none;
     border-color: #6366f1;
-    background: white;
+    background: var(--bg-card);
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   }
 
   &::placeholder {
-    color: #94a3b8;
+    color: var(--text-muted);
   }
 }
 
@@ -687,7 +687,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   &:focus {
     outline: none;
     border-color: #6366f1;
-    background: white;
+    background: var(--bg-card);
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   }
 }
@@ -731,7 +731,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 }
 
 .phone-screen {
-  background: white;
+  background: var(--bg-card);
   height: 640px;
   border-radius: 32px;
   overflow: hidden;

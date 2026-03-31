@@ -305,7 +305,7 @@ onUnmounted(() => disconnectWebSocket());
 
 .session-id {
   font-size: 0.82rem;
-  color: #64748b;
+  color: var(--text-muted);
   font-family: monospace;
   background: #0f172a;
   padding: 4px 12px;
@@ -338,7 +338,7 @@ onUnmounted(() => disconnectWebSocket());
 
 .status-text {
   font-size: 0.9rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -349,7 +349,7 @@ onUnmounted(() => disconnectWebSocket());
   font-size: 0.85rem;
   cursor: pointer;
   background: transparent;
-  color: #64748b;
+  color: var(--text-muted);
   border: 1px solid #334155;
   transition: all 0.2s;
 }
@@ -388,7 +388,7 @@ onUnmounted(() => disconnectWebSocket());
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .preview-badge-wrap {
@@ -401,7 +401,7 @@ onUnmounted(() => disconnectWebSocket());
 .preview-badge {
   width: 90mm;
   height: 60mm;
-  background: white;
+  background: var(--bg-card);
   position: relative;
   overflow: hidden;
   border-radius: 4px;
@@ -430,12 +430,12 @@ onUnmounted(() => disconnectWebSocket());
 }
 .idle-hint {
   font-size: 1rem;
-  color: #64748b;
+  color: var(--text-muted);
   margin-bottom: 32px;
 }
 .idle-session {
   font-size: 0.85rem;
-  color: #475569;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -447,7 +447,7 @@ onUnmounted(() => disconnectWebSocket());
   padding: 4px 12px;
   border-radius: 6px;
   font-family: monospace;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 /* Log */
@@ -463,7 +463,7 @@ onUnmounted(() => disconnectWebSocket());
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #475569;
+  color: var(--text-secondary);
   padding-bottom: 12px;
   border-bottom: 1px solid #1e293b;
   margin-bottom: 12px;
@@ -473,7 +473,7 @@ onUnmounted(() => disconnectWebSocket());
   background: #1e293b;
   padding: 3px 10px;
   border-radius: 20px;
-  color: #64748b;
+  color: var(--text-muted);
 }
 .log-row {
   display: flex;
@@ -500,7 +500,7 @@ onUnmounted(() => disconnectWebSocket());
   justify-content: center;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 .log-row.newest .log-seq {
@@ -515,12 +515,12 @@ onUnmounted(() => disconnectWebSocket());
 }
 .log-comp {
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--text-muted);
   flex: 1;
 }
 .log-time {
   font-size: 0.82rem;
-  color: #475569;
+  color: var(--text-secondary);
   font-family: monospace;
   white-space: nowrap;
 }
@@ -533,7 +533,7 @@ onUnmounted(() => disconnectWebSocket());
 /* ===== @media print ===== */
 @media print {
   .station-root {
-    background: white;
+    background: var(--bg-card);
   }
 
   /* 正常狀態：不印任何東西（不該在這個狀態觸發 print） */
@@ -553,7 +553,7 @@ onUnmounted(() => disconnectWebSocket());
     width: 90mm;
     height: 60mm;
     position: relative;
-    background: white;
+    background: var(--bg-card);
     page-break-after: always;
     margin: 0;
 

@@ -50,7 +50,7 @@ const emit = defineEmits(["confirm", "cancel"]);
 }
 
 .confirm-modal {
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
   padding: 32px 28px 24px;
   width: 100%;
@@ -85,13 +85,13 @@ const emit = defineEmits(["confirm", "cancel"]);
 .confirm-title {
   font-size: 1.15rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--text-main);
   margin: 0;
 }
 
 .confirm-message {
   font-size: 0.9rem;
-  color: #64748b;
+  color: var(--text-muted);
   margin: 0;
   line-height: 1.6;
 }
@@ -114,9 +114,9 @@ const emit = defineEmits(["confirm", "cancel"]);
   }
 
   .btn-cancel {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    color: #475569;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
     &:hover { background: #f1f5f9; }
   }
 

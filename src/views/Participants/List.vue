@@ -692,7 +692,7 @@ const toggleVIP = (participant: Participant) => {
 <style lang="scss" scoped>
 .participants-view {
   padding: 30px;
-  background: #f8fafc;
+  background: var(--bg-primary);
   min-height: 100vh;
 }
 
@@ -718,15 +718,15 @@ const toggleVIP = (participant: Participant) => {
       left: 14px;
       top: 50%;
       transform: translateY(-50%);
-      color: #475569;
+      color: var(--text-secondary);
     }
 
     .search-input {
       width: 100%;
       padding: 10px 42px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-color);
       border-radius: 10px;
-      background: white;
+      background: var(--bg-card);
       outline: none;
 
       &:focus {
@@ -744,7 +744,7 @@ const toggleVIP = (participant: Participant) => {
     label {
       font-size: 0.85rem;
       font-weight: 700;
-      color: #475569;
+      color: var(--text-secondary);
       white-space: nowrap;
     }
   }
@@ -752,8 +752,8 @@ const toggleVIP = (participant: Participant) => {
   .select-rounded {
     padding: 10px 14px;
     border-radius: 10px;
-    border: 1px solid #e2e8f0;
-    background: white;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
     font-size: 0.85rem;
     outline: none;
     cursor: pointer;
@@ -812,14 +812,14 @@ const toggleVIP = (participant: Participant) => {
 }
 
 .btn-secondary {
-  background: white;
-  color: #475569;
-  border: 2px solid #e2e8f0;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 2px solid var(--border-color);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 
   &:hover {
     border-color: #cbd5e1;
-    background: #f8fafc;
+    background: var(--bg-primary);
   }
 }
 
@@ -833,8 +833,8 @@ const toggleVIP = (participant: Participant) => {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  background: white;
-  border: 2px solid #e2e8f0;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   min-width: 280px;
@@ -846,8 +846,8 @@ const toggleVIP = (participant: Participant) => {
   width: 100%;
   padding: 12px 20px;
   border: none;
-  background: white;
-  color: #475569;
+  background: var(--bg-card);
+  color: var(--text-secondary);
   font-size: 0.9rem;
   text-align: left;
   cursor: pointer;
@@ -902,15 +902,15 @@ const toggleVIP = (participant: Participant) => {
   justify-content: center;
   gap: 8px;
   padding: 12px 24px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
   border-bottom: none;
   border-radius: 12px 12px 0 0;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-muted);
   position: relative;
   margin-bottom: -1px;
 
@@ -921,7 +921,7 @@ const toggleVIP = (participant: Participant) => {
     left: 0;
     right: 0;
     height: 2px;
-    background: #f1f5f9;
+    background: var(--bg-hover);
     opacity: 0;
     transition: opacity 0.3s;
   }
@@ -942,7 +942,7 @@ const toggleVIP = (participant: Participant) => {
     height: 22px;
     padding: 0 7px;
     background: #cbd5e1;
-    color: #64748b;
+    color: var(--text-muted);
     border-radius: 11px;
     font-size: 0.7rem;
     font-weight: 700;
@@ -950,12 +950,12 @@ const toggleVIP = (participant: Participant) => {
 
   &:hover:not(.active) {
     background: #e2e8f0;
-    color: #475569;
+    color: var(--text-secondary);
     transform: translateY(-2px);
   }
 
   &.active {
-    background: white;
+    background: var(--bg-card);
     color: #6366f1;
     border-color: #e2e8f0;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
@@ -963,7 +963,7 @@ const toggleVIP = (participant: Participant) => {
 
     &::before {
       opacity: 1;
-      background: white;
+      background: var(--bg-card);
     }
 
     .tab-count {
@@ -976,9 +976,9 @@ const toggleVIP = (participant: Participant) => {
 
 /* 表格樣式 */
 .table-container {
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   overflow: visible;
   padding: 0;
 }
@@ -993,16 +993,16 @@ const toggleVIP = (participant: Participant) => {
   border-collapse: collapse;
 
   th {
-    background: #f8fafc;
+    background: var(--bg-primary);
     padding: 16px 24px;
     text-align: left;
     font-size: 0.85rem;
-    color: #475569;
+    color: var(--text-secondary);
   }
 
   td {
     padding: 16px 24px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--border-light);
   }
 
   tr.selected {
@@ -1084,17 +1084,17 @@ const toggleVIP = (participant: Participant) => {
   }
   .name {
     font-weight: 700;
-    color: #1e293b;
+    color: var(--text-main);
   }
   .email-sub {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: var(--text-muted);
   }
 }
 
 .title-sub {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .tag {
@@ -1116,7 +1116,7 @@ const toggleVIP = (participant: Participant) => {
   position: relative;
   padding-left: 15px;
   font-size: 0.85rem;
-  color: #475569;
+  color: var(--text-secondary);
   &::before {
     content: "";
     position: absolute;
@@ -1175,7 +1175,7 @@ const toggleVIP = (participant: Participant) => {
   }
 
   &.delete {
-    background: white;
+    background: var(--bg-card);
     color: #ef4444;
     border: 1.5px solid #fee2e2;
     box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
@@ -1196,7 +1196,7 @@ const toggleVIP = (participant: Participant) => {
 .empty-state {
   text-align: center;
   padding: 40px;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -1211,7 +1211,7 @@ const toggleVIP = (participant: Participant) => {
   .section-title {
     font-size: 0.875rem;
     font-weight: 700;
-    color: #64748b;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin: 0 0 16px 0;
@@ -1227,7 +1227,7 @@ const toggleVIP = (participant: Participant) => {
     display: block;
     font-size: 0.875rem;
     font-weight: 600;
-    color: #475569;
+    color: var(--text-secondary);
     margin-bottom: 8px;
   }
 
@@ -1235,12 +1235,12 @@ const toggleVIP = (participant: Participant) => {
   .select-styled {
     width: 100%;
     padding: 12px 16px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
     border-radius: 10px;
     font-size: 0.95rem;
     outline: none;
     transition: all 0.2s;
-    background: white;
+    background: var(--bg-card);
 
     &:focus {
       border-color: #6366f1;
@@ -1254,11 +1254,11 @@ const toggleVIP = (participant: Participant) => {
 
   .readonly-value {
     padding: 10px 14px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
     border-radius: 10px;
     font-size: 0.9rem;
-    color: #64748b;
+    color: var(--text-muted);
     min-height: 42px;
     display: flex;
     align-items: center;
@@ -1275,15 +1275,15 @@ const toggleVIP = (participant: Participant) => {
   .qr-image {
     width: 180px;
     height: 180px;
-    border: 2px solid #e2e8f0;
+    border: 2px solid var(--border-color);
     border-radius: 12px;
     padding: 8px;
-    background: #fff;
+    background: var(--bg-card);
   }
 
   .qr-token {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: var(--text-muted);
     font-family: monospace;
     letter-spacing: 1px;
     margin: 0;
@@ -1306,7 +1306,7 @@ const toggleVIP = (participant: Participant) => {
 .btn-delete-participant {
   flex: 1;
   padding: 12px 20px;
-  background: white;
+  background: var(--bg-card);
   border: 2px solid #ef4444;
   color: #ef4444;
   border-radius: 10px;
@@ -1355,7 +1355,7 @@ const toggleVIP = (participant: Participant) => {
     margin-top: 16px;
     font-size: 1rem;
     font-weight: 600;
-    color: #475569;
+    color: var(--text-secondary);
   }
 }
 

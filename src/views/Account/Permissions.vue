@@ -469,10 +469,10 @@ const copyToClipboard = (text: string) => {
 }
 
 .left-panel {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 24px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   height: fit-content;
@@ -484,25 +484,25 @@ const copyToClipboard = (text: string) => {
   justify-content: space-between;
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 2px solid #f1f5f9;
+  border-bottom: 2px solid var(--border-light);
 }
 
 .panel-title {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-main);
   margin: 0;
 }
 
 .panel-subtitle {
   font-size: 0.9rem;
-  color: #475569;
+  color: var(--text-secondary);
   margin: 4px 0 0 0;
 }
 
 .panel-subtitle-hint {
   font-size: 0.9rem;
-  color: #475569;
+  color: var(--text-secondary);
   margin: 4px 0 0 0;
 }
 
@@ -535,8 +535,8 @@ const copyToClipboard = (text: string) => {
 }
 
 .admin-item {
-  background: #f8fafc;
-  border: 2px solid #e2e8f0;
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
   border-radius: 12px;
   padding: 14px;
   margin-bottom: 10px;
@@ -544,7 +544,7 @@ const copyToClipboard = (text: string) => {
   transition: all 0.3s;
 
   &:hover {
-    background: #f1f5f9;
+    background: var(--bg-hover);
     border-color: #cbd5e1;
     transform: translateX(4px);
   }
@@ -566,7 +566,7 @@ const copyToClipboard = (text: string) => {
 .admin-email-small {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-main);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -603,10 +603,10 @@ const copyToClipboard = (text: string) => {
 .quota-badge {
   font-size: 0.75rem;
   padding: 4px 10px;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
-  color: #475569;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
@@ -615,8 +615,8 @@ const copyToClipboard = (text: string) => {
   padding: 4px 10px;
   border-radius: 6px;
   border: 1px solid #cbd5e1;
-  background: white;
-  color: #475569;
+  background: var(--bg-card);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.3s;
   white-space: nowrap;
@@ -630,10 +630,10 @@ const copyToClipboard = (text: string) => {
 }
 
 .right-panel {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 28px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   min-height: 500px;
@@ -654,7 +654,7 @@ const copyToClipboard = (text: string) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .no-selection-icon {
@@ -666,7 +666,7 @@ const copyToClipboard = (text: string) => {
 .no-selection-text {
   font-size: 1rem;
   margin: 0;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .empty-state {
@@ -686,7 +686,7 @@ const copyToClipboard = (text: string) => {
 
 .empty-text {
   font-size: 1rem;
-  color: #475569;
+  color: var(--text-secondary);
   margin: 0 0 24px 0;
 }
 
@@ -699,14 +699,14 @@ const copyToClipboard = (text: string) => {
   border-collapse: collapse;
 
   thead {
-    background: #f8fafc;
+    background: var(--bg-primary);
 
     th {
       padding: 14px 18px;
       text-align: left;
       font-size: 0.85rem;
       font-weight: 700;
-      color: #475569;
+      color: var(--text-secondary);
       border-bottom: 2px solid #e2e8f0;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -715,17 +715,17 @@ const copyToClipboard = (text: string) => {
 
   tbody {
     tr {
-      border-bottom: 1px solid #f1f5f9;
+      border-bottom: 1px solid var(--border-light);
       transition: all 0.2s;
 
       &:hover {
-        background: #f8fafc;
+        background: var(--bg-primary);
       }
 
       td {
         padding: 16px 18px;
         font-size: 0.9rem;
-        color: #0f172a;
+        color: var(--text-main);
       }
     }
   }
@@ -740,14 +740,14 @@ const copyToClipboard = (text: string) => {
 .account-id {
   font-family: "SF Mono", "Monaco", "Courier New", monospace;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-main);
   font-size: 0.9rem;
 }
 
 .btn-copy {
   padding: 5px 10px;
   border: none;
-  background: #f1f5f9;
+  background: var(--bg-hover);
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
@@ -781,7 +781,7 @@ const copyToClipboard = (text: string) => {
 .btn-action-delete {
   padding: 7px 14px;
   border: 2px solid #fecaca;
-  background: white;
+  background: var(--bg-card);
   color: #dc2626;
   border-radius: 8px;
   font-size: 0.8rem;
@@ -825,17 +825,17 @@ const copyToClipboard = (text: string) => {
   padding: 11px 22px;
   border: 2px solid #cbd5e1;
   border-radius: 10px;
-  background: white;
-  color: #475569;
+  background: var(--bg-card);
+  color: var(--text-secondary);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
 
   &:hover {
-    border-color: #64748b;
-    background: #f8fafc;
-    color: #334155;
+    border-color: var(--text-muted);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
   }
 }
 
@@ -855,46 +855,46 @@ const copyToClipboard = (text: string) => {
   display: block;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-main);
   margin-bottom: 10px;
 }
 
 .form-input {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border-color);
   border-radius: 10px;
   font-size: 0.9rem;
-  color: #0f172a;
+  color: var(--text-main);
   transition: all 0.3s;
-  background: #f8fafc;
+  background: var(--bg-primary);
 
   &:focus {
     outline: none;
     border-color: #6366f1;
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-    background: white;
+    background: var(--bg-card);
   }
 
   &::placeholder {
-    color: #475569;
+    color: var(--text-secondary);
   }
 }
 
 .selected-manager-display {
   padding: 12px 16px;
-  background: #f1f5f9;
-  border: 2px solid #e2e8f0;
+  background: var(--bg-hover);
+  border: 2px solid var(--border-color);
   border-radius: 10px;
   font-size: 0.9rem;
-  color: #0f172a;
+  color: var(--text-main);
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 10px;
 
   .quota-info {
-    color: #475569;
+    color: var(--text-secondary);
     font-size: 0.85rem;
     font-weight: 500;
   }
@@ -913,23 +913,23 @@ const copyToClipboard = (text: string) => {
   .id-prefix {
     font-family: "SF Mono", "Monaco", "Courier New", monospace;
     font-weight: 800;
-    color: #0f172a;
+    color: var(--text-main);
   }
 
   .id-number {
     font-family: "SF Mono", "Monaco", "Courier New", monospace;
-    color: #475569;
+    color: var(--text-secondary);
     font-weight: 600;
   }
 }
 
 .info-display {
   padding: 12px 16px;
-  background: #f8fafc;
-  border: 2px solid #e2e8f0;
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
   border-radius: 10px;
   font-size: 0.9rem;
-  color: #0f172a;
+  color: var(--text-main);
   font-weight: 600;
 }
 
@@ -943,7 +943,7 @@ const copyToClipboard = (text: string) => {
   z-index: 9999;
 
   .loading-spinner {
-    background: white;
+    background: var(--bg-card);
     padding: 16px 32px;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);

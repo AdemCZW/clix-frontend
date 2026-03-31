@@ -294,11 +294,11 @@ const exportEventData = async (event: LocalEvent) => {
 
 // 篩選工具列
 .filter-bar {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 24px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   display: flex;
   gap: 16px;
   align-items: center;
@@ -311,7 +311,7 @@ const exportEventData = async (event: LocalEvent) => {
 .search-input {
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 0.95rem;
   transition: all 0.3s;
@@ -330,10 +330,10 @@ const exportEventData = async (event: LocalEvent) => {
 
 .filter-select {
   padding: 12px 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 0.95rem;
-  background: white;
+  background: var(--bg-card);
   cursor: pointer;
   min-width: 180px;
 
@@ -351,10 +351,10 @@ const exportEventData = async (event: LocalEvent) => {
 }
 
 .manager-section {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 28px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
 }
 
 .manager-header {
@@ -374,35 +374,35 @@ const exportEventData = async (event: LocalEvent) => {
 
 .manager-email {
   font-size: 1.25rem;
-  color: #0f172a;
+  color: var(--text-main);
   font-weight: 700;
   margin: 0;
 }
 
 .manager-stats {
   font-size: 0.95rem;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
 // 活動區塊
 .event-block {
-  background: #f8fafc;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   width: 100%;
   box-sizing: border-box;
 }
 
 // 無活動提示
 .no-events-hint {
-  background: #f8fafc;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 32px;
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 0.95rem;
   border: 1px dashed #cbd5e1;
 
@@ -432,14 +432,14 @@ const exportEventData = async (event: LocalEvent) => {
 .event-name {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-main);
   margin: 0 0 8px 0;
   transition: color 0.3s;
 }
 
 .event-meta {
   font-size: 0.9rem;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .event-actions {
@@ -467,7 +467,7 @@ const exportEventData = async (event: LocalEvent) => {
 
 .toggle-icon {
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--text-muted);
   transition: transform 0.3s;
 
   &.expanded {
@@ -487,7 +487,7 @@ table {
   min-width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
-  background: white;
+  background: var(--bg-card);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -512,7 +512,7 @@ tbody {
     transition: background 0.2s;
 
     &:hover {
-      background: #f8fafc;
+      background: var(--bg-primary);
     }
 
     &.checked-in {
@@ -523,7 +523,7 @@ tbody {
   td {
     padding: 10px 12px;
     font-size: 0.85rem;
-    color: #475569;
+    color: var(--text-secondary);
     word-wrap: break-word;
     overflow-wrap: break-word;
     line-height: 1.4;
@@ -531,7 +531,7 @@ tbody {
 
   .name-cell {
     font-weight: 600;
-    color: #0f172a;
+    color: var(--text-main);
   }
 
   .email-cell {
@@ -543,7 +543,7 @@ tbody {
 .empty-state {
   text-align: center;
   padding: 80px 20px;
-  color: #94a3b8;
+  color: var(--text-muted);
 
   .empty-icon {
     font-size: 4rem;
@@ -552,7 +552,7 @@ tbody {
 
   h3 {
     font-size: 1.2rem;
-    color: #475569;
+    color: var(--text-secondary);
     margin: 0 0 8px 0;
   }
 

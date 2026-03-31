@@ -210,7 +210,7 @@ const saveBotSettings = () => {
 }
 
 .content-panel {
-  background: white;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 32px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -415,7 +415,7 @@ const saveBotSettings = () => {
 }
 
 .btn-secondary {
-  background: white;
+  background: var(--bg-card);
   color: var(--text-main, #374151);
   border: 2px solid var(--border-light, #e5e7eb);
   padding: 12px 28px;

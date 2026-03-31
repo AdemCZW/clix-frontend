@@ -397,7 +397,7 @@ watch(
 }
 
 .onboarding-modal {
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
   width: 90%;
   max-width: 500px;
@@ -424,7 +424,7 @@ watch(
     h2 {
       font-size: 1.5rem;
       font-weight: 700;
-      color: #1f2937;
+      color: var(--text-main);
       margin: 0 0 10px 0;
     }
 
@@ -467,7 +467,7 @@ watch(
   .series-item {
     .series-name {
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-main);
       font-size: 1rem;
       margin-bottom: 4px;
     }
@@ -481,7 +481,7 @@ watch(
   .event-item {
     .event-name {
       font-weight: 600;
-      color: #1f2937;
+      color: var(--text-main);
       font-size: 1rem;
       margin-bottom: 8px;
     }
@@ -526,8 +526,8 @@ watch(
     padding: 12px;
     border: 1px dashed #e2e8f0;
     border-radius: 12px;
-    background: #f8fafc;
-    color: #94a3b8;
+    background: var(--bg-hover);
+    color: var(--text-muted);
     font-size: 0.9rem;
     text-align: center;
   }
@@ -574,14 +574,14 @@ watch(
 }
 
 .summary-card {
-  background: #f8fafc;
+  background: var(--bg-hover);
   border-radius: 12px;
   padding: 20px;
   margin: 20px 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
 
   h3 {
-    color: #1f2937;
+    color: var(--text-main);
     margin: 0 0 15px 0;
     font-size: 1.1rem;
   }
@@ -642,7 +642,7 @@ watch(
 }
 
 .btn-secondary {
-  background: white;
+  background: var(--bg-card);
   color: #6b7280;
   border: 2px solid #e5e7eb;
   padding: 12px 24px;

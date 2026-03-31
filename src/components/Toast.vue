@@ -80,7 +80,7 @@ watch(show, (newVal) => {
   align-items: center;
   gap: 12px;
   padding: 16px 24px;
-  background: white;
+  background: var(--bg-card);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   border-left: 4px solid;
@@ -103,7 +103,7 @@ watch(show, (newVal) => {
   flex: 1;
   font-size: 0.95rem;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-main);
   line-height: 1.5;
 }
 

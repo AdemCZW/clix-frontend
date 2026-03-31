@@ -457,7 +457,7 @@ onUnmounted(() => {
   justify-content: center;
   gap: 16px;
   font-size: 0.9rem;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .event-name {
@@ -504,7 +504,7 @@ onUnmounted(() => {
 
 .start-screen p {
   font-size: 1rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin: 0 0 32px 0;
 }
 
@@ -518,7 +518,7 @@ onUnmounted(() => {
 
 .tip-item {
   font-size: 0.9rem;
-  color: #475569;
+  color: var(--text-secondary);
   margin: 8px 0 !important;
   line-height: 1.6;
 }
@@ -551,8 +551,8 @@ onUnmounted(() => {
 
 .btn-test-camera {
   background: transparent;
-  color: #64748b;
-  border: 2px solid #e2e8f0;
+  color: var(--text-muted);
+  border: 2px solid var(--border-color);
   padding: 12px 32px;
   border-radius: 12px;
   font-size: 0.95rem;
@@ -563,7 +563,7 @@ onUnmounted(() => {
 
 .btn-test-camera:hover {
   border-color: #cbd5e1;
-  color: #475569;
+  color: var(--text-secondary);
   background: rgba(148, 163, 184, 0.05);
 }
 
@@ -660,13 +660,13 @@ onUnmounted(() => {
 }
 
 .result-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
   padding: 40px 32px;
   max-width: 400px;
   width: 100%;
   text-align: center;
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 .result-icon {
@@ -698,7 +698,7 @@ onUnmounted(() => {
 }
 
 .participant-info {
-  background: #f8fafc;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
@@ -718,13 +718,13 @@ onUnmounted(() => {
 
 .info-row .label {
   font-size: 0.9rem;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
 .info-row .value {
   font-size: 0.95rem;
-  color: #0f172a;
+  color: var(--text-main);
   font-weight: 700;
 }
 
@@ -738,18 +738,18 @@ onUnmounted(() => {
 }
 
 .station-section { width: 100%; margin-bottom: 16px; }
-.station-prompt { font-size: 0.9rem; color: #64748b; font-weight: 600; margin-bottom: 12px; }
+.station-prompt { font-size: 0.9rem; color: var(--text-muted); font-weight: 600; margin-bottom: 12px; }
 .station-buttons { display: flex; gap: 12px; justify-content: center; }
 .btn-station {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
   padding: 16px 20px; border-radius: 12px;
-  background: #f1f5f9; border: 2px solid #e2e8f0;
-  color: #0f172a; cursor: pointer; font-weight: 700; font-size: 0.85rem;
+  background: var(--bg-hover); border: 2px solid var(--border-color);
+  color: var(--text-main); cursor: pointer; font-weight: 700; font-size: 0.85rem;
   transition: all 0.2s; min-width: 80px;
 }
 .btn-station:hover { border-color: #6366f1; background: #eef2ff; transform: translateY(-2px); }
 .station-icon { font-size: 1.6rem; }
-.send-status { font-size: 0.95rem; color: #475569; margin-bottom: 12px; font-weight: 600; }
+.send-status { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 600; }
 .success-text { color: #059669; }
 .error-text { color: #ef4444; }
 
@@ -777,7 +777,7 @@ onUnmounted(() => {
 
 .btn-goto-login {
   background: #fbbf24;
-  color: #0f172a;
+  color: var(--text-main);
   border: none;
   padding: 8px 24px;
   border-radius: 8px;
@@ -833,7 +833,7 @@ onUnmounted(() => {
 .stat-label {
   display: block;
   font-size: 0.85rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin-bottom: 6px;
   font-weight: 600;
 }

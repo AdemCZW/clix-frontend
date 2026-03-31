@@ -46,7 +46,7 @@ const close = () => emit("update:modelValue", false);
 }
 
 .modal-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
   width: 90%;
   overflow: hidden;
@@ -55,7 +55,7 @@ const close = () => emit("update:modelValue", false);
 
 .modal-header {
   padding: 24px 28px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -63,7 +63,7 @@ const close = () => emit("update:modelValue", false);
   h3 {
     font-size: 1.3rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--text-main);
     margin: 0;
   }
 
@@ -71,12 +71,12 @@ const close = () => emit("update:modelValue", false);
     background: transparent;
     border: none;
     font-size: 1.5rem;
-    color: #475569;
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s;
 
     &:hover {
-      color: #0f172a;
+      color: var(--text-main);
       transform: rotate(90deg);
     }
   }

@@ -394,7 +394,7 @@ onMounted(async () => {
    =========================================== */
 
 .email-editor-view {
-  background: #f8fafc;
+  background: var(--bg-primary);
   min-height: 100vh;
   padding: 24px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -476,11 +476,11 @@ onMounted(async () => {
 }
 
 .btn-view-templates {
-  background: white;
-  color: #475569;
+  background: var(--bg-card);
+  color: var(--text-secondary);
   padding: 12px 24px;
   border-radius: 10px;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border-color);
   cursor: pointer;
   font-weight: 600;
   font-size: 0.95rem;
@@ -490,7 +490,7 @@ onMounted(async () => {
 }
 
 .btn-view-templates:hover {
-  background: #f8fafc;
+  background: var(--bg-primary);
   border-color: #cbd5e1;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -499,9 +499,9 @@ onMounted(async () => {
 .btn-secondary {
   padding: 8px 16px;
   font-size: 0.85rem;
-  border: 2px solid #e2e8f0;
-  background: white;
-  color: #475569;
+  border: 2px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
   cursor: pointer;
   border-radius: 8px;
   font-weight: 600;
@@ -510,7 +510,7 @@ onMounted(async () => {
 }
 
 .btn-secondary:hover {
-  background: #f8fafc;
+  background: var(--bg-primary);
   border-color: #cbd5e1;
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
@@ -535,7 +535,7 @@ onMounted(async () => {
 }
 
 .panel {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   border: 1px solid var(--border-light);
   padding: 20px;
@@ -554,7 +554,7 @@ onMounted(async () => {
   color: var(--deep-dark);
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 2px solid #f1f5f9;
+  border-bottom: 2px solid var(--border-light);
 }
 
 /* ===========================================
@@ -652,7 +652,7 @@ onMounted(async () => {
 
 .quill-container-fixed :deep(.ql-toolbar) {
   border: none;
-  background: #f8fafc;
+  background: var(--bg-primary);
   border-bottom: 1px solid var(--border-light);
 }
 
@@ -757,7 +757,7 @@ onMounted(async () => {
 
 .participant-item {
   padding: 10px 14px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-light);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -767,7 +767,7 @@ onMounted(async () => {
 }
 
 .participant-item:hover {
-  background: #f1f5f9;
+  background: var(--bg-hover);
 }
 
 .participant-item.selected {
@@ -782,19 +782,19 @@ onMounted(async () => {
 .participant-name {
   font-weight: 600;
   font-size: 0.9rem;
-  color: #1e293b;
+  color: var(--text-main);
   margin-bottom: 2px;
 }
 
 .participant-email {
   font-size: 0.8rem;
-  color: #475569;
+  color: var(--text-secondary);
   word-break: break-all;
 }
 
 .participant-detail {
   font-size: 0.78rem;
-  color: #64748b;
+  color: var(--text-muted);
   margin-bottom: 2px;
 }
 
@@ -810,8 +810,8 @@ onMounted(async () => {
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 4px;
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-hover);
+  color: var(--text-muted);
 }
 
 .meta-tag.checked-in {
@@ -839,7 +839,7 @@ onMounted(async () => {
 .template-drawer {
   width: 380px;
   height: 100vh;
-  background: white;
+  background: var(--bg-card);
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
@@ -848,11 +848,11 @@ onMounted(async () => {
 
 .drawer-header {
   padding: 20px 24px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-light);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f8fafc;
+  background: var(--bg-primary);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -862,14 +862,14 @@ onMounted(async () => {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-main);
 }
 
 .btn-close {
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: #475569;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 4px;
   border-radius: 6px;
@@ -882,7 +882,7 @@ onMounted(async () => {
 }
 
 .btn-close:hover {
-  color: #1e293b;
+  color: var(--text-main);
   background: #e2e8f0;
 }
 
@@ -893,12 +893,12 @@ onMounted(async () => {
 }
 
 .template-item {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 12px;
   transition: all 0.2s ease;
-  background: white;
+  background: var(--bg-card);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -924,14 +924,14 @@ onMounted(async () => {
 .template-subject {
   font-weight: 600;
   font-size: 0.9rem;
-  color: #1e293b;
+  color: var(--text-main);
   margin-bottom: 4px;
   flex: 1;
 }
 
 .template-date {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-weight: 500;
   white-space: nowrap;
   margin-left: 12px;
@@ -940,7 +940,7 @@ onMounted(async () => {
 .btn-delete-template {
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--text-muted);
   cursor: pointer;
   font-size: 1rem;
   padding: 4px 8px;

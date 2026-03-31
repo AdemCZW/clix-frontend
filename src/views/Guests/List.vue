@@ -378,7 +378,7 @@ const getInitials = (name: string) => {
 }
 
 .control-bar {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   border: 1px solid var(--border-light, #e5e7eb);
   padding: 16px 24px;
@@ -475,13 +475,13 @@ const getInitials = (name: string) => {
   h3 {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--text-main);
     margin: 0;
   }
 
   p {
     font-size: 0.9rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0 0 8px 0;
   }
 }
@@ -506,7 +506,7 @@ const getInitials = (name: string) => {
 }
 
 .guest-item {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   border: 1px solid var(--border-light, #e5e7eb);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -658,7 +658,7 @@ const getInitials = (name: string) => {
   height: 40px;
   border-radius: 50%;
   border: 2px solid var(--border-light, #e5e7eb);
-  background: white;
+  background: var(--bg-card);
   color: #6366f1;
   cursor: pointer;
   display: flex;
@@ -712,7 +712,7 @@ const getInitials = (name: string) => {
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    color: #64748b;
+    color: var(--text-muted);
 
     span {
       font-size: 0.85rem;
@@ -765,7 +765,7 @@ const getInitials = (name: string) => {
     display: block;
     font-size: 0.85rem;
     font-weight: 700;
-    color: #475569;
+    color: var(--text-secondary);
     margin-bottom: 8px;
   }
 }
@@ -778,7 +778,7 @@ const getInitials = (name: string) => {
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--deep-dark, #0f172a);
-  background: white;
+  background: var(--bg-card);
   transition: all 0.3s;
   font-family: inherit;
 
@@ -806,7 +806,7 @@ const getInitials = (name: string) => {
   font-weight: 500;
   font-size: 0.95rem;
   color: var(--deep-dark, #0f172a);
-  background: white;
+  background: var(--bg-card);
   transition: all 0.3s;
   font-family: inherit;
   resize: vertical;
@@ -840,7 +840,7 @@ const getInitials = (name: string) => {
   .meta-label {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #64748b;
+    color: var(--text-muted);
   }
 
   .meta-value {

@@ -347,10 +347,10 @@ const hasActiveFilters = computed(() =>
 
 /* ── 頂部統計列 ── */
 .stats-bar {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 16px 24px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -371,14 +371,14 @@ const hasActiveFilters = computed(() =>
 
   .stat-label {
     font-size: 0.82rem;
-    color: #64748b;
+    color: var(--text-muted);
     font-weight: 600;
   }
 
   .stat-value {
     font-size: 1.5rem;
     font-weight: 800;
-    color: #0f172a;
+    color: var(--text-main);
     line-height: 1;
 
     &.primary {
@@ -418,9 +418,9 @@ const hasActiveFilters = computed(() =>
 
 /* ── 主卡片 ── */
 .main-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   flex: 1;
   display: flex;
@@ -434,7 +434,7 @@ const hasActiveFilters = computed(() =>
   align-items: center;
   justify-content: space-between;
   padding: 14px 20px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-light);
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -454,7 +454,7 @@ const hasActiveFilters = computed(() =>
 .method-tabs {
   display: flex;
   gap: 3px;
-  background: #f1f5f9;
+  background: var(--bg-hover);
   border-radius: 8px;
   padding: 3px;
 
@@ -465,29 +465,29 @@ const hasActiveFilters = computed(() =>
     background: transparent;
     font-size: 0.82rem;
     font-weight: 600;
-    color: #64748b;
+    color: var(--text-muted);
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
 
     &.active {
-      background: white;
-      color: #0f172a;
+      background: var(--bg-card);
+      color: var(--text-main);
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
     }
 
-    &:hover:not(.active) { color: #334155; }
+    &:hover:not(.active) { color: var(--text-secondary); }
   }
 }
 
 .record-count {
   font-size: 0.82rem;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 600;
-  background: #f8fafc;
+  background: var(--bg-primary);
   padding: 4px 10px;
   border-radius: 6px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   white-space: nowrap;
 }
 
@@ -499,7 +499,7 @@ const hasActiveFilters = computed(() =>
   font-size: 0.85rem;
   outline: none;
   transition: all 0.2s;
-  background: white;
+  background: var(--bg-card);
 
   &:focus {
     border-color: #6366f1;
@@ -510,12 +510,12 @@ const hasActiveFilters = computed(() =>
 .filter-input { width: 140px; }
 .filter-select { cursor: pointer; }
 .date-input { width: 130px; }
-.date-sep { color: #94a3b8; font-size: 0.85rem; }
+.date-sep { color: var(--text-muted); font-size: 0.85rem; }
 
 .btn-reset {
   padding: 6px 14px;
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--bg-hover);
+  color: var(--text-muted);
   border: 1.5px solid #e2e8f0;
   border-radius: 8px;
   font-size: 0.82rem;
@@ -526,7 +526,7 @@ const hasActiveFilters = computed(() =>
 
   &:hover {
     background: #e2e8f0;
-    color: #475569;
+    color: var(--text-secondary);
   }
 }
 
@@ -536,7 +536,7 @@ const hasActiveFilters = computed(() =>
   overflow-y: auto;
 
   &::-webkit-scrollbar { width: 6px; }
-  &::-webkit-scrollbar-track { background: #f8fafc; }
+  &::-webkit-scrollbar-track { background: var(--bg-primary); }
   &::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 3px;
@@ -565,7 +565,7 @@ const hasActiveFilters = computed(() =>
 .log-name {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-main);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -595,7 +595,7 @@ const hasActiveFilters = computed(() =>
   align-items: center;
   gap: 6px;
   font-size: 0.82rem;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .log-time {
@@ -617,8 +617,8 @@ const hasActiveFilters = computed(() =>
   }
 
   &.method-manual {
-    background: #f1f5f9;
-    color: #475569;
+    background: var(--bg-hover);
+    color: var(--text-secondary);
   }
 }
 
@@ -656,7 +656,7 @@ const hasActiveFilters = computed(() =>
   .search-input {
     width: 100%;
     padding: 12px 16px;
-    border: 2px solid #e2e8f0;
+    border: 2px solid var(--border-color);
     border-radius: 10px;
     font-size: 0.95rem;
     outline: none;
@@ -672,7 +672,7 @@ const hasActiveFilters = computed(() =>
 .list-label {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 0 0 10px;
@@ -689,13 +689,13 @@ const hasActiveFilters = computed(() =>
   align-items: center;
   justify-content: space-between;
   padding: 12px 14px;
-  background: #f8fafc;
+  background: var(--bg-primary);
   border-radius: 10px;
   border: 2px solid transparent;
   transition: all 0.2s;
 
   &:hover {
-    background: white;
+    background: var(--bg-card);
     border-color: #6366f1;
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
   }
@@ -708,13 +708,13 @@ const hasActiveFilters = computed(() =>
 
   .p-name {
     font-weight: 700;
-    color: #0f172a;
+    color: var(--text-main);
     font-size: 0.95rem;
   }
 
   .p-detail {
     font-size: 0.78rem;
-    color: #64748b;
+    color: var(--text-muted);
   }
 }
 
@@ -745,12 +745,12 @@ const hasActiveFilters = computed(() =>
 /* ── 取消報到確認 ── */
 .dialog-msg {
   font-size: 0.9rem;
-  color: #64748b;
+  color: var(--text-muted);
   line-height: 1.6;
   margin: 0;
   text-align: center;
 
-  strong { color: #0f172a; }
+  strong { color: var(--text-main); }
 }
 
 .btn-dialog {
@@ -764,8 +764,8 @@ const hasActiveFilters = computed(() =>
   transition: all 0.2s;
 
   &.cancel {
-    background: #f1f5f9;
-    color: #475569;
+    background: var(--bg-hover);
+    color: var(--text-secondary);
     &:hover { background: #e2e8f0; }
   }
 

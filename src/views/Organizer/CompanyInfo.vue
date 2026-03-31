@@ -240,7 +240,7 @@ const saveCompanyInfo = async () => {
 }
 
 .content-panel {
-  background: white;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 32px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);

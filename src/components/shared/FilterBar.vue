@@ -26,11 +26,11 @@ defineEmits(["update:modelValue"]);
 
 <style lang="scss" scoped>
 .filter-bar {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 24px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   display: flex;
   gap: 16px;
   align-items: center;
@@ -43,7 +43,7 @@ defineEmits(["update:modelValue"]);
 .search-input {
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 0.95rem;
   transition: all 0.3s;
