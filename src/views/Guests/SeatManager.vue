@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
-import draggable from "vuedraggable";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { useSeatsStore } from "@/stores/seats";
@@ -16,106 +15,191 @@ interface SeatPerson {
   type: ParticipantType;
 }
 
-type HistoryRecordType = 'swap' | 'move' | 'assign' | 'remove';
-
-interface HistoryRecord {
-  id: number;
-  timestamp: Date;
-  time: string;
-  type: HistoryRecordType;
-  description?: string;
-  person?: string;
-  personType?: ParticipantType;
-  person1?: string;
-  person2?: string;
-  person1Type?: ParticipantType;
-  person2Type?: ParticipantType;
-  seat?: string;
-  seat1?: string;
-  seat2?: string;
-  fromSeat?: string;
-  toSeat?: string;
-}
-
-
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
 const seatsStore = useSeatsStore();
+const { success: toastSuccess, error: toastError } = useToast();
 
-// 當前專案和活動資訊
-const currentProject = computed(() => eventsStore.currentEvent?.name || "—");
-const currentActivity = computed(() => eventsStore.currentEvent?.name || "—");
-
-// 依活動 ID 產生唯一的座位 key
+// ── 活動與座位 key ──
 const getActivityKey = (eventId?: number) => eventId ? `event_${eventId}` : "act_01";
 const currentActivityId = ref(getActivityKey(eventsStore.currentEvent?.id));
 
-// 賓客名單（從 store 載入）
+// ── 座位資料 ──
+const layout = seatsStore.layout;
+const activitySeats = seatsStore.activitySeats;
+const cols = computed(() => layout.cols);
+const rows = computed(() => layout.rows);
+
+// 欄位字母標頭 A B C D...
+const colHeaders = computed(() =>
+  Array.from({ length: cols.value }, (_, i) => String.fromCharCode(65 + i))
+);
+
+// 取得座位 label（A1, B2...）
+const getSeatLabel = (row: number, col: number) =>
+  `${String.fromCharCode(65 + col)}${row + 1}`;
+
+// 取得座位物件
+const getSeat = (row: number, col: number): Seat | null => {
+  const seats = activitySeats[currentActivityId.value];
+  if (!seats) return null;
+  const idx = row * cols.value + col;
+  return seats[idx] || null;
+};
+
+// ── 參與者 ──
 const allParticipants = computed<SeatPerson[]>(() =>
   participantsStore.participants.map((p, i) => ({
     id: p.id,
-    serial: String(i + 1).padStart(3, "0"),
+    serial: String(i + 1).padStart(4, "0"),
     name: p.name,
     company: p.company || "",
     type: (p.type || "一般民眾") as ParticipantType,
-  })),
+  }))
 );
 
-// 從 seats store 取得 layout 和 activitySeats
-const layout = seatsStore.layout;
-const activitySeats = seatsStore.activitySeats;
+// 未分配名單
+const searchQuery = ref("");
+const onlyUnassigned = ref(true);
 
-// 新增座位邏輯
-const addRow = () => seatsStore.addRow(currentActivityId.value);
-const addCol = () => seatsStore.addCol(currentActivityId.value);
-
-// 待分配名單連動
 const unassignedList = ref<SeatPerson[]>([]);
 const updateUnassignedList = () => {
-  const currentSeats = activitySeats[currentActivityId.value];
-  if (!currentSeats) {
+  const seats = activitySeats[currentActivityId.value];
+  if (!seats) {
     unassignedList.value = [...allParticipants.value];
     return;
   }
-  const seatedIds = currentSeats.filter((s: Seat) => s.attendee.length > 0).map((s: Seat) => (s.attendee[0] as SeatPerson).id);
-  unassignedList.value = allParticipants.value.filter((p) => !seatedIds.includes(p.id));
+  const seatedIds = new Set(
+    seats.filter((s: Seat) => s.attendee.length > 0)
+      .map((s: Seat) => (s.attendee[0] as unknown as SeatPerson).id)
+  );
+  unassignedList.value = allParticipants.value.filter((p) => !seatedIds.has(p.id));
 };
 
-// 分離貴賓和一般民眾
-const vipList = computed<SeatPerson[]>(() => unassignedList.value.filter((p) => p.type === "VIP"));
-const attendeeList = computed<SeatPerson[]>(() =>
-  unassignedList.value.filter((p) => p.type !== "VIP"),
-);
-
-// 切換顯示類型
-const guestViewType = ref("VIP"); // 'VIP' 或 'Attendee'
-const currentGuestList = computed<SeatPerson[]>(() => {
-  return guestViewType.value === "VIP" ? vipList.value : attendeeList.value;
-});
-
-// 活動切換時更新座位 key
-watch(() => eventsStore.currentEvent?.id, (newId) => {
-  currentActivityId.value = getActivityKey(newId);
-  seatsStore.ensureActivity(currentActivityId.value);
-  updateUnassignedList();
-});
-
-watch(currentActivityId, () => updateUnassignedList(), { immediate: true });
-watch(allParticipants, () => updateUnassignedList());
-
-onMounted(async () => {
-  const event = eventsStore.currentEvent;
-  if (event?.id) {
-    // 先嘗試從後端載入（只在 localStorage 沒資料時才拉）
-    await seatsStore.loadFromBackend(event.id);
-    await participantsStore.fetchParticipants({ event: String(event.id) });
+const vipList = computed(() => {
+  let list = onlyUnassigned.value ? unassignedList.value : allParticipants.value;
+  list = list.filter((p) => p.type === "VIP");
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase();
+    list = list.filter((p) => p.name.toLowerCase().includes(q) || p.company.toLowerCase().includes(q));
   }
-  seatsStore.ensureActivity(currentActivityId.value);
-  updateUnassignedList();
+  return list;
 });
 
-// 儲存座位到後端
-const { success: toastSuccess, error: toastError } = useToast();
+const generalList = computed(() => {
+  let list = onlyUnassigned.value ? unassignedList.value : allParticipants.value;
+  list = list.filter((p) => p.type !== "VIP");
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase();
+    list = list.filter((p) => p.name.toLowerCase().includes(q) || p.company.toLowerCase().includes(q));
+  }
+  return list;
+});
+
+// ── 選取座位 ──
+const selectedSeats = ref<Set<number>>(new Set());
+const toolMode = ref<"select" | "drag">("select");
+
+const toggleSeatSelect = (row: number, col: number) => {
+  if (toolMode.value !== "select") return;
+  const idx = row * cols.value + col;
+  if (selectedSeats.value.has(idx)) {
+    selectedSeats.value.delete(idx);
+  } else {
+    selectedSeats.value.add(idx);
+  }
+  // 強制 reactivity
+  selectedSeats.value = new Set(selectedSeats.value);
+};
+
+const clearSelection = () => {
+  selectedSeats.value = new Set();
+};
+
+const isSeatSelected = (row: number, col: number) => {
+  return selectedSeats.value.has(row * cols.value + col);
+};
+
+// ── 座位狀態 ──
+type SeatStatus = "empty" | "assigned" | "aisle" | "reserved";
+
+const seatStatuses = ref<Record<number, SeatStatus>>({});
+
+const getSeatStatus = (row: number, col: number): SeatStatus => {
+  const idx = row * cols.value + col;
+  if (seatStatuses.value[idx]) return seatStatuses.value[idx];
+  const seat = getSeat(row, col);
+  if (seat && seat.attendee.length > 0) return "assigned";
+  return "empty";
+};
+
+const setSelectedAs = (status: SeatStatus) => {
+  for (const idx of selectedSeats.value) {
+    if (status === "empty") {
+      delete seatStatuses.value[idx];
+    } else {
+      seatStatuses.value[idx] = status;
+    }
+  }
+  clearSelection();
+};
+
+// ── 分配人員到座位 ──
+const assignPerson = (person: SeatPerson, row: number, col: number) => {
+  const seats = activitySeats[currentActivityId.value];
+  if (!seats) return;
+  const idx = row * cols.value + col;
+  if (!seats[idx]) return;
+  seats[idx].attendee = [person as unknown as SeatAttendee];
+  seats[idx].label = getSeatLabel(row, col);
+  updateUnassignedList();
+};
+
+const removePerson = (row: number, col: number) => {
+  const seats = activitySeats[currentActivityId.value];
+  if (!seats) return;
+  const idx = row * cols.value + col;
+  if (!seats[idx]) return;
+  seats[idx].attendee = [];
+  updateUnassignedList();
+};
+
+// 拖曳分配
+const dragPerson = ref<SeatPerson | null>(null);
+
+const onDragStart = (person: SeatPerson) => {
+  dragPerson.value = person;
+};
+
+const onDrop = (row: number, col: number) => {
+  if (!dragPerson.value) return;
+  const status = getSeatStatus(row, col);
+  if (status === "aisle" || status === "reserved") return;
+  // 如果座位已有人，先移除
+  const seat = getSeat(row, col);
+  if (seat && seat.attendee.length > 0) {
+    removePerson(row, col);
+  }
+  assignPerson(dragPerson.value, row, col);
+  dragPerson.value = null;
+};
+
+// ── 縮放 ──
+const zoom = ref(100);
+const zoomIn = () => { if (zoom.value < 150) zoom.value += 10; };
+const zoomOut = () => { if (zoom.value > 50) zoom.value -= 10; };
+
+// ── 增加行列 ──
+const addRow = () => seatsStore.addRow(currentActivityId.value);
+const addCol = () => seatsStore.addCol(currentActivityId.value);
+
+// ── 監控頁 ──
+const openMonitor = () => {
+  const url = window.location.href.replace(/#.*$/, "") + "#/seat-monitor";
+  window.open(url, "seat-monitor", "noopener");
+};
+
+// ── 儲存 ──
 const savingSeats = ref(false);
 const saveSeats = async () => {
   const eventId = eventsStore.currentEvent?.id;
@@ -123,10 +207,10 @@ const saveSeats = async () => {
   savingSeats.value = true;
   try {
     await apiRequest(`/api/seats/layout/${eventId}/`, {
-      method: 'PATCH',
-      body: JSON.stringify({ rows: seatsStore.layout.rows, cols: seatsStore.layout.cols }),
+      method: "PATCH",
+      body: JSON.stringify({ rows: layout.rows, cols: layout.cols }),
     });
-    const seats = seatsStore.activitySeats[currentActivityId.value] || [];
+    const seats = activitySeats[currentActivityId.value] || [];
     const assignments = seats
       .map((seat: Seat, index: number) => {
         if (seat.attendee.length === 0) return null;
@@ -134,1345 +218,678 @@ const saveSeats = async () => {
       })
       .filter(Boolean);
     await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ assignments }),
     });
     toastSuccess("座位分配已儲存");
   } catch {
-    toastError("儲存失敗，請稍後再試");
+    toastError("儲存失敗");
   } finally {
     savingSeats.value = false;
   }
 };
 
-// 即時監控 — 在新分頁開啟獨立頁面
-const openMonitor = () => {
-  const url = window.location.href.replace(/#.*$/, "") + "#/seat-monitor";
-  window.open(url, "seat-monitor", "noopener");
-};
-
-// 換位歷史紀錄
-const swapHistory = ref<HistoryRecord[]>([]);
-const showHistory = ref(false);
-
-const addToHistory = (record: Omit<HistoryRecord, 'id' | 'timestamp' | 'time'>) => {
-  const timestamp = new Date();
-  swapHistory.value.unshift({
-    id: Date.now(),
-    timestamp,
-    time: timestamp.toLocaleTimeString("zh-TW", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    }),
-    ...record,
-  });
-  // 只保留最近50筆記錄
-  if (swapHistory.value.length > 50) {
-    swapHistory.value = swapHistory.value.slice(0, 50);
-  }
-};
-
-// 取得人員類型（用於歷史記錄）
-const getPersonType = (personName: string) => {
-  const person = allParticipants.value.find((p) => p.name === personName);
-  return person ? person.type : null;
-};
-
-// 從左側拖曳到座位的邏輯
-const onSeatAdd = (evt: unknown, targetSeat: Seat) => {
-  // 如果座位已有人，將原本的人放回待分配名單
-  if (targetSeat.attendee.length > 1) {
-    const oldPerson = targetSeat.attendee[0] as SeatPerson;
-    targetSeat.attendee.splice(0, 1);
-    unassignedList.value.push(oldPerson);
-
-    // 記錄到歷史
-    const newPerson = targetSeat.attendee[0] as SeatPerson;
-    addToHistory({
-      type: "assign",
-      person: newPerson.name,
-      personType: newPerson.type,
-      seat: targetSeat.label,
-      description: `${newPerson.name} 分配至 ${targetSeat.label}（${oldPerson.name} 移回待分配）`,
-    });
-  } else if (targetSeat.attendee.length === 1) {
-    // 新分配
-    const newPerson = targetSeat.attendee[0] as SeatPerson;
-    addToHistory({
-      type: "assign",
-      person: newPerson.name,
-      personType: newPerson.type,
-      seat: targetSeat.label,
-      description: `${newPerson.name} 分配至 ${targetSeat.label}`,
-    });
-  }
+// ── 初始化 ──
+watch(() => eventsStore.currentEvent?.id, (newId) => {
+  currentActivityId.value = getActivityKey(newId);
+  seatsStore.ensureActivity(currentActivityId.value);
   updateUnassignedList();
-};
+});
 
-// 點選換位邏輯（只用於座位之間的換位）
-const selectedSeat = ref<Seat | null>(null);
-
-const selectSeat = (seat: Seat) => {
-  // 如果點選同一個座位，取消選取
-  if (selectedSeat.value === seat) {
-    selectedSeat.value = null;
-    return;
+onMounted(async () => {
+  const event = eventsStore.currentEvent;
+  if (event?.id) {
+    await seatsStore.loadFromBackend(event.id);
+    await participantsStore.fetchParticipants({ event: String(event.id) });
   }
-
-  // 如果沒有已選座位，選取這個座位
-  if (!selectedSeat.value) {
-    // 只能選取有人的座位
-    if (seat.attendee.length > 0) {
-      selectedSeat.value = seat;
-    }
-    return;
-  }
-
-  // 如果已有選取的座位，執行換位
-  const fromSeat = selectedSeat.value;
-  const toSeat = seat;
-
-  // 取得兩個座位的人員
-  const fromPerson = fromSeat.attendee[0] as SeatPerson;
-  const toPerson = toSeat.attendee.length > 0 ? toSeat.attendee[0] as SeatPerson : null;
-
-  // 互換
-  fromSeat.attendee = toPerson ? [toPerson] : [];
-  toSeat.attendee = [fromPerson];
-
-  // 記錄到歷史
-  if (toPerson) {
-    addToHistory({
-      type: "swap",
-      person1: fromPerson.name,
-      person2: toPerson.name,
-      person1Type: fromPerson.type,
-      person2Type: toPerson.type,
-      seat1: fromSeat.label,
-      seat2: toSeat.label,
-      description: `${fromPerson.name}（${fromSeat.label}）⇄ ${toPerson.name}（${toSeat.label}）`,
-    });
-  } else {
-    addToHistory({
-      type: "move",
-      person: fromPerson.name,
-      personType: fromPerson.type,
-      fromSeat: fromSeat.label,
-      toSeat: toSeat.label,
-      description: `${fromPerson.name} 從 ${fromSeat.label} 移至 ${toSeat.label}`,
-    });
-  }
-
-  // 清除選取
-  selectedSeat.value = null;
+  seatsStore.ensureActivity(currentActivityId.value);
   updateUnassignedList();
-};
-
-const handleRemove = (seat: Seat) => {
-  if (seat.attendee.length > 0) {
-    const person = seat.attendee[0] as SeatPerson;
-    seat.attendee.splice(0, 1);
-    unassignedList.value.push(person);
-
-    // 記錄到歷史
-    addToHistory({
-      type: "remove",
-      person: person.name,
-      personType: person.type,
-      seat: seat.label,
-      description: `${person.name} 從 ${seat.label} 移除`,
-    });
-
-    updateUnassignedList();
-  }
-  selectedSeat.value = null;
-};
-
-// 座位地圖拖曳平移功能
-const mapContainer = ref<HTMLElement | null>(null);
-const isDraggingMap = ref(false);
-const mapStartPos = ref({ x: 0, y: 0 });
-const mapScrollPos = ref({ left: 0, top: 0 });
-
-const onMapMouseDown = (e: MouseEvent) => {
-  // 只在直接點擊地圖容器時啟動拖曳，不包括座位元素
-  if ((e.target as HTMLElement).closest(".seat-item") || (e.target as HTMLElement).closest(".stage-banner")) {
-    return;
-  }
-  isDraggingMap.value = true;
-  mapStartPos.value = { x: e.clientX, y: e.clientY };
-  if (!mapContainer.value) return;
-  mapScrollPos.value = {
-    left: mapContainer.value.scrollLeft,
-    top: mapContainer.value.scrollTop,
-  };
-  mapContainer.value.style.cursor = "grabbing";
-};
-
-const onMapMouseMove = (e: MouseEvent) => {
-  if (!isDraggingMap.value || !mapContainer.value) return;
-  e.preventDefault();
-  const dx = e.clientX - mapStartPos.value.x;
-  const dy = e.clientY - mapStartPos.value.y;
-  mapContainer.value.scrollLeft = mapScrollPos.value.left - dx;
-  mapContainer.value.scrollTop = mapScrollPos.value.top - dy;
-};
-
-const onMapMouseUp = () => {
-  isDraggingMap.value = false;
-  if (mapContainer.value) {
-    mapContainer.value.style.cursor = "grab";
-  }
-};
-
-const onMapMouseLeave = () => {
-  if (isDraggingMap.value) {
-    isDraggingMap.value = false;
-    if (mapContainer.value) {
-      mapContainer.value.style.cursor = "grab";
-    }
-  }
-};
-
-// 動態計算座位尺寸，確保不超出螢幕
-const seatSize = computed(() => {
-  const cols = layout.cols;
-  // 基於欄位數量動態調整座位大小
-  if (cols <= 5) return { width: 95, height: 80 };
-  if (cols <= 8) return { width: 80, height: 70 };
-  if (cols <= 12) return { width: 65, height: 58 };
-  return { width: 55, height: 48 };
 });
 </script>
 
 <template>
-  <div class="registration-view">
-    <div class="activity-selector-section">
-      <div class="tech-card">
-        <div class="activity-info">
-          <div class="info-item">
-            <span class="info-label">專案名稱：</span>
-            <span class="info-value">{{ currentProject }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">活動場次：</span>
-            <span class="info-value">{{ currentActivity }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="seating-layout-grid">
-      <div class="tech-card guest-list-card">
-        <div class="card-header-flex">
-          <h3 class="card-subtitle">賓客名單</h3>
-          <div class="badge-count">{{ unassignedList.length }} 位待安排</div>
-        </div>
-
-        <!-- 切換按鈕 -->
-        <div class="guest-type-tabs">
-          <button
-            class="type-tab"
-            :class="{ active: guestViewType === 'VIP' }"
-            @click="guestViewType = 'VIP'"
-          >
-            貴賓 VIP <span class="tab-count">{{ vipList.length }}</span>
-          </button>
-          <button
-            class="type-tab"
-            :class="{ active: guestViewType === 'Attendee' }"
-            @click="guestViewType = 'Attendee'"
-          >
-            一般民眾 <span class="tab-count">{{ attendeeList.length }}</span>
-          </button>
-        </div>
-
-        <!-- 賓客列表 -->
-        <draggable
-          v-model="currentGuestList"
-          group="seatingGroup"
-          item-key="id"
-          class="drag-area"
-          ghost-class="my-ghost"
-          drag-class="my-drag"
-          :animation="300"
-        >
-          <template #item="{ element }">
-            <div class="person-card" :class="{ 'vip-card': element.type === 'VIP' }">
-              <div class="card-main">
-                <span class="p-serial">#{{ element.serial }}</span>
-                <span class="p-name">{{ element.name }}</span>
-              </div>
-              <div class="p-company">{{ element.company }}</div>
-            </div>
-          </template>
-        </draggable>
+  <div class="seat-page">
+    <!-- 左側面板 -->
+    <aside class="left-panel">
+      <div class="panel-toggle">
+        <label class="toggle-row">
+          <span class="toggle-label">僅顯示未分配</span>
+          <input type="checkbox" v-model="onlyUnassigned" class="toggle-input" />
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        </label>
       </div>
 
-      <div class="tech-card seat-map-card">
-        <div class="card-header-flex">
-          <h3 class="card-subtitle">座位配置圖</h3>
-          <div class="grid-controls">
-            <button @click="openMonitor" class="btn-mini-tag monitor-btn">
-              📡 即時監控
-            </button>
-            <button @click="showHistory = !showHistory" class="btn-mini-tag history-btn">
-              📋 歷史紀錄 <span class="history-count">{{ swapHistory.length }}</span>
-            </button>
-            <button @click="addRow" class="btn-mini-tag">+ 新增一排</button>
-            <button @click="addCol" class="btn-mini-tag">+ 新增一列</button>
-            <button @click="saveSeats" :disabled="savingSeats" class="btn-mini-tag save-btn">
-              {{ savingSeats ? '儲存中...' : '💾 儲存座位' }}
-            </button>
-            <div class="grid-info">{{ layout.rows }} × {{ layout.cols }}</div>
-          </div>
-        </div>
+      <div class="panel-search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input v-model="searchQuery" placeholder="搜尋..." />
+      </div>
 
+      <!-- VIP -->
+      <div class="person-section">
+        <div class="section-title vip">VIP ({{ vipList.length }})</div>
         <div
-          ref="mapContainer"
-          class="seat-map-container"
-          @mousedown="onMapMouseDown"
-          @mousemove="onMapMouseMove"
-          @mouseup="onMapMouseUp"
-          @mouseleave="onMapMouseLeave"
+          v-for="p in vipList"
+          :key="'v-' + p.id"
+          class="person-card"
+          draggable="true"
+          @dragstart="onDragStart(p)"
         >
-          <div class="stage-banner">舞台 STAGE</div>
+          <div class="person-info">
+            <div class="person-name">{{ p.name }}</div>
+            <div class="person-company">{{ p.company }}</div>
+          </div>
+          <div class="person-meta">
+            <span class="person-serial">#{{ p.serial }}</span>
+            <span class="badge badge-unassigned">未分配</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 參加者 -->
+      <div class="person-section">
+        <div class="section-title general">參加者 ({{ generalList.length }})</div>
+        <div
+          v-for="p in generalList"
+          :key="'g-' + p.id"
+          class="person-card"
+          draggable="true"
+          @dragstart="onDragStart(p)"
+        >
+          <div class="person-info">
+            <div class="person-name">{{ p.name }}</div>
+            <div class="person-company">{{ p.company }}</div>
+          </div>
+          <div class="person-meta">
+            <span class="person-serial">#{{ p.serial }}</span>
+            <span class="badge badge-unassigned">未分配</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 主區域 -->
+    <main class="main-area">
+      <!-- 頂部工具列 -->
+      <div class="top-bar">
+        <div class="top-bar-left">
+          <button class="tool-btn" :class="{ active: toolMode === 'select' }" @click="toolMode = 'select'" title="選取模式">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
+          </button>
+          <button class="tool-btn" :class="{ active: toolMode === 'drag' }" @click="toolMode = 'drag'" title="拖曳模式">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 13"/></svg>
+          </button>
+          <div class="tool-divider"></div>
+          <button class="tool-btn" @click="addCol" title="新增欄">→|</button>
+          <button class="tool-btn" @click="addRow" title="新增列">↓</button>
+          <div class="tool-divider"></div>
+          <button class="tool-btn" @click="openMonitor" title="即時監控">📡</button>
+          <button class="tool-btn save-tool" :disabled="savingSeats" @click="saveSeats">
+            {{ savingSeats ? '儲存中...' : '💾 儲存' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- 舞台 -->
+      <div class="stage-area" :style="{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }">
+        <div class="stage-label">舞台</div>
+        <div class="stage-bar"></div>
+
+        <!-- 座位表 -->
+        <div class="seat-grid-wrapper">
+          <!-- 欄位標頭 -->
+          <div class="grid-header" :style="{ gridTemplateColumns: `40px repeat(${cols}, 1fr)` }">
+            <div></div>
+            <div v-for="h in colHeaders" :key="h" class="col-header">{{ h }}</div>
+          </div>
+
+          <!-- 座位行 -->
           <div
-            class="seats-grid"
-            :style="{ gridTemplateColumns: `repeat(${layout.cols}, ${seatSize.width}px)` }"
+            v-for="r in rows"
+            :key="'row-' + r"
+            class="grid-row"
+            :style="{ gridTemplateColumns: `40px repeat(${cols}, 1fr)` }"
           >
+            <div class="row-header">{{ r }}</div>
             <div
-              v-for="seat in activitySeats[currentActivityId]"
-              :key="seat.id"
-              class="seat-item"
-              :style="{ width: `${seatSize.width}px` }"
+              v-for="c in cols"
+              :key="'seat-' + r + '-' + c"
+              class="seat-cell"
+              :class="{
+                selected: isSeatSelected(r - 1, c - 1),
+                assigned: getSeatStatus(r - 1, c - 1) === 'assigned',
+                aisle: getSeatStatus(r - 1, c - 1) === 'aisle',
+                reserved: getSeatStatus(r - 1, c - 1) === 'reserved',
+              }"
+              @click="toggleSeatSelect(r - 1, c - 1)"
+              @dragover.prevent
+              @drop="onDrop(r - 1, c - 1)"
             >
-              <div class="seat-label">{{ seat.label }}</div>
-              <draggable
-                v-model="seat.attendee"
-                group="seatingGroup"
-                item-key="id"
-                class="drop-zone"
-                :class="{
-                  'is-filled': seat.attendee.length > 0,
-                  'is-vip': seat.attendee.length > 0 && seat.attendee[0]?.type === 'VIP',
-                  'is-selected': selectedSeat === seat,
-                }"
-                :style="{ width: `${seatSize.width}px`, height: `${seatSize.height}px` }"
-                ghost-class="my-ghost"
-                drag-class="my-drag"
-                :animation="300"
-                @add="(evt) => onSeatAdd(evt, seat)"
-                @click.native="selectSeat(seat)"
-              >
-                <template #item="{ element }">
-                  <div class="seated-card" :class="{ 'vip-seated': element.type === 'VIP' }">
-                    <div class="s-serial">{{ element.serial }}</div>
-                    <div class="s-name">{{ element.name }}</div>
-                    <button class="s-remove" @click.stop="handleRemove(seat)">✕</button>
-                  </div>
-                </template>
-                <template #header v-if="seat.attendee.length === 0">
-                  <div class="s-empty">空</div>
-                </template>
-              </draggable>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 歷史紀錄側邊欄 -->
-    <Transition name="slide-in">
-      <div v-if="showHistory" class="history-sidebar">
-        <div class="history-sidebar-content">
-          <div class="history-header">
-            <h4>📋 換位歷史紀錄</h4>
-            <button @click="showHistory = false" class="close-btn">✕</button>
-          </div>
-          <div class="history-list">
-            <div v-if="swapHistory.length === 0" class="empty-history">尚無換位紀錄</div>
-            <div
-              v-for="record in swapHistory"
-              :key="record.id"
-              class="history-item"
-              :class="[
-                `history-${record.type}`,
-                {
-                  'has-vip':
-                    record.personType === 'VIP' ||
-                    record.person1Type === 'VIP' ||
-                    record.person2Type === 'VIP',
-                },
-              ]"
-            >
-              <div class="history-time">{{ record.time }}</div>
-              <div class="history-content">
-                <span class="history-icon">
-                  {{
-                    record.type === "swap"
-                      ? "⇄"
-                      : record.type === "move"
-                        ? "→"
-                        : record.type === "assign"
-                          ? "✓"
-                          : "✕"
-                  }}
-                </span>
-                <div class="history-desc">
-                  <template v-if="record.type === 'swap'">
-                    <span
-                      class="person-name"
-                      :class="{ 'vip-name': record.person1Type === 'VIP' }"
-                      >{{ record.person1 }}</span
-                    >
-                    <span class="seat-info">（{{ record.seat1 }}）</span>
-                    <span class="swap-arrow">⇄</span>
-                    <span
-                      class="person-name"
-                      :class="{ 'vip-name': record.person2Type === 'VIP' }"
-                      >{{ record.person2 }}</span
-                    >
-                    <span class="seat-info">（{{ record.seat2 }}）</span>
-                  </template>
-                  <template v-else-if="record.type === 'move'">
-                    <span
-                      class="person-name"
-                      :class="{ 'vip-name': record.personType === 'VIP' }"
-                      >{{ record.person }}</span
-                    >
-                    <span class="action-text"> 從 </span>
-                    <span class="seat-info">{{ record.fromSeat }}</span>
-                    <span class="action-text"> 移至 </span>
-                    <span class="seat-info">{{ record.toSeat }}</span>
-                  </template>
-                  <template v-else-if="record.type === 'assign'">
-                    <span
-                      class="person-name"
-                      :class="{ 'vip-name': record.personType === 'VIP' }"
-                      >{{ record.person }}</span
-                    >
-                    <span class="action-text"> 分配至 </span>
-                    <span class="seat-info">{{ record.seat }}</span>
-                  </template>
-                  <template v-else-if="record.type === 'remove'">
-                    <span
-                      class="person-name"
-                      :class="{ 'vip-name': record.personType === 'VIP' }"
-                      >{{ record.person }}</span
-                    >
-                    <span class="action-text"> 從 </span>
-                    <span class="seat-info">{{ record.seat }}</span>
-                    <span class="action-text"> 移除</span>
-                  </template>
+              <template v-if="getSeatStatus(r - 1, c - 1) === 'aisle'">
+                <div class="seat-aisle"></div>
+              </template>
+              <template v-else-if="getSeatStatus(r - 1, c - 1) === 'assigned'">
+                <div class="seat-content assigned-content">
+                  <span class="seat-serial">#{{ (getSeat(r - 1, c - 1)?.attendee[0] as any)?.serial || '' }}</span>
+                  <span class="seat-person-name">{{ (getSeat(r - 1, c - 1)?.attendee[0] as any)?.name || '' }}</span>
                 </div>
-              </div>
+                <button class="seat-remove" @click.stop="removePerson(r - 1, c - 1)">×</button>
+              </template>
+              <template v-else>
+                <div class="seat-content">
+                  <span class="seat-label-text">{{ getSeatLabel(r - 1, c - 1) }}</span>
+                </div>
+              </template>
             </div>
           </div>
         </div>
       </div>
-    </Transition>
 
-    <!-- 遮罩層 -->
-    <Transition name="fade">
-      <div v-if="showHistory" class="overlay" @click="showHistory = false"></div>
-    </Transition>
+      <!-- 底部選取工具列 -->
+      <Transition name="toolbar-slide">
+        <div v-if="selectedSeats.size > 0" class="selection-toolbar">
+          <span class="sel-count">已選取 {{ selectedSeats.size }} 個座位</span>
+          <button class="sel-btn" @click="setSelectedAs('empty')">
+            <span class="sel-dot empty-dot"></span> 恢復為空位
+          </button>
+          <button class="sel-btn" @click="setSelectedAs('aisle')">
+            <span class="sel-dot aisle-dot"></span> 設定為走道
+          </button>
+          <button class="sel-btn" @click="setSelectedAs('reserved')">
+            <span class="sel-dot reserved-dot"></span> 設定為保留座
+          </button>
+          <button class="sel-btn cancel" @click="clearSelection">取消選取</button>
+        </div>
+      </Transition>
 
+      <!-- 縮放控制 -->
+      <div class="zoom-controls">
+        <button class="zoom-btn" @click="zoomIn">+</button>
+        <span class="zoom-label">{{ zoom }}%</span>
+        <button class="zoom-btn" @click="zoomOut">−</button>
+      </div>
+    </main>
   </div>
 </template>
 
-<style lang="scss" scoped>
-/* CSS Variables - 統一設計系統 */
-:root {
-  --primary: #6366f1;
-  --deep-dark: #0f172a;
-  --text-gray: #64748b;
-  --bg-soft: #f8fafc;
-  --border-light: #e2e8f0;
-}
-
-.registration-view {
-  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-  min-height: 100vh;
-}
-
-.activity-selector-section {
-  margin-bottom: 16px;
-}
-
-.tech-card {
-  background: white;
-  border-radius: 16px;
-  border: 1px solid var(--border-light);
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: box-shadow 0.3s;
-
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  }
-
-  .card-subtitle {
-    font-size: 1.1rem;
-    font-weight: 800;
-    color: var(--deep-dark);
-    margin: 0 0 16px 0;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #f1f5f9;
-  }
-}
-
-.card-header-flex {
+<style scoped>
+.seat-page {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-
-  h3 {
-    margin: 0 !important;
-    padding-bottom: 0 !important;
-    border-bottom: none !important;
-  }
+  height: 100%;
+  min-height: calc(100vh - 64px);
+  background: #f8f9fb;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-.activity-info {
+/* ===== 左側面板 ===== */
+.left-panel {
+  width: 280px;
+  background: #fff;
+  border-right: 1px solid #e5e7eb;
   display: flex;
-  gap: 32px;
-
-  .info-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    background: var(--bg-soft);
-    border-radius: 12px;
-    border: 1px solid var(--border-light);
-
-    .info-label {
-      font-size: 0.9rem;
-      color: var(--text-gray);
-      font-weight: 600;
-    }
-
-    .info-value {
-      font-size: 1rem;
-      color: var(--deep-dark);
-      font-weight: 800;
-    }
-  }
-}
-
-.badge-count {
-  background: #eef2ff;
-  border: 1px solid #e0e7ff;
-  color: #6366f1;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-.grid-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  .grid-info {
-    font-size: 0.85rem;
-    color: var(--text-gray);
-    font-weight: 700;
-    padding: 6px 14px;
-    background: var(--bg-soft);
-    border-radius: 8px;
-    border: 1px solid var(--border-light);
-  }
-}
-
-.btn-mini-tag {
-  background: #eef2ff;
-  border: 1px solid #e0e7ff;
-  color: #6366f1;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: 0.2s;
-
-  &:hover {
-    background: #6366f1;
-    color: white;
-    border-color: #6366f1;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
-  }
-
-  &.save-btn {
-    background: #d1fae5;
-    border-color: #6ee7b7;
-    color: #065f46;
-    &:hover { background: #059669; color: white; border-color: #059669; }
-    &:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-  }
-}
-
-.seating-layout-grid {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 24px;
-  align-items: start;
-}
-
-.guest-list-card {
-  .card-subtitle {
-    margin-bottom: 16px;
-  }
-}
-
-.guest-type-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-
-  .type-tab {
-    flex: 1;
-    padding: 10px 16px;
-    background: var(--bg-soft);
-    border: 1px solid var(--border-light);
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 600;
-    color: var(--text-gray);
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-
-    &:hover {
-      border-color: #6366f1;
-      color: #6366f1;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(99, 102, 241, 0.15);
-    }
-
-    &.active {
-      background: #6366f1;
-      color: var(--deep-dark);
-      border-color: #6366f1;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-
-      .tab-count {
-        background: white;
-        color: var(--deep-dark);
-      }
-    }
-
-    .tab-count {
-      font-size: 0.75rem;
-      font-weight: 800;
-      padding: 3px 8px;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.2);
-    }
-  }
-}
-
-.guest-section {
-  margin-bottom: 20px;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background: var(--bg-soft);
-  border-radius: 8px;
-  margin-bottom: 12px;
-  border: 1px solid var(--border-light);
-
-  .section-title {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--deep-dark);
-  }
-
-  .section-count {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: #6366f1;
-    background: white;
-    padding: 4px 10px;
-    border-radius: 6px;
-    border: 1px solid #e0e7ff;
-  }
-}
-
-.drag-area {
-  max-height: 420px;
+  flex-direction: column;
   overflow-y: auto;
-  padding-right: 8px;
-  min-height: 80px;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: var(--bg-soft);
-    border-radius: 10px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
-
-    &:hover {
-      background: #94a3b8;
-    }
-  }
+  flex-shrink: 0;
+  padding: 16px;
 }
+
+.panel-toggle {
+  margin-bottom: 12px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.toggle-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.toggle-input { display: none; }
+
+.toggle-track {
+  width: 40px;
+  height: 22px;
+  background: #cbd5e1;
+  border-radius: 11px;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.toggle-input:checked + .toggle-track {
+  background: #6366f1;
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.toggle-input:checked + .toggle-track .toggle-thumb {
+  transform: translateX(18px);
+}
+
+.panel-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+}
+
+.panel-search input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.85rem;
+  color: #1e293b;
+  width: 100%;
+}
+
+.person-section { margin-bottom: 16px; }
+
+.section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 4px 0 8px;
+}
+
+.section-title.vip { color: #6366f1; }
+.section-title.general { color: #f59e0b; }
 
 .person-card {
-  background: var(--bg-soft);
-  border: 1px solid var(--border-light);
-  padding: 12px 14px;
-  border-radius: 12px;
-  margin-bottom: 10px;
-  cursor: grab;
-  transition: all 0.3s;
-
-  &:hover {
-    border-color: #6366f1;
-    background: white;
-    transform: translateX(4px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
-  }
-
-  &:active {
-    cursor: grabbing;
-  }
-
-  &.vip-card {
-    background: linear-gradient(135deg, #fef3c7 0%, #fef9e7 100%);
-    border-color: #fbbf24;
-
-    .p-serial {
-      background: #fbbf24;
-      color: white;
-      border-color: #f59e0b;
-    }
-
-    &:hover {
-      background: linear-gradient(135deg, #fde68a 0%, #fef3c7 100%);
-      border-color: #f59e0b;
-      box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
-    }
-  }
-
-  .card-main {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-  }
-
-  .p-serial {
-    font-size: 0.7rem;
-    color: #6366f1;
-    font-weight: 800;
-    background: white;
-    padding: 4px 8px;
-    border-radius: 6px;
-    border: 1px solid #e0e7ff;
-  }
-
-  .p-name {
-    font-weight: 700;
-    color: var(--deep-dark);
-    font-size: 0.95rem;
-  }
-
-  .p-company {
-    font-size: 0.8rem;
-    color: var(--text-gray);
-    padding-left: 4px;
-  }
-}
-
-.seat-map-card {
-  min-height: 600px;
-}
-
-.seat-map-container {
-  padding: 16px;
-  background: var(--bg-soft);
-  border-radius: 12px;
-  border: 1px solid var(--border-light);
-  overflow: auto;
-  max-height: calc(100vh - 280px);
-  cursor: grab;
-  user-select: none;
-
-  &::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: var(--bg-soft);
-    border-radius: 10px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
-
-    &:hover {
-      background: #94a3b8;
-    }
-  }
-
-  &::-webkit-scrollbar-corner {
-    background: var(--bg-soft);
-  }
-}
-
-.stage-banner {
-  background: linear-gradient(135deg, var(--deep-dark) 0%, #1e293b 100%);
-  color: white;
-  text-align: center;
-  padding: 12px;
-  border-radius: 12px;
-  margin-bottom: 24px;
-  font-weight: 800;
-  font-size: 1rem;
-  letter-spacing: 0.15em;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
-}
-
-.seats-grid {
-  display: grid;
-  gap: 12px;
-  justify-content: center;
-  padding: 12px;
-  max-width: 100%;
-  width: fit-content;
-  margin: 0 auto;
-}
-
-.seat-item {
-  text-align: center;
-}
-
-.seat-label {
-  font-size: 0.7rem;
-  color: #64748b;
-  font-weight: 700;
-  margin-bottom: 8px;
-  letter-spacing: 0.05em;
-}
-
-.drop-zone {
-  min-width: 55px;
-  min-height: 48px;
-  background: white;
-  border: 2px dashed #cbd5e1;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  transition: all 0.3s;
-  cursor: pointer;
-
-  &:hover {
-    border-color: #6366f1;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
-  }
-
-  &.is-selected {
-    border: 3px solid #6366f1;
-    background: #ebf5ff;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-    transform: scale(1.05);
-  }
-
-  &.is-filled {
-    border: 2px solid #6366f1;
-    background: #f0f7ff;
-    border-style: solid;
-
-    &.is-selected {
-      border: 3px solid #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
-    }
-  }
-
-  &.is-vip {
-    border: 2px solid #f59e0b;
-    background: linear-gradient(135deg, #fef3c7 0%, #fef9e7 100%);
-    border-style: solid;
-
-    &:hover {
-      border-color: #f59e0b;
-      box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
-    }
-
-    &.is-selected {
-      border: 3px solid #f59e0b;
-      box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3);
-    }
-  }
-}
-
-.s-empty {
-  color: #cbd5e1;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.seated-card {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px;
-
-  &.vip-seated {
-    .s-serial {
-      background: #fbbf24;
-      color: white;
-      border-color: #f59e0b;
-    }
-  }
-
-  .s-serial {
-    font-size: clamp(0.55rem, 0.65rem, 0.7rem);
-    color: #6366f1;
-    font-weight: 800;
-    background: white;
-    padding: 2px 6px;
-    border-radius: 4px;
-  }
-
-  .s-name {
-    font-size: clamp(0.75rem, 0.85rem, 0.9rem);
-    font-weight: 800;
-    color: var(--deep-dark);
-    line-height: 1.2;
-    text-align: center;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
-  }
-
-  .s-remove {
-    position: absolute;
-    top: -10px;
-    right: -10px;
-    background: #ef4444;
-    color: white;
-    border-radius: 50%;
-    width: 26px;
-    height: 26px;
-    border: 3px solid white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-    font-weight: 800;
-    transition: all 0.2s;
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.5);
-
-    &:hover {
-      background: #dc2626;
-      transform: scale(1.15) rotate(90deg);
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.7);
-    }
-
-    &:active {
-      transform: scale(0.95);
-    }
-  }
-}
-
-/* 拖曳特效 CSS */
-.my-ghost {
-  opacity: 0.5;
-  background: #ebf5ff !important;
-  border: 2px dashed #6366f1 !important;
-  border-radius: 12px;
-  transform: rotate(2deg);
-
-  * {
-    opacity: 0;
-  }
-}
-
-.my-drag {
-  cursor: grabbing;
-  background: #6366f1 !important;
-  border-color: #6366f1 !important;
-  transform: rotate(3deg) scale(1.05);
-  box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.5);
-
-  * {
-    color: white !important;
-  }
-}
-
-/* 即時監控按鈕 */
-.monitor-btn {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  border-color: #334155;
-  color: #38bdf8;
-
-  &:hover {
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    color: #7dd3fc;
-    border-color: #38bdf8;
-    box-shadow: 0 2px 8px rgba(56, 189, 248, 0.35);
-    transform: translateY(-1px);
-  }
-}
-
-/* 歷史紀錄樣式 */
-.history-btn {
-  position: relative;
-
-  .history-count {
-    background: white;
-    color: #6366f1;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 800;
-    margin-left: 4px;
-  }
-}
-
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 998;
-}
-
-.history-sidebar {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 400px;
-  height: 100vh;
-  background: white;
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
-  z-index: 999;
-  overflow: hidden;
-}
-
-.history-sidebar-content {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.history-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px;
-  border-bottom: 2px solid var(--border-light);
-  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-
-  h4 {
-    font-size: 1.2rem;
-    font-weight: 800;
-    color: var(--deep-dark);
-    margin: 0;
-  }
-
-  .close-btn {
-    background: #fee2e2;
-    border: 1px solid #fecaca;
-    color: #dc2626;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    font-weight: 800;
-    transition: all 0.2s;
-
-    &:hover {
-      background: #dc2626;
-      color: white;
-      transform: rotate(90deg);
-    }
-  }
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  cursor: grab;
+  transition: all 0.15s;
+  background: #fff;
 }
 
-.history-list {
+.person-card:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.1);
+}
+
+.person-card:active { cursor: grabbing; }
+
+.person-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.person-company {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.person-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.person-serial {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.badge-unassigned {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+/* ===== 主區域 ===== */
+.main-area {
   flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: var(--bg-soft);
-    border-radius: 10px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
-
-    &:hover {
-      background: #94a3b8;
-    }
-  }
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: auto;
+  padding: 16px;
 }
 
-.empty-history {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-gray);
-  font-size: 1rem;
+/* 頂部工具列 */
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  background: #fff;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tool-btn {
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #64748b;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tool-btn:hover { background: #f1f5f9; color: #334155; }
+.tool-btn.active { background: #eef2ff; color: #4f46e5; }
+.tool-btn.save-tool {
+  background: #6366f1;
+  color: #fff;
+  font-weight: 600;
+  padding: 8px 16px;
+}
+.tool-btn.save-tool:hover { background: #4f46e5; }
+.tool-btn.save-tool:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.tool-divider {
+  width: 1px;
+  height: 20px;
+  background: #e2e8f0;
+  margin: 0 4px;
+}
+
+/* 舞台 */
+.stage-area {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-
-  &::before {
-    content: "📝";
-    font-size: 3rem;
-    opacity: 0.3;
-  }
+  transition: transform 0.2s;
 }
 
-.history-item {
-  background: var(--bg-soft);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
-  border-left: 4px solid #cbd5e1;
-  transition: all 0.2s;
-
-  &:hover {
-    transform: translateX(-4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-
-  &.history-swap {
-    border-left-color: #6366f1;
-    background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%);
-  }
-
-  &.history-move {
-    border-left-color: #8b5cf6;
-    background: linear-gradient(135deg, #f5f3ff 0%, #f8fafc 100%);
-  }
-
-  &.history-assign {
-    border-left-color: #10b981;
-    background: linear-gradient(135deg, #ecfdf5 0%, #f8fafc 100%);
-  }
-
-  &.history-remove {
-    border-left-color: #ef4444;
-    background: linear-gradient(135deg, #fef2f2 0%, #f8fafc 100%);
-  }
-
-  &.has-vip {
-    border-left-width: 5px;
-    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.15);
-  }
-}
-
-.history-time {
-  font-size: 0.75rem;
-  color: var(--text-gray);
+.stage-label {
+  font-size: 0.85rem;
   font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 2px;
   margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
-.history-content {
+.stage-bar {
+  width: min(500px, 60%);
+  height: 12px;
+  background: linear-gradient(135deg, #334155, #1e293b);
+  border-radius: 6px;
+  margin-bottom: 24px;
+}
+
+/* 座位表 */
+.seat-grid-wrapper {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-
-  .history-icon {
-    font-size: 1.2rem;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: white;
-    border-radius: 8px;
-    flex-shrink: 0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-
-  .history-desc {
-    font-size: 0.95rem;
-    color: var(--deep-dark);
-    font-weight: 600;
-    line-height: 1.5;
-    flex: 1;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px;
-
-    .person-name {
-      font-weight: 800;
-      color: #6366f1;
-      padding: 2px 8px;
-      background: #eef2ff;
-      border-radius: 6px;
-      border: 1px solid #e0e7ff;
-
-      &.vip-name {
-        color: #f59e0b;
-        background: linear-gradient(135deg, #fef3c7 0%, #fef9e7 100%);
-        border: 1px solid #fbbf24;
-        font-weight: 900;
-        box-shadow: 0 2px 4px rgba(251, 191, 36, 0.2);
-      }
-    }
-
-    .seat-info {
-      font-weight: 700;
-      color: var(--text-gray);
-      font-size: 0.85rem;
-    }
-
-    .action-text {
-      color: var(--text-gray);
-      font-weight: 500;
-    }
-
-    .swap-arrow {
-      color: #6366f1;
-      font-weight: 800;
-      font-size: 1.1rem;
-    }
-  }
+  flex-direction: column;
+  gap: 2px;
 }
 
-/* 過渡動畫 */
-.slide-in-enter-active,
-.slide-in-leave-active {
-  transition: transform 0.3s ease;
+.grid-header, .grid-row {
+  display: grid;
+  gap: 6px;
 }
 
-.slide-in-enter-from {
-  transform: translateX(100%);
+.col-header, .row-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
 }
 
-.slide-in-leave-to {
-  transform: translateX(100%);
+.row-header {
+  width: 40px;
 }
 
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
+/* 座位格 */
+.seat-cell {
+  width: 72px;
+  height: 72px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  background: #fff;
 }
 
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+.seat-cell:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.15);
 }
 
-/* ===== RWD 手機版 ===== */
+.seat-cell.selected {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+}
+
+.seat-cell.assigned {
+  background: #fefce8;
+  border-color: #fde68a;
+}
+
+.seat-cell.aisle {
+  background: transparent;
+  border: 2px dashed #e2e8f0;
+  cursor: default;
+}
+
+.seat-cell.reserved {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.seat-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.seat-label-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.assigned-content {
+  text-align: center;
+}
+
+.seat-serial {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+.seat-person-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #1e293b;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seat-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #fff;
+  border: 2px solid #fff;
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.seat-cell:hover .seat-remove { display: flex; }
+
+.seat-aisle {
+  width: 100%;
+  height: 100%;
+}
+
+/* 底部選取工具列 */
+.selection-toolbar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  padding: 12px 20px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  border: 1px solid #e5e7eb;
+  z-index: 50;
+}
+
+.sel-count {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+  padding-right: 8px;
+  border-right: 1px solid #e5e7eb;
+}
+
+.sel-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  transition: background 0.15s;
+}
+
+.sel-btn:hover { background: #f1f5f9; }
+.sel-btn.cancel { color: #ef4444; }
+.sel-btn.cancel:hover { background: #fef2f2; }
+
+.sel-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.empty-dot { background: #e2e8f0; border: 1px solid #cbd5e1; }
+.aisle-dot { background: #ef4444; }
+.reserved-dot { background: #f59e0b; }
+
+.toolbar-slide-enter-active, .toolbar-slide-leave-active { transition: all 0.3s ease; }
+.toolbar-slide-enter-from, .toolbar-slide-leave-to { opacity: 0; transform: translateX(-50%) translateY(20px); }
+
+/* 縮放 */
+.zoom-controls {
+  position: fixed;
+  right: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: #fff;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  z-index: 20;
+}
+
+.zoom-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #475569;
+  transition: background 0.15s;
+}
+
+.zoom-btn:hover { background: #f1f5f9; }
+
+.zoom-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+/* ===== RWD ===== */
 @media (max-width: 768px) {
-  .activity-selector-section {
-    margin-bottom: 12px;
-  }
-
-  .activity-info {
-    flex-direction: column;
-    gap: 8px;
-
-    .info-item {
-      padding: 8px 14px;
-      font-size: 0.85rem;
-    }
-  }
-
-  .seating-layout-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-
-  .guest-list-card {
-    .drag-area {
-      max-height: 180px;
-    }
-  }
-
-  .seat-map-card {
-    min-height: unset;
-  }
-
-  .seat-map-container {
-    max-height: 55vh;
-    min-height: 280px;
-  }
-
-  .card-header-flex {
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: flex-start;
-
-    h3 {
-      flex: 1 0 100%;
-    }
-  }
-
-  .grid-controls {
-    flex-wrap: wrap;
-    gap: 6px;
+  .seat-page { flex-direction: column; }
+  .left-panel {
     width: 100%;
+    max-height: 200px;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    overflow-x: auto;
   }
-
-  .btn-mini-tag {
-    font-size: 0.78rem;
-    padding: 5px 10px;
-  }
-
-  .history-sidebar {
-    width: 100vw;
-    max-width: 100vw;
-  }
-
-  .person-card {
-    padding: 10px 12px;
-    .p-name { font-size: 0.88rem; }
-  }
+  .person-section { min-width: 200px; }
+  .zoom-controls { display: none; }
+  .selection-toolbar { left: 16px; right: 16px; transform: none; }
 }
 </style>

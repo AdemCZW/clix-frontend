@@ -1,0 +1,1 @@
+import{J as e,R as t}from"./plugin-vue-export-helper-Cef40NLB.js";function n(n,r=300){let i=e(n.value),a=null;return t(n,e=>{a&&clearTimeout(a),a=setTimeout(()=>{i.value=e},r)}),i}export{n as t};
