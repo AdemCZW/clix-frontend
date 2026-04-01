@@ -282,61 +282,53 @@ watch(() => participantsStore.participants.length, () => {
     <PageLoader v-if="pageLoading" text="載入座位配置..." />
 
     <template v-else>
-    <!-- 左側可收合面板 -->
-    <div class="sp-drawer" :class="{ open: panelOpen }">
-      <!-- 標籤按鈕 -->
-      <button class="sp-drawer-tab" @click="panelOpen = !panelOpen">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-        <span class="tab-count">{{ vipList.length + generalList.length }}</span>
-      </button>
+    <!-- 來賓面板（展開時顯示，無遮罩不擋拖曳） -->
+    <aside v-if="panelOpen" class="sp-left">
+      <div class="sp-left-header">
+        <span class="sp-left-title">來賓名單</span>
+        <button class="sp-left-close" @click="panelOpen = false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
 
-      <!-- 面板內容 -->
-      <aside class="sp-left">
-        <div class="sp-left-header">
-          <span class="sp-left-title">來賓名單</span>
-          <button class="sp-left-close" @click="panelOpen = false">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+      <label class="sp-toggle">
+        <span>僅顯示未分配</span>
+        <input type="checkbox" v-model="onlyUnassigned" />
+        <i></i>
+      </label>
+      <div class="sp-search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input v-model="searchQuery" placeholder="搜尋..." />
+      </div>
+
+      <div class="sp-group" v-if="vipList.length">
+        <div class="sp-group-title vip">VIP ({{ vipList.length }})</div>
+        <div v-for="p in vipList" :key="p.id" class="sp-person" draggable="true" @dragstart="onDragStartPerson(p, $event)" @dragend="onDragEnd">
+          <div class="sp-person-l"><b>{{ p.name }}</b><small>{{ p.company }}</small></div>
+          <div class="sp-person-r"><code>#{{ p.serial }}</code><span class="sp-badge">未分配</span></div>
         </div>
+      </div>
 
-        <label class="sp-toggle">
-          <span>僅顯示未分配</span>
-          <input type="checkbox" v-model="onlyUnassigned" />
-          <i></i>
-        </label>
-        <div class="sp-search">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input v-model="searchQuery" placeholder="搜尋..." />
+      <div class="sp-group" v-if="generalList.length">
+        <div class="sp-group-title gen">參加者 ({{ generalList.length }})</div>
+        <div v-for="p in generalList" :key="p.id" class="sp-person" draggable="true" @dragstart="onDragStartPerson(p, $event)" @dragend="onDragEnd">
+          <div class="sp-person-l"><b>{{ p.name }}</b><small>{{ p.company }}</small></div>
+          <div class="sp-person-r"><code>#{{ p.serial }}</code><span class="sp-badge">未分配</span></div>
         </div>
-
-        <div class="sp-group" v-if="vipList.length">
-          <div class="sp-group-title vip">VIP ({{ vipList.length }})</div>
-          <div v-for="p in vipList" :key="p.id" class="sp-person" draggable="true" @dragstart="onDragStartPerson(p, $event)" @dragend="onDragEnd">
-            <div class="sp-person-l"><b>{{ p.name }}</b><small>{{ p.company }}</small></div>
-            <div class="sp-person-r"><code>#{{ p.serial }}</code><span class="sp-badge">未分配</span></div>
-          </div>
-        </div>
-
-        <div class="sp-group" v-if="generalList.length">
-          <div class="sp-group-title gen">參加者 ({{ generalList.length }})</div>
-          <div v-for="p in generalList" :key="p.id" class="sp-person" draggable="true" @dragstart="onDragStartPerson(p, $event)" @dragend="onDragEnd">
-            <div class="sp-person-l"><b>{{ p.name }}</b><small>{{ p.company }}</small></div>
-            <div class="sp-person-r"><code>#{{ p.serial }}</code><span class="sp-badge">未分配</span></div>
-          </div>
-        </div>
-      </aside>
-    </div>
-
-    <!-- 點擊遮罩關閉 -->
-    <div v-if="panelOpen" class="sp-drawer-overlay" @click="panelOpen = false"></div>
+      </div>
+    </aside>
 
     <!-- 主區域 -->
     <main class="sp-main">
       <!-- 工具列 -->
       <div class="sp-toolbar">
+        <button class="sp-drawer-tab" @click="panelOpen = !panelOpen">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span class="tab-label">來賓 {{ vipList.length + generalList.length }}</span>
+        </button>
         <button class="sp-tb" @click="addCol" title="新增欄">+ 欄</button>
         <button class="sp-tb" @click="addRow" title="新增列">+ 列</button>
         <button class="sp-tb" @click="openMonitor">即時監控</button>
@@ -425,37 +417,25 @@ watch(() => participantsStore.participants.length, () => {
 .sp { display:flex; height:100%; min-height:calc(100vh - 64px); background:var(--bg-primary); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
 .sp.sp-loading { align-items:center; justify-content:center; }
 
-/* ── 左側抽屜 ── */
-.sp-drawer {
-  position:fixed; top:64px; left:0; bottom:0; z-index:40;
-  transform:translateX(-100%);
-  transition:transform .3s cubic-bezier(.4,0,.2,1);
-}
-.sp-drawer.open { transform:translateX(0); }
-
+/* ── 來賓標籤按鈕 ── */
 .sp-drawer-tab {
-  position:absolute; top:16px; right:-44px;
-  width:44px; height:44px;
+  height:40px; padding:0 14px;
   background:var(--bg-card); border:1px solid var(--border-color);
-  border-left:none; border-radius:0 12px 12px 0;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  border-radius:10px;
+  display:flex; align-items:center; gap:6px;
   cursor:pointer; color:var(--text-muted);
-  box-shadow:4px 2px 8px rgba(0,0,0,.06);
-  transition:all .2s;
+  box-shadow:var(--shadow-sm);
+  transition:all .2s; flex-shrink:0;
+  font-size:.82rem; font-weight:600;
 }
-.sp-drawer-tab:hover { color:var(--accent); background:var(--bg-hover); }
-.tab-count { font-size:.6rem; font-weight:700; color:var(--accent); }
+.sp-drawer-tab:hover { color:var(--accent); border-color:var(--accent); }
+.tab-label { white-space:nowrap; }
 
-.sp-drawer-overlay {
-  position:fixed; inset:0; z-index:35;
-  background:rgba(0,0,0,.2); backdrop-filter:blur(1px);
-}
-
+/* ── 左側面板 ── */
 .sp-left {
-  width:300px; height:100%; background:var(--bg-card);
+  width:280px; background:var(--bg-card);
   border-right:1px solid var(--border-color);
-  overflow-y:auto; padding:14px;
-  box-shadow:4px 0 16px rgba(0,0,0,.08);
+  overflow-y:auto; padding:14px; flex-shrink:0;
 }
 
 .sp-left-header {
