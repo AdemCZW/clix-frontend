@@ -81,8 +81,6 @@ const isSeatSelected = (r: number, c: number) => selectedSeats.value.has(getIdx(
 
 const toggleSeatSelect = (r: number, c: number) => {
   const idx = getIdx(r, c);
-  const status = getSeatStatus(r, c);
-  if (status === "aisle") return;
   if (selectedSeats.value.has(idx)) selectedSeats.value.delete(idx);
   else selectedSeats.value.add(idx);
   selectedSeats.value = new Set(selectedSeats.value);
@@ -93,17 +91,14 @@ const clearSelection = () => { selectedSeats.value = new Set(); };
 // 整排選取
 const selectRow = (r: number) => {
   for (let c = 0; c < cols.value; c++) {
-    const idx = getIdx(r, c);
-    if (getSeatStatus(r, c) !== "aisle") selectedSeats.value.add(idx);
+    selectedSeats.value.add(getIdx(r, c));
   }
   selectedSeats.value = new Set(selectedSeats.value);
 };
 
-// 整列選取
 const selectCol = (c: number) => {
   for (let r = 0; r < rows.value; r++) {
-    const idx = getIdx(r, c);
-    if (getSeatStatus(r, c) !== "aisle") selectedSeats.value.add(idx);
+    selectedSeats.value.add(getIdx(r, c));
   }
   selectedSeats.value = new Set(selectedSeats.value);
 };
