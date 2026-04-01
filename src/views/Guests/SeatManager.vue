@@ -210,8 +210,126 @@ const onDragEnd = () => {
 const zoom = ref(100);
 const zoomIn = () => { if (zoom.value < 150) zoom.value += 10; };
 const zoomOut = () => { if (zoom.value > 50) zoom.value -= 10; };
-const addRow = () => seatsStore.addRow(currentActivityId.value);
-const addCol = () => seatsStore.addCol(currentActivityId.value);
+// ── 增加/刪除行列 ──
+const addRowBottom = () => seatsStore.addRow(currentActivityId.value);
+const addColRight = () => seatsStore.addCol(currentActivityId.value);
+
+const addRowTop = () => {
+  const seats = activitySeats[currentActivityId.value];
+  if (!seats) return;
+  const newSeats: Seat[] = Array.from({ length: cols.value }, (_, i) => ({
+    id: `s-top-${Date.now()}-${i}`, label: '', attendee: [],
+  }));
+  seats.unshift(...newSeats);
+  layout.rows++;
+  // 更新所有 label
+  seats.forEach((s, idx) => { s.label = getSeatLabel(Math.floor(idx / cols.value), idx % cols.value); });
+  updateUnassignedList();
+};
+
+const addColLeft = () => {
+  const seats = activitySeats[currentActivityId.value];
+  if (!seats) return;
+  const newCols = cols.value + 1;
+  const newSeats: Seat[] = [];
+  for (let r = 0; r < rows.value; r++) {
+    newSeats.push({ id: `s-left-${Date.now()}-${r}`, label: '', attendee: [] });
+    for (let c = 0; c < cols.value; c++) {
+      newSeats.push(seats[r * cols.value + c]);
+    }
+  }
+  layout.cols = newCols;
+  activitySeats[currentActivityId.value] = newSeats;
+  newSeats.forEach((s, idx) => { s.label = getSeatLabel(Math.floor(idx / newCols), idx % newCols); });
+  updateUnassignedList();
+};
+
+const hasGuestsInLastRow = () => {
+  const seats = activitySeats[currentActivityId.value];
+  if (!seats) return false;
+  const start = (rows.value - 1) * cols.value;
+  return seats.slice(start, start + cols.value).some(s => s.attendee.length > 0);
+};
+
+const hasGuestsInLastCol = () => {
+  const seats = activitySeats[currentActivityId.value];
+  if (!seats) return false;
+  for (let r = 0; r < rows.value; r++) {
+    const idx = r * cols.value + (cols.value - 1);
+    if (seats[idx] && seats[idx].attendee.length > 0) return true;
+  }
+  return false;
+};
+
+const hasGuestsInFirstRow = () => {
+  const seats = activitySeats[currentActivityId.value];
+  if (!seats) return false;
+  return seats.slice(0, cols.value).some(s => s.attendee.length > 0);
+};
+
+const hasGuestsInFirstCol = () => {
+  const seats = activitySeats[currentActivityId.value];
+  if (!seats) return false;
+  for (let r = 0; r < rows.value; r++) {
+    if (seats[r * cols.value] && seats[r * cols.value].attendee.length > 0) return true;
+  }
+  return false;
+};
+
+const removeRowBottom = () => {
+  if (rows.value <= 1) return;
+  if (hasGuestsInLastRow() && !confirm('最後一列有來賓，確定要刪除嗎？來賓將被移回未分配名單。')) return;
+  const seats = activitySeats[currentActivityId.value];
+  if (!seats) return;
+  seats.splice((rows.value - 1) * cols.value, cols.value);
+  layout.rows--;
+  updateUnassignedList();
+};
+
+const removeRowTop = () => {
+  if (rows.value <= 1) return;
+  if (hasGuestsInFirstRow() && !confirm('第一列有來賓，確定要刪除嗎？來賓將被移回未分配名單。')) return;
+  const seats = activitySeats[currentActivityId.value];
+  if (!seats) return;
+  seats.splice(0, cols.value);
+  layout.rows--;
+  seats.forEach((s, idx) => { s.label = getSeatLabel(Math.floor(idx / cols.value), idx % cols.value); });
+  updateUnassignedList();
+};
+
+const removeColRight = () => {
+  if (cols.value <= 1) return;
+  if (hasGuestsInLastCol() && !confirm('最右欄有來賓，確定要刪除嗎？來賓將被移回未分配名單。')) return;
+  const seats = activitySeats[currentActivityId.value];
+  if (!seats) return;
+  const newSeats: Seat[] = [];
+  for (let r = 0; r < rows.value; r++) {
+    for (let c = 0; c < cols.value - 1; c++) {
+      newSeats.push(seats[r * cols.value + c]);
+    }
+  }
+  layout.cols--;
+  activitySeats[currentActivityId.value] = newSeats;
+  newSeats.forEach((s, idx) => { s.label = getSeatLabel(Math.floor(idx / layout.cols), idx % layout.cols); });
+  updateUnassignedList();
+};
+
+const removeColLeft = () => {
+  if (cols.value <= 1) return;
+  if (hasGuestsInFirstCol() && !confirm('最左欄有來賓，確定要刪除嗎？來賓將被移回未分配名單。')) return;
+  const seats = activitySeats[currentActivityId.value];
+  if (!seats) return;
+  const newSeats: Seat[] = [];
+  for (let r = 0; r < rows.value; r++) {
+    for (let c = 1; c < cols.value; c++) {
+      newSeats.push(seats[r * cols.value + c]);
+    }
+  }
+  layout.cols--;
+  activitySeats[currentActivityId.value] = newSeats;
+  newSeats.forEach((s, idx) => { s.label = getSeatLabel(Math.floor(idx / layout.cols), idx % layout.cols); });
+  updateUnassignedList();
+};
 
 // ── 監控 ──
 const openMonitor = () => {
@@ -330,8 +448,20 @@ watch(() => participantsStore.participants.length, () => {
     <main class="sp-main">
       <!-- 工具列 -->
       <div class="sp-toolbar">
-        <button class="sp-tb" @click="addCol" title="新增欄">+ 欄</button>
-        <button class="sp-tb" @click="addRow" title="新增列">+ 列</button>
+        <!-- 增減按鈕 -->
+        <div class="sp-grid-btns">
+          <button class="sp-tb sm" @click="addRowTop" title="上方新增一列">↑+</button>
+          <button class="sp-tb sm" @click="addRowBottom" title="下方新增一列">↓+</button>
+          <button class="sp-tb sm" @click="addColLeft" title="左側新增一欄">←+</button>
+          <button class="sp-tb sm" @click="addColRight" title="右側新增一欄">→+</button>
+          <span class="sp-tb-divider"></span>
+          <button class="sp-tb sm del" @click="removeRowTop" title="刪除第一列">↑−</button>
+          <button class="sp-tb sm del" @click="removeRowBottom" title="刪除最後一列">↓−</button>
+          <button class="sp-tb sm del" @click="removeColLeft" title="刪除最左欄">←−</button>
+          <button class="sp-tb sm del" @click="removeColRight" title="刪除最右欄">→−</button>
+        </div>
+        <span class="sp-tb-divider"></span>
+        <span class="sp-grid-info">{{ rows }} × {{ cols }}</span>
         <button class="sp-tb" @click="openMonitor">即時監控</button>
         <div style="flex:1"></div>
         <button class="sp-tb save" :disabled="savingSeats" @click="saveSeats">{{ savingSeats ? '儲存中...' : '儲存座位' }}</button>
@@ -487,9 +617,15 @@ watch(() => participantsStore.participants.length, () => {
 .sp-toolbar { display:flex; align-items:center; gap:6px; margin-bottom:12px; background:var(--bg-card); padding:6px 10px; border-radius:10px; border:1px solid var(--border-color); }
 .sp-tb { padding:7px 12px; border:none; background:transparent; border-radius:7px; cursor:pointer; font-size:.82rem; font-weight:500; color:var(--text-muted); transition:.15s; }
 .sp-tb:hover { background:var(--bg-hover); color:var(--text-secondary); }
+.sp-tb.sm { padding:5px 8px; font-size:.75rem; font-weight:700; min-width:32px; text-align:center; }
+.sp-tb.del { color:var(--danger, #ef4444); }
+.sp-tb.del:hover { background:rgba(239,68,68,.08); color:#dc2626; }
 .sp-tb.save { background:#6366f1; color:#fff; font-weight:600; }
 .sp-tb.save:hover { background:#4f46e5; }
 .sp-tb.save:disabled { opacity:.5; cursor:not-allowed; }
+.sp-grid-btns { display:flex; align-items:center; gap:2px; }
+.sp-tb-divider { width:1px; height:20px; background:var(--border-color); margin:0 6px; flex-shrink:0; }
+.sp-grid-info { font-size:.78rem; font-weight:600; color:var(--text-muted); padding:0 4px; }
 
 .sp-stage-wrap { flex:1; display:flex; flex-direction:column; align-items:center; transition:transform .2s; }
 .sp-stage-lbl { font-size:.82rem; font-weight:700; color:var(--text-muted); letter-spacing:2px; margin-bottom:6px; }
