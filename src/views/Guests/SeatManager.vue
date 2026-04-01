@@ -282,8 +282,20 @@ watch(() => participantsStore.participants.length, () => {
     <PageLoader v-if="pageLoading" text="載入座位配置..." />
 
     <template v-else>
-    <!-- 來賓面板（展開時顯示，無遮罩不擋拖曳） -->
-    <aside v-if="panelOpen" class="sp-left">
+    <!-- 左側標籤 + 面板 -->
+    <div class="sp-side">
+      <!-- 標籤（收合時顯示） -->
+      <button v-if="!panelOpen" class="sp-side-tab" @click="panelOpen = true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <span class="side-tab-text">來賓名單</span>
+        <span class="side-tab-count">{{ vipList.length + generalList.length }}</span>
+      </button>
+
+      <!-- 面板（展開時顯示） -->
+      <aside v-if="panelOpen" class="sp-left">
       <div class="sp-left-header">
         <span class="sp-left-title">來賓名單</span>
         <button class="sp-left-close" @click="panelOpen = false">
@@ -317,18 +329,12 @@ watch(() => participantsStore.participants.length, () => {
         </div>
       </div>
     </aside>
+    </div>
 
     <!-- 主區域 -->
     <main class="sp-main">
       <!-- 工具列 -->
       <div class="sp-toolbar">
-        <button class="sp-drawer-tab" @click="panelOpen = !panelOpen">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-          <span class="tab-label">來賓 {{ vipList.length + generalList.length }}</span>
-        </button>
         <button class="sp-tb" @click="addCol" title="新增欄">+ 欄</button>
         <button class="sp-tb" @click="addRow" title="新增列">+ 列</button>
         <button class="sp-tb" @click="openMonitor">即時監控</button>
@@ -417,19 +423,30 @@ watch(() => participantsStore.participants.length, () => {
 .sp { display:flex; height:100%; min-height:calc(100vh - 64px); background:var(--bg-primary); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
 .sp.sp-loading { align-items:center; justify-content:center; }
 
-/* ── 來賓標籤按鈕 ── */
-.sp-drawer-tab {
-  height:40px; padding:0 14px;
-  background:var(--bg-card); border:1px solid var(--border-color);
-  border-radius:10px;
-  display:flex; align-items:center; gap:6px;
-  cursor:pointer; color:var(--text-muted);
-  box-shadow:var(--shadow-sm);
-  transition:all .2s; flex-shrink:0;
-  font-size:.82rem; font-weight:600;
+/* ── 左側標籤 + 面板容器 ── */
+.sp-side {
+  display:flex; flex-shrink:0; height:100%;
 }
-.sp-drawer-tab:hover { color:var(--accent); border-color:var(--accent); }
-.tab-label { white-space:nowrap; }
+
+/* 側邊標籤（垂直文字） */
+.sp-side-tab {
+  width:36px; height:auto; align-self:flex-start; margin-top:16px;
+  background:var(--bg-card); border:1px solid var(--border-color); border-left:none;
+  border-radius:0 10px 10px 0;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding:12px 0; cursor:pointer; color:var(--text-muted);
+  box-shadow:2px 2px 8px rgba(0,0,0,.06);
+  transition:all .2s;
+}
+.sp-side-tab:hover { color:var(--accent); background:var(--bg-hover); }
+.side-tab-text {
+  writing-mode:vertical-rl; text-orientation:mixed;
+  font-size:.75rem; font-weight:600; letter-spacing:1px;
+}
+.side-tab-count {
+  font-size:.65rem; font-weight:700; color:var(--accent);
+  background:var(--accent-light); border-radius:6px; padding:2px 4px;
+}
 
 /* ── 左側面板 ── */
 .sp-left {
