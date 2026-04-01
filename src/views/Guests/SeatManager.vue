@@ -15,6 +15,7 @@ const eventsStore = useEventsStore();
 const seatsStore = useSeatsStore();
 const { success: toastSuccess, error: toastError } = useToast();
 
+const panelOpen = ref(false);
 const getActivityKey = (eventId?: number) => eventId ? `event_${eventId}` : "act_01";
 const currentActivityId = ref(getActivityKey(eventsStore.currentEvent?.id));
 const layout = seatsStore.layout;
@@ -281,34 +282,56 @@ watch(() => participantsStore.participants.length, () => {
     <PageLoader v-if="pageLoading" text="載入座位配置..." />
 
     <template v-else>
-    <!-- 左側 -->
-    <aside class="sp-left">
-      <label class="sp-toggle">
-        <span>僅顯示未分配</span>
-        <input type="checkbox" v-model="onlyUnassigned" />
-        <i></i>
-      </label>
-      <div class="sp-search">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input v-model="searchQuery" placeholder="搜尋..." />
-      </div>
+    <!-- 左側可收合面板 -->
+    <div class="sp-drawer" :class="{ open: panelOpen }">
+      <!-- 標籤按鈕 -->
+      <button class="sp-drawer-tab" @click="panelOpen = !panelOpen">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <span class="tab-count">{{ vipList.length + generalList.length }}</span>
+      </button>
 
-      <div class="sp-group" v-if="vipList.length">
-        <div class="sp-group-title vip">VIP ({{ vipList.length }})</div>
-        <div v-for="p in vipList" :key="p.id" class="sp-person" draggable="true" @dragstart="onDragStartPerson(p, $event)" @dragend="onDragEnd">
-          <div class="sp-person-l"><b>{{ p.name }}</b><small>{{ p.company }}</small></div>
-          <div class="sp-person-r"><code>#{{ p.serial }}</code><span class="sp-badge">未分配</span></div>
+      <!-- 面板內容 -->
+      <aside class="sp-left">
+        <div class="sp-left-header">
+          <span class="sp-left-title">來賓名單</span>
+          <button class="sp-left-close" @click="panelOpen = false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
-      </div>
 
-      <div class="sp-group" v-if="generalList.length">
-        <div class="sp-group-title gen">參加者 ({{ generalList.length }})</div>
-        <div v-for="p in generalList" :key="p.id" class="sp-person" draggable="true" @dragstart="onDragStartPerson(p, $event)" @dragend="onDragEnd">
-          <div class="sp-person-l"><b>{{ p.name }}</b><small>{{ p.company }}</small></div>
-          <div class="sp-person-r"><code>#{{ p.serial }}</code><span class="sp-badge">未分配</span></div>
+        <label class="sp-toggle">
+          <span>僅顯示未分配</span>
+          <input type="checkbox" v-model="onlyUnassigned" />
+          <i></i>
+        </label>
+        <div class="sp-search">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input v-model="searchQuery" placeholder="搜尋..." />
         </div>
-      </div>
-    </aside>
+
+        <div class="sp-group" v-if="vipList.length">
+          <div class="sp-group-title vip">VIP ({{ vipList.length }})</div>
+          <div v-for="p in vipList" :key="p.id" class="sp-person" draggable="true" @dragstart="onDragStartPerson(p, $event)" @dragend="onDragEnd">
+            <div class="sp-person-l"><b>{{ p.name }}</b><small>{{ p.company }}</small></div>
+            <div class="sp-person-r"><code>#{{ p.serial }}</code><span class="sp-badge">未分配</span></div>
+          </div>
+        </div>
+
+        <div class="sp-group" v-if="generalList.length">
+          <div class="sp-group-title gen">參加者 ({{ generalList.length }})</div>
+          <div v-for="p in generalList" :key="p.id" class="sp-person" draggable="true" @dragstart="onDragStartPerson(p, $event)" @dragend="onDragEnd">
+            <div class="sp-person-l"><b>{{ p.name }}</b><small>{{ p.company }}</small></div>
+            <div class="sp-person-r"><code>#{{ p.serial }}</code><span class="sp-badge">未分配</span></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- 點擊遮罩關閉 -->
+    <div v-if="panelOpen" class="sp-drawer-overlay" @click="panelOpen = false"></div>
 
     <!-- 主區域 -->
     <main class="sp-main">
@@ -402,8 +425,50 @@ watch(() => participantsStore.participants.length, () => {
 .sp { display:flex; height:100%; min-height:calc(100vh - 64px); background:var(--bg-primary); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
 .sp.sp-loading { align-items:center; justify-content:center; }
 
-/* ── 左側 ── */
-.sp-left { width:272px; background:var(--bg-card); border-right:1px solid var(--border-color); overflow-y:auto; flex-shrink:0; padding:14px; }
+/* ── 左側抽屜 ── */
+.sp-drawer {
+  position:fixed; top:64px; left:0; bottom:0; z-index:40;
+  transform:translateX(-100%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+.sp-drawer.open { transform:translateX(0); }
+
+.sp-drawer-tab {
+  position:absolute; top:16px; right:-44px;
+  width:44px; height:44px;
+  background:var(--bg-card); border:1px solid var(--border-color);
+  border-left:none; border-radius:0 12px 12px 0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  cursor:pointer; color:var(--text-muted);
+  box-shadow:4px 2px 8px rgba(0,0,0,.06);
+  transition:all .2s;
+}
+.sp-drawer-tab:hover { color:var(--accent); background:var(--bg-hover); }
+.tab-count { font-size:.6rem; font-weight:700; color:var(--accent); }
+
+.sp-drawer-overlay {
+  position:fixed; inset:0; z-index:35;
+  background:rgba(0,0,0,.2); backdrop-filter:blur(1px);
+}
+
+.sp-left {
+  width:300px; height:100%; background:var(--bg-card);
+  border-right:1px solid var(--border-color);
+  overflow-y:auto; padding:14px;
+  box-shadow:4px 0 16px rgba(0,0,0,.08);
+}
+
+.sp-left-header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:12px; padding-bottom:10px;
+  border-bottom:1px solid var(--border-color);
+}
+.sp-left-title { font-size:1rem; font-weight:700; color:var(--text-main); }
+.sp-left-close {
+  background:none; border:none; cursor:pointer; color:var(--text-muted);
+  padding:4px; border-radius:6px; display:flex; transition:.15s;
+}
+.sp-left-close:hover { background:var(--bg-hover); color:var(--text-main); }
 .sp-toggle { display:flex; align-items:center; justify-content:space-between; cursor:pointer; margin-bottom:10px; font-size:.86rem; font-weight:600; color:var(--text-secondary); }
 .sp-toggle input { display:none; }
 .sp-toggle i { width:38px; height:20px; background:#cbd5e1; border-radius:10px; position:relative; transition:.2s; display:block; }
@@ -501,8 +566,7 @@ watch(() => participantsStore.participants.length, () => {
 
 /* ── RWD ── */
 @media(max-width:768px) {
-  .sp { flex-direction:column; }
-  .sp-left { width:100%; max-height:180px; border-right:none; border-bottom: 1px solid var(--border-color); overflow-x:auto; }
+  .sp-left { width:85vw; max-width:320px; }
   .sp-zoom { display:none; }
   .sp-sel-bar { left:12px; right:12px; transform:none; flex-wrap:wrap; justify-content:center; }
 }
