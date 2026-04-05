@@ -214,6 +214,26 @@ const onDragEnd = () => {
 const zoom = ref(100);
 const zoomIn = () => { if (zoom.value < 150) zoom.value += 10; };
 const zoomOut = () => { if (zoom.value > 50) zoom.value -= 10; };
+// ── 重建 seatMeta 索引（舊 index → 新 index 映射）──
+const remapMetas = (mapping: Map<number, number>) => {
+  const actId = currentActivityId.value;
+  const prefix = actId + '_';
+  const newMap: Record<string, string> = {};
+  for (const [key, val] of Object.entries(seatsStore.seatMetasMap)) {
+    if (!key.startsWith(prefix)) {
+      newMap[key] = val; // 保留其他活動的 meta
+      continue;
+    }
+    const oldIdx = parseInt(key.slice(prefix.length));
+    const newIdx = mapping.get(oldIdx);
+    if (newIdx !== undefined) {
+      newMap[`${prefix}${newIdx}`] = val;
+    }
+    // 不在 mapping 中的 = 被刪除的座位，不保留
+  }
+  seatsStore.seatMetasMap = newMap;
+};
+
 // ── 增加/刪除行列 ──
 const addRowBottom = () => seatsStore.addRow(currentActivityId.value);
 const addColRight = () => seatsStore.addCol(currentActivityId.value);
@@ -221,12 +241,15 @@ const addColRight = () => seatsStore.addCol(currentActivityId.value);
 const addRowTop = () => {
   const seats = activitySeats[currentActivityId.value];
   if (!seats) return;
+  const offset = cols.value;
+  const mapping = new Map<number, number>();
+  for (let i = 0; i < seats.length; i++) mapping.set(i, i + offset);
   const newSeats: Seat[] = Array.from({ length: cols.value }, (_, i) => ({
     id: `s-top-${Date.now()}-${i}`, label: '', attendee: [],
   }));
   seats.unshift(...newSeats);
   layout.rows++;
-  // 更新所有 label
+  remapMetas(mapping);
   seats.forEach((s, idx) => { s.label = getSeatLabel(Math.floor(idx / cols.value), idx % cols.value); });
   updateUnassignedList();
 };
@@ -234,16 +257,24 @@ const addRowTop = () => {
 const addColLeft = () => {
   const seats = activitySeats[currentActivityId.value];
   if (!seats) return;
-  const newCols = cols.value + 1;
+  const oldCols = cols.value;
+  const newCols = oldCols + 1;
+  const mapping = new Map<number, number>();
+  for (let r = 0; r < rows.value; r++) {
+    for (let c = 0; c < oldCols; c++) {
+      mapping.set(r * oldCols + c, r * newCols + (c + 1));
+    }
+  }
   const newSeats: Seat[] = [];
   for (let r = 0; r < rows.value; r++) {
     newSeats.push({ id: `s-left-${Date.now()}-${r}`, label: '', attendee: [] });
-    for (let c = 0; c < cols.value; c++) {
-      newSeats.push(seats[r * cols.value + c]);
+    for (let c = 0; c < oldCols; c++) {
+      newSeats.push(seats[r * oldCols + c]);
     }
   }
   layout.cols = newCols;
   activitySeats[currentActivityId.value] = newSeats;
+  remapMetas(mapping);
   newSeats.forEach((s, idx) => { s.label = getSeatLabel(Math.floor(idx / newCols), idx % newCols); });
   updateUnassignedList();
 };
@@ -285,8 +316,12 @@ const removeRowBottom = () => {
   if (hasGuestsInLastRow() && !confirm('最後一列有來賓，確定要刪除嗎？來賓將被移回未分配名單。')) return;
   const seats = activitySeats[currentActivityId.value];
   if (!seats) return;
-  seats.splice((rows.value - 1) * cols.value, cols.value);
+  const startDel = (rows.value - 1) * cols.value;
+  const mapping = new Map<number, number>();
+  for (let i = 0; i < startDel; i++) mapping.set(i, i);
+  seats.splice(startDel, cols.value);
   layout.rows--;
+  remapMetas(mapping);
   updateUnassignedList();
 };
 
@@ -295,8 +330,12 @@ const removeRowTop = () => {
   if (hasGuestsInFirstRow() && !confirm('第一列有來賓，確定要刪除嗎？來賓將被移回未分配名單。')) return;
   const seats = activitySeats[currentActivityId.value];
   if (!seats) return;
+  const offset = cols.value;
+  const mapping = new Map<number, number>();
+  for (let i = offset; i < seats.length; i++) mapping.set(i, i - offset);
   seats.splice(0, cols.value);
   layout.rows--;
+  remapMetas(mapping);
   seats.forEach((s, idx) => { s.label = getSeatLabel(Math.floor(idx / cols.value), idx % cols.value); });
   updateUnassignedList();
 };
@@ -306,15 +345,20 @@ const removeColRight = () => {
   if (hasGuestsInLastCol() && !confirm('最右欄有來賓，確定要刪除嗎？來賓將被移回未分配名單。')) return;
   const seats = activitySeats[currentActivityId.value];
   if (!seats) return;
+  const oldCols = cols.value;
+  const newCols = oldCols - 1;
+  const mapping = new Map<number, number>();
   const newSeats: Seat[] = [];
   for (let r = 0; r < rows.value; r++) {
-    for (let c = 0; c < cols.value - 1; c++) {
-      newSeats.push(seats[r * cols.value + c]);
+    for (let c = 0; c < newCols; c++) {
+      mapping.set(r * oldCols + c, r * newCols + c);
+      newSeats.push(seats[r * oldCols + c]);
     }
   }
-  layout.cols--;
+  layout.cols = newCols;
   activitySeats[currentActivityId.value] = newSeats;
-  newSeats.forEach((s, idx) => { s.label = getSeatLabel(Math.floor(idx / layout.cols), idx % layout.cols); });
+  remapMetas(mapping);
+  newSeats.forEach((s, idx) => { s.label = getSeatLabel(Math.floor(idx / newCols), idx % newCols); });
   updateUnassignedList();
 };
 
@@ -323,15 +367,20 @@ const removeColLeft = () => {
   if (hasGuestsInFirstCol() && !confirm('最左欄有來賓，確定要刪除嗎？來賓將被移回未分配名單。')) return;
   const seats = activitySeats[currentActivityId.value];
   if (!seats) return;
+  const oldCols = cols.value;
+  const newCols = oldCols - 1;
+  const mapping = new Map<number, number>();
   const newSeats: Seat[] = [];
   for (let r = 0; r < rows.value; r++) {
-    for (let c = 1; c < cols.value; c++) {
-      newSeats.push(seats[r * cols.value + c]);
+    for (let c = 1; c < oldCols; c++) {
+      mapping.set(r * oldCols + c, r * newCols + (c - 1));
+      newSeats.push(seats[r * oldCols + c]);
     }
   }
-  layout.cols--;
+  layout.cols = newCols;
   activitySeats[currentActivityId.value] = newSeats;
-  newSeats.forEach((s, idx) => { s.label = getSeatLabel(Math.floor(idx / layout.cols), idx % layout.cols); });
+  remapMetas(mapping);
+  newSeats.forEach((s, idx) => { s.label = getSeatLabel(Math.floor(idx / newCols), idx % newCols); });
   updateUnassignedList();
 };
 
