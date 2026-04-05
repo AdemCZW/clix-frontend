@@ -693,12 +693,12 @@ watch(() => participantsStore.participants.length, () => {
 .sp-grid-info { font-size:.78rem; font-weight:600; color:var(--text-muted); padding:0 4px; }
 
 .sp { --seat-base:72px; --hdr-w:36px; --z:1; }
-.sp-stage-wrap { flex:1; display:flex; flex-direction:column; align-items:center; }
-.sp-stage-lbl { font-size:.82rem; font-weight:700; color:var(--text-muted); letter-spacing:2px; margin-bottom:6px; }
-.sp-stage-bar { width:min(480px,55%); height:10px; background:linear-gradient(135deg,#334155,#1e293b); border-radius:5px; margin-bottom:20px; }
+.sp-stage-wrap { flex:1; display:flex; flex-direction:column; align-items:flex-start; }
+.sp-stage-lbl { font-size:.82rem; font-weight:700; color:var(--text-muted); letter-spacing:2px; margin:0 auto 6px; }
+.sp-stage-bar { width:min(480px,55%); height:10px; background:linear-gradient(135deg,#334155,#1e293b); border-radius:5px; margin:0 auto 20px; }
 
 /* ── 座位表 ── */
-.sp-grid { display:flex; flex-direction:column; gap:calc(4px * var(--z)); }
+.sp-grid { display:flex; flex-direction:column; gap:calc(4px * var(--z)); margin:0 auto; }
 .sp-grid-head,.sp-grid-row { display:grid; gap:calc(6px * var(--z)); }
 .sp-hdr { display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:700; color:var(--text-muted); cursor:pointer; user-select:none; border-radius:6px; transition:.15s; }
 .sp-hdr:hover { background:#eef2ff; color:#6366f1; }
