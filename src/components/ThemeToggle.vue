@@ -24,33 +24,26 @@ const { theme, toggle } = useTheme();
 
 <style scoped>
 .theme-toggle {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 9999;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-
-  background: var(--bg-card);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+  background: transparent;
+  color: var(--text-muted);
 }
 
 .theme-toggle:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+  background: var(--bg-hover);
+  color: var(--text-main);
 }
 
 .theme-toggle:active {
-  transform: scale(0.95);
+  transform: scale(0.9);
 }
 
 .icon-flip-enter-active, .icon-flip-leave-active {

@@ -5,6 +5,7 @@ import { useUserStore } from "@/stores/user";
 import { useEventsStore } from "@/stores/events";
 import { useToast } from "@/composables/useToast";
 import OnboardingModal from "@/components/onboarding/OnboardingModal.vue";
+import ThemeToggle from "@/components/ThemeToggle.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -207,6 +208,7 @@ const selectEvent = (event: any) => {
           </button>
           <span v-if="userStore.isSuperAdmin" class="role-badge">Super Admin</span>
           <div class="user-avatar">{{ (userStore.user.username || userStore.user.email || '?')[0].toUpperCase() }}</div>
+          <ThemeToggle />
         </div>
       </header>
 

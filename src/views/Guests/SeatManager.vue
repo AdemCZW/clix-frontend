@@ -788,7 +788,8 @@ watch(() => participantsStore.participants.length, () => {
   .sp-mobile-tools {
     display:flex; flex-direction:column; gap:8px;
     background:var(--bg-card); padding:10px 12px; border-radius:10px;
-    border:1px solid var(--border-color); margin-bottom:8px; overflow:hidden;
+    border:1px solid var(--border-color); margin-bottom:8px;
+    position:relative; z-index:10;
   }
   .sp-mt-section { display:flex; align-items:center; gap:6px; }
   .sp-mt-label { font-size:.72rem; font-weight:700; color:var(--text-muted); min-width:28px; }

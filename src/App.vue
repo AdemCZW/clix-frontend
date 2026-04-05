@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RouterView } from "vue-router";
 import Toast from "./components/Toast.vue";
-import ThemeToggle from "./components/ThemeToggle.vue";
+
 import { useToast } from "./composables/useToast";
 import { useTheme } from "./composables/useTheme";
 
@@ -11,7 +11,6 @@ useTheme(); // 初始化主題
 
 <template>
   <RouterView />
-  <ThemeToggle />
   <Toast
     v-model="toastState.show"
     :message="toastState.message"
