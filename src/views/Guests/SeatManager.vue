@@ -692,7 +692,7 @@ watch(() => participantsStore.participants.length, () => {
 .sp-tb-divider { width:1px; height:20px; background:var(--border-color); margin:0 6px; flex-shrink:0; }
 .sp-grid-info { font-size:.78rem; font-weight:600; color:var(--text-muted); padding:0 4px; }
 
-.sp-stage-wrap { flex:1; display:flex; flex-direction:column; align-items:center; transition:transform .2s; }
+.sp-stage-wrap { flex:1; display:flex; flex-direction:column; align-items:flex-start; transition:transform .2s; }
 .sp-stage-lbl { font-size:.82rem; font-weight:700; color:var(--text-muted); letter-spacing:2px; margin-bottom:6px; }
 .sp-stage-bar { width:min(480px,55%); height:10px; background:linear-gradient(135deg,#334155,#1e293b); border-radius:5px; margin-bottom:20px; }
 
