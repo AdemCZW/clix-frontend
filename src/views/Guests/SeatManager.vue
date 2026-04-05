@@ -773,6 +773,7 @@ watch(() => participantsStore.participants.length, () => {
   /* 隱藏桌機元素 */
   .sp-toolbar-desktop { display:none; }
   .sp-zoom { display:none; }
+  .sp-side { height:auto; }
   .sp-side-tab { display:none; }
 
   /* 手機工具列 */
