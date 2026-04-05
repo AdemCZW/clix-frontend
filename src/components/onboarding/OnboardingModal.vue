@@ -35,11 +35,20 @@
                   </div>
                 </div>
 
-                <button v-if="userStore.isSuperAdmin" class="btn-create-new" @click="showCreateForm = true">
-                  ➕ 建立新活動
-                </button>
-                <div v-else-if="eventsStore.events.length === 0" class="no-permission-hint">
-                  如需建立新活動，請聯絡系統管理員
+                <div class="select-actions">
+                  <button v-if="userStore.isSuperAdmin" class="btn-create-new" @click="showCreateForm = true">
+                    ＋ 建立新活動
+                  </button>
+                  <div v-else-if="eventsStore.events.length === 0" class="no-permission-hint">
+                    如需建立新活動，請聯絡系統管理員
+                  </div>
+                  <button
+                    class="btn-primary btn-confirm"
+                    :disabled="!canProceed"
+                    @click="complete"
+                  >
+                    確認選擇
+                  </button>
                 </div>
               </template>
 
@@ -206,18 +215,6 @@
             >
               開始使用系統
             </button>
-
-            <!-- select 模式：顯示現有活動列表時 -->
-            <template v-if="mode === 'select' && !showCreateForm">
-              <button
-                class="btn-primary"
-                style="margin-left: auto"
-                :disabled="!canProceed"
-                @click="complete"
-              >
-                確認選擇
-              </button>
-            </template>
 
             <!-- select 模式：建立新活動表單時 -->
             <template v-if="mode === 'select' && showCreateForm">
@@ -449,9 +446,9 @@ watch(
 
   .series-item,
   .event-item {
-    padding: 16px;
+    padding: 10px 14px;
     border: 2px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s ease;
 
@@ -485,16 +482,24 @@ watch(
     .event-name {
       font-weight: 600;
       color: var(--text-main);
-      font-size: 1rem;
-      margin-bottom: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .event-details {
       display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 0.85rem;
+      gap: 8px;
+      font-size: 0.78rem;
       color: #6b7280;
+
+      span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
     }
   }
 
@@ -505,22 +510,34 @@ watch(
     font-size: 0.9rem;
   }
 
+  .select-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
   .btn-create-new {
-    width: 100%;
-    margin-top: 8px;
-    padding: 12px;
+    flex: 1;
+    padding: 10px 12px;
     border: 2px dashed #3b82f6;
-    border-radius: 12px;
+    border-radius: 10px;
     background: transparent;
     color: #3b82f6;
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.88rem;
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
       background: #eff6ff;
     }
+  }
+
+  .btn-confirm {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 0.88rem;
   }
 
   .no-permission-hint {
@@ -663,23 +680,18 @@ watch(
 /* 響應式 */
 @media (max-width: 540px) {
   .onboarding-modal {
-    width: 100%;
-    max-width: 100%;
-    max-height: 100dvh;
-    border-radius: 20px 20px 0 0;
-    align-self: flex-end;
-  }
-
-  .onboarding-overlay {
-    align-items: flex-end;
+    width: 92%;
+    max-width: 400px;
+    max-height: 85dvh;
+    border-radius: 16px;
   }
 
   .step-content {
-    padding: 0 20px 16px;
+    padding: 0 16px 12px;
   }
 
   .modal-footer {
-    padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
   }
 
   .form-row {
@@ -693,12 +705,12 @@ watch(
 
   .btn-primary,
   .btn-secondary {
-    padding: 12px 16px;
-    font-size: 0.9rem;
+    padding: 10px 14px;
+    font-size: 0.88rem;
   }
 
   .select-mode .event-list {
-    max-height: 40dvh;
+    max-height: 45dvh;
   }
 }
 
@@ -723,12 +735,12 @@ watch(
 @media (max-width: 540px) {
   .modal-fade-enter-from {
     opacity: 0;
-    transform: translateY(40px);
+    transform: scale(0.95);
   }
 
   .modal-fade-leave-to {
     opacity: 0;
-    transform: translateY(40px);
+    transform: scale(0.95);
   }
 }
 </style>
