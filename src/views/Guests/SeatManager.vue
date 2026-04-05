@@ -16,6 +16,7 @@ const seatsStore = useSeatsStore();
 const { success: toastSuccess, error: toastError } = useToast();
 
 const panelOpen = ref(false);
+const mobileToolsOpen = ref(false);
 const getActivityKey = (eventId?: number) => eventId ? `event_${eventId}` : "act_01";
 const currentActivityId = ref(getActivityKey(eventsStore.currentEvent?.id));
 const layout = seatsStore.layout;
@@ -447,9 +448,8 @@ watch(() => participantsStore.participants.length, () => {
 
     <!-- 主區域 -->
     <main class="sp-main">
-      <!-- 工具列 -->
-      <div class="sp-toolbar">
-        <!-- 增減按鈕 -->
+      <!-- 工具列（桌機） -->
+      <div class="sp-toolbar sp-toolbar-desktop">
         <div class="sp-grid-btns">
           <button class="sp-tb sm" @click="addRowTop" title="上方新增一列">↑+</button>
           <button class="sp-tb sm" @click="addRowBottom" title="下方新增一列">↓+</button>
@@ -468,6 +468,41 @@ watch(() => participantsStore.participants.length, () => {
         <button class="sp-tb save" :disabled="savingSeats" @click="saveSeats">{{ savingSeats ? '儲存中...' : '儲存座位' }}</button>
       </div>
 
+      <!-- 工具列（手機） -->
+      <div class="sp-toolbar sp-toolbar-mobile">
+        <span class="sp-grid-info">{{ rows }} × {{ cols }}</span>
+        <button class="sp-tb sm" @click="mobileToolsOpen = !mobileToolsOpen">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+        </button>
+        <div style="flex:1"></div>
+        <button class="sp-tb save" :disabled="savingSeats" @click="saveSeats">{{ savingSeats ? '儲存中...' : '儲存' }}</button>
+      </div>
+
+      <!-- 手機展開工具面板 -->
+      <Transition name="tb-slide-down">
+        <div v-if="mobileToolsOpen" class="sp-mobile-tools">
+          <div class="sp-mt-section">
+            <span class="sp-mt-label">增加</span>
+            <div class="sp-mt-btns">
+              <button @click="addRowTop">↑ 列</button>
+              <button @click="addRowBottom">↓ 列</button>
+              <button @click="addColLeft">← 欄</button>
+              <button @click="addColRight">→ 欄</button>
+            </div>
+          </div>
+          <div class="sp-mt-section">
+            <span class="sp-mt-label">刪除</span>
+            <div class="sp-mt-btns">
+              <button class="del" @click="removeRowTop">↑ 列</button>
+              <button class="del" @click="removeRowBottom">↓ 列</button>
+              <button class="del" @click="removeColLeft">← 欄</button>
+              <button class="del" @click="removeColRight">→ 欄</button>
+            </div>
+          </div>
+          <button class="sp-mt-link" @click="openMonitor">即時監控</button>
+        </div>
+      </Transition>
+
       <!-- 舞台+座位 -->
       <div class="sp-stage-wrap" :style="{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }">
         <div class="sp-stage-lbl">舞台</div>
@@ -475,12 +510,12 @@ watch(() => participantsStore.participants.length, () => {
 
         <div class="sp-grid">
           <!-- 欄標頭 -->
-          <div class="sp-grid-head" :style="{ gridTemplateColumns: `36px repeat(${cols}, 72px)` }">
+          <div class="sp-grid-head" :style="{ gridTemplateColumns: `var(--hdr-w, 36px) repeat(${cols}, var(--seat-size, 72px))` }">
             <div></div>
             <div v-for="h in colHeaders" :key="h" class="sp-hdr" @click="selectCol(colHeaders.indexOf(h))">{{ h }}</div>
           </div>
           <!-- 行 -->
-          <div v-for="r in rows" :key="r" class="sp-grid-row" :style="{ gridTemplateColumns: `36px repeat(${cols}, 72px)` }">
+          <div v-for="r in rows" :key="r" class="sp-grid-row" :style="{ gridTemplateColumns: `var(--hdr-w, 36px) repeat(${cols}, var(--seat-size, 72px))` }">
             <div class="sp-hdr row-hdr" @click="selectRow(r - 1)">{{ r }}</div>
             <div
               v-for="c in cols" :key="c"
@@ -534,13 +569,37 @@ watch(() => participantsStore.participants.length, () => {
         </div>
       </Transition>
 
-      <!-- 縮放 -->
+      <!-- 縮放（桌機） -->
       <div class="sp-zoom">
         <button @click="zoomIn">+</button>
         <span>{{ zoom }}%</span>
         <button @click="zoomOut">−</button>
       </div>
     </main>
+
+    <!-- 手機底部導覽列 -->
+    <div class="sp-mobile-nav">
+      <button @click="panelOpen = !panelOpen" :class="{ active: panelOpen }">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>名單</span>
+      </button>
+      <button @click="zoomOut">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        <span>縮小</span>
+      </button>
+      <span class="sp-mobile-zoom">{{ zoom }}%</span>
+      <button @click="zoomIn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        <span>放大</span>
+      </button>
+      <button :disabled="savingSeats" @click="saveSeats" class="save-nav">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <span>{{ savingSeats ? '...' : '儲存' }}</span>
+      </button>
+    </div>
+
+    <!-- 手機面板遮罩 -->
+    <div v-if="panelOpen" class="sp-mobile-overlay" @click="panelOpen = false"></div>
     </template>
   </div>
 </template>
@@ -698,10 +757,108 @@ watch(() => participantsStore.participants.length, () => {
 .sp-zoom button:hover { background:var(--bg-hover); }
 .sp-zoom span { font-size:.68rem; font-weight:600; color:var(--text-muted); }
 
+/* ── 手機工具面板 ── */
+.sp-toolbar-mobile { display:none; }
+.sp-mobile-tools { display:none; }
+.sp-mobile-nav { display:none; }
+.sp-mobile-overlay { display:none; }
+
+.tb-slide-down-enter-active,.tb-slide-down-leave-active { transition:all .2s ease; }
+.tb-slide-down-enter-from,.tb-slide-down-leave-to { opacity:0; max-height:0; margin-top:0; }
+
 /* ── RWD ── */
 @media(max-width:768px) {
-  .sp-left { width:85vw; max-width:260px; }
+  .sp { flex-direction:column; padding-bottom:60px; }
+
+  /* 隱藏桌機元素 */
+  .sp-toolbar-desktop { display:none; }
   .sp-zoom { display:none; }
-  .sp-sel-bar { left:12px; right:12px; transform:none; flex-wrap:wrap; justify-content:center; }
+  .sp-side-tab { display:none; }
+
+  /* 手機工具列 */
+  .sp-toolbar-mobile {
+    display:flex; align-items:center; gap:6px;
+    background:var(--bg-card); padding:6px 10px; border-radius:10px;
+    border:1px solid var(--border-color); margin-bottom:8px;
+  }
+
+  /* 手機展開工具面板 */
+  .sp-mobile-tools {
+    display:flex; flex-direction:column; gap:8px;
+    background:var(--bg-card); padding:10px 12px; border-radius:10px;
+    border:1px solid var(--border-color); margin-bottom:8px; overflow:hidden;
+  }
+  .sp-mt-section { display:flex; align-items:center; gap:6px; }
+  .sp-mt-label { font-size:.72rem; font-weight:700; color:var(--text-muted); min-width:28px; }
+  .sp-mt-btns { display:flex; gap:4px; flex-wrap:wrap; }
+  .sp-mt-btns button {
+    padding:5px 10px; border:1px solid var(--border-color); background:var(--bg-primary);
+    border-radius:6px; font-size:.74rem; font-weight:600; color:var(--text-secondary);
+    cursor:pointer; transition:.15s;
+  }
+  .sp-mt-btns button:active { background:var(--bg-hover); }
+  .sp-mt-btns button.del { color:#ef4444; border-color:#fecaca; }
+  .sp-mt-btns button.del:active { background:#fef2f2; }
+  .sp-mt-link {
+    padding:6px; border:none; background:transparent; color:#6366f1;
+    font-size:.8rem; font-weight:600; cursor:pointer; text-align:left;
+  }
+
+  /* 手機底部導覽 */
+  .sp-mobile-nav {
+    display:flex; position:fixed; bottom:0; left:0; right:0; z-index:60;
+    background:var(--bg-card); border-top:1px solid var(--border-color);
+    padding:4px 8px calc(4px + env(safe-area-inset-bottom, 0px));
+    align-items:center; justify-content:space-around;
+    box-shadow:0 -2px 10px rgba(0,0,0,.06);
+  }
+  .sp-mobile-nav button {
+    display:flex; flex-direction:column; align-items:center; gap:1px;
+    border:none; background:transparent; color:var(--text-muted);
+    font-size:.62rem; font-weight:600; padding:4px 8px; border-radius:8px;
+    cursor:pointer; transition:.15s;
+  }
+  .sp-mobile-nav button:active { background:var(--bg-hover); }
+  .sp-mobile-nav button.active { color:#6366f1; }
+  .sp-mobile-nav button.save-nav { color:#6366f1; }
+  .sp-mobile-nav button:disabled { opacity:.4; }
+  .sp-mobile-zoom { font-size:.68rem; font-weight:700; color:var(--text-muted); }
+
+  /* 手機面板遮罩 */
+  .sp-mobile-overlay {
+    display:block; position:fixed; inset:0; z-index:29;
+    background:rgba(0,0,0,.3); backdrop-filter:blur(2px);
+  }
+
+  /* 手機側邊面板 */
+  .sp-left {
+    position:fixed; left:0; top:0; bottom:0; z-index:30;
+    width:280px; max-width:80vw;
+    box-shadow:4px 0 20px rgba(0,0,0,.12);
+    padding-bottom:calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* 座位縮小 */
+  .sp { --seat-size:52px; --hdr-w:24px; }
+  .sp-seat { width:52px; height:52px; }
+  .sp-grid-head,.sp-grid-row { gap:3px; }
+  .row-hdr { width:24px; font-size:.64rem; }
+  .sp-hdr { font-size:.62rem; }
+  .sp-avatar { width:24px; height:24px; font-size:.68rem; }
+  .sp-seat-name { font-size:.52rem; max-width:40px; }
+  .sp-seat-lbl { font-size:.64rem; }
+  .sp-x { width:14px; height:14px; font-size:.5rem; top:-3px; right:-3px; }
+  .sp-stage-bar { height:6px; margin-bottom:12px; }
+  .sp-stage-lbl { font-size:.72rem; margin-bottom:4px; }
+  .sp-main { padding:8px; }
+
+  /* 選取工具列 */
+  .sp-sel-bar {
+    left:8px; right:8px; bottom:68px; transform:none;
+    flex-wrap:wrap; justify-content:center; gap:6px;
+    padding:8px 12px; border-radius:12px;
+  }
+  .sp-sel-count { font-size:.76rem; padding-right:6px; }
+  .sp-sel-bar button { padding:5px 8px; font-size:.72rem; }
 }
 </style>
