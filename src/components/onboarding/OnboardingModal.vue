@@ -401,8 +401,8 @@ watch(
   border-radius: 20px;
   width: 90%;
   max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: 90dvh;
+  overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
@@ -442,6 +442,9 @@ watch(
     display: flex;
     flex-direction: column;
     gap: 10px;
+    max-height: 45dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .series-item,
@@ -662,7 +665,7 @@ watch(
   .onboarding-modal {
     width: 100%;
     max-width: 100%;
-    max-height: 100vh;
+    max-height: 100dvh;
     border-radius: 20px 20px 0 0;
     align-self: flex-end;
   }
@@ -676,7 +679,7 @@ watch(
   }
 
   .modal-footer {
-    padding: 16px 20px 24px;
+    padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
   }
 
   .form-row {
@@ -692,6 +695,10 @@ watch(
   .btn-secondary {
     padding: 12px 16px;
     font-size: 0.9rem;
+  }
+
+  .select-mode .event-list {
+    max-height: 40dvh;
   }
 }
 
