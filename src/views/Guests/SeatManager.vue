@@ -63,6 +63,9 @@ const filteredList = (type: "VIP" | "general") => {
 const vipList = computed(() => filteredList("VIP"));
 const generalList = computed(() => filteredList("general"));
 
+// ── 標籤頁 ──
+const activeTab = ref<"VIP" | "general">("VIP");
+
 // ── 座位狀態（從 store 讀取，支援持久化）──
 type SeatStatus = "empty" | "assigned" | "aisle" | "reserved";
 
@@ -416,6 +419,12 @@ watch(() => participantsStore.participants.length, () => {
         </button>
       </div>
 
+      <!-- 標籤頁 -->
+      <div class="sp-tabs">
+        <button class="sp-tab" :class="{ active: activeTab === 'VIP' }" @click="activeTab = 'VIP'">VIP ({{ vipList.length }})</button>
+        <button class="sp-tab" :class="{ active: activeTab === 'general' }" @click="activeTab = 'general'">民眾 ({{ generalList.length }})</button>
+      </div>
+
       <label class="sp-toggle">
         <span>僅顯示未分配</span>
         <input type="checkbox" v-model="onlyUnassigned" />
@@ -426,20 +435,12 @@ watch(() => participantsStore.participants.length, () => {
         <input v-model="searchQuery" placeholder="搜尋..." />
       </div>
 
-      <div class="sp-group" v-if="vipList.length">
-        <div class="sp-group-title vip">VIP ({{ vipList.length }})</div>
-        <div v-for="p in vipList" :key="p.id" class="sp-person" draggable="true" @dragstart="onDragStartPerson(p, $event)" @dragend="onDragEnd">
+      <div class="sp-group">
+        <div v-for="p in (activeTab === 'VIP' ? vipList : generalList)" :key="p.id" class="sp-person" draggable="true" @dragstart="onDragStartPerson(p, $event)" @dragend="onDragEnd">
           <div class="sp-person-l"><b>{{ p.name }}</b><small>{{ p.company }}</small></div>
           <div class="sp-person-r"><code>#{{ p.serial }}</code><span class="sp-badge">未分配</span></div>
         </div>
-      </div>
-
-      <div class="sp-group" v-if="generalList.length">
-        <div class="sp-group-title gen">參加者 ({{ generalList.length }})</div>
-        <div v-for="p in generalList" :key="p.id" class="sp-person" draggable="true" @dragstart="onDragStartPerson(p, $event)" @dragend="onDragEnd">
-          <div class="sp-person-l"><b>{{ p.name }}</b><small>{{ p.company }}</small></div>
-          <div class="sp-person-r"><code>#{{ p.serial }}</code><span class="sp-badge">未分配</span></div>
-        </div>
+        <div v-if="(activeTab === 'VIP' ? vipList : generalList).length === 0" class="sp-empty">無資料</div>
       </div>
     </aside>
     </div>
@@ -575,9 +576,9 @@ watch(() => participantsStore.participants.length, () => {
 
 /* ── 左側面板 ── */
 .sp-left {
-  width:280px; background:var(--bg-card);
+  width:220px; background:var(--bg-card);
   border-right:1px solid var(--border-color);
-  overflow-y:auto; padding:14px; flex-shrink:0;
+  overflow-y:auto; padding:10px; flex-shrink:0;
 }
 
 .sp-left-header {
@@ -599,10 +600,15 @@ watch(() => participantsStore.participants.length, () => {
 .sp-toggle input:checked+i::after { transform:translateX(18px); }
 .sp-search { display:flex; align-items:center; gap:6px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:8px; padding:7px 10px; margin-bottom:14px; }
 .sp-search input { border:none; background:transparent; outline:none; font-size:.84rem; color:var(--text-main); width:100%; }
+/* ── 標籤頁 ── */
+.sp-tabs { display:flex; gap:0; margin-bottom:10px; border-radius:8px; overflow:hidden; border:1px solid var(--border-color); }
+.sp-tab { flex:1; padding:6px 0; border:none; background:var(--bg-primary); cursor:pointer; font-size:.76rem; font-weight:600; color:var(--text-muted); transition:.15s; }
+.sp-tab:first-child { border-right:1px solid var(--border-color); }
+.sp-tab.active { background:#6366f1; color:#fff; }
+.sp-tab:not(.active):hover { background:var(--bg-hover); }
+
 .sp-group { margin-bottom:12px; }
-.sp-group-title { font-size:.74rem; font-weight:700; letter-spacing:.5px; padding:2px 0 6px; }
-.sp-group-title.vip { color:#6366f1; }
-.sp-group-title.gen { color:#f59e0b; }
+.sp-empty { font-size:.78rem; color:var(--text-muted); text-align:center; padding:20px 0; }
 .sp-person { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid var(--border-color); border-radius:10px; margin-bottom:5px; cursor:grab; transition:.15s; background:var(--bg-card); }
 .sp-person:hover { border-color:#c7d2fe; box-shadow:0 2px 6px rgba(99,102,241,.1); }
 .sp-person:active { cursor:grabbing; opacity:.7; }
@@ -694,7 +700,7 @@ watch(() => participantsStore.participants.length, () => {
 
 /* ── RWD ── */
 @media(max-width:768px) {
-  .sp-left { width:85vw; max-width:320px; }
+  .sp-left { width:85vw; max-width:260px; }
   .sp-zoom { display:none; }
   .sp-sel-bar { left:12px; right:12px; transform:none; flex-wrap:wrap; justify-content:center; }
 }
