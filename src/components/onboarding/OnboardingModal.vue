@@ -11,7 +11,6 @@
               <!-- 選擇既有活動 -->
               <template v-if="!showCreateForm">
                 <div class="form-group">
-                  <label>現有活動</label>
                   <div v-if="eventsStore.isLoading" class="no-events">
                     <p>載入中...</p>
                   </div>
