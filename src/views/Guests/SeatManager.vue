@@ -504,18 +504,18 @@ watch(() => participantsStore.participants.length, () => {
       </Transition>
 
       <!-- 舞台+座位 -->
-      <div class="sp-stage-wrap" :style="{ transform: `scale(${zoom / 100})`, transformOrigin: 'top left' }">
+      <div class="sp-stage-wrap" :style="{ '--z': zoom / 100 }">
         <div class="sp-stage-lbl">舞台</div>
         <div class="sp-stage-bar"></div>
 
         <div class="sp-grid">
           <!-- 欄標頭 -->
-          <div class="sp-grid-head" :style="{ gridTemplateColumns: `var(--hdr-w, 36px) repeat(${cols}, var(--seat-size, 72px))` }">
+          <div class="sp-grid-head" :style="{ gridTemplateColumns: `calc(var(--hdr-w) * var(--z)) repeat(${cols}, calc(var(--seat-base) * var(--z)))` }">
             <div></div>
             <div v-for="h in colHeaders" :key="h" class="sp-hdr" @click="selectCol(colHeaders.indexOf(h))">{{ h }}</div>
           </div>
           <!-- 行 -->
-          <div v-for="r in rows" :key="r" class="sp-grid-row" :style="{ gridTemplateColumns: `var(--hdr-w, 36px) repeat(${cols}, var(--seat-size, 72px))` }">
+          <div v-for="r in rows" :key="r" class="sp-grid-row" :style="{ gridTemplateColumns: `calc(var(--hdr-w) * var(--z)) repeat(${cols}, calc(var(--seat-base) * var(--z)))` }">
             <div class="sp-hdr row-hdr" @click="selectRow(r - 1)">{{ r }}</div>
             <div
               v-for="c in cols" :key="c"
@@ -692,20 +692,21 @@ watch(() => participantsStore.participants.length, () => {
 .sp-tb-divider { width:1px; height:20px; background:var(--border-color); margin:0 6px; flex-shrink:0; }
 .sp-grid-info { font-size:.78rem; font-weight:600; color:var(--text-muted); padding:0 4px; }
 
-.sp-stage-wrap { flex:1; display:flex; flex-direction:column; align-items:flex-start; transition:transform .2s; }
+.sp { --seat-base:72px; --hdr-w:36px; --z:1; }
+.sp-stage-wrap { flex:1; display:flex; flex-direction:column; align-items:center; }
 .sp-stage-lbl { font-size:.82rem; font-weight:700; color:var(--text-muted); letter-spacing:2px; margin-bottom:6px; }
 .sp-stage-bar { width:min(480px,55%); height:10px; background:linear-gradient(135deg,#334155,#1e293b); border-radius:5px; margin-bottom:20px; }
 
 /* ── 座位表 ── */
-.sp-grid { display:flex; flex-direction:column; gap:4px; }
-.sp-grid-head,.sp-grid-row { display:grid; gap:6px; }
+.sp-grid { display:flex; flex-direction:column; gap:calc(4px * var(--z)); }
+.sp-grid-head,.sp-grid-row { display:grid; gap:calc(6px * var(--z)); }
 .sp-hdr { display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:700; color:var(--text-muted); cursor:pointer; user-select:none; border-radius:6px; transition:.15s; }
 .sp-hdr:hover { background:#eef2ff; color:#6366f1; }
-.row-hdr { width:36px; }
+.row-hdr { width:calc(var(--hdr-w) * var(--z)); }
 
 /* 座位圓形 */
 .sp-seat {
-  width:72px; height:72px;
+  width:calc(var(--seat-base) * var(--z)); height:calc(var(--seat-base) * var(--z));
   border:2px solid var(--border-color);
   border-radius:50%;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -840,10 +841,8 @@ watch(() => participantsStore.participants.length, () => {
   }
 
   /* 座位縮小 */
-  .sp { --seat-size:52px; --hdr-w:24px; }
-  .sp-seat { width:52px; height:52px; }
-  .sp-grid-head,.sp-grid-row { gap:3px; }
-  .row-hdr { width:24px; font-size:.64rem; }
+  .sp { --seat-base:52px; --hdr-w:24px; }
+  .row-hdr { font-size:.64rem; }
   .sp-hdr { font-size:.62rem; }
   .sp-avatar { width:24px; height:24px; font-size:.68rem; }
   .sp-seat-name { font-size:.52rem; max-width:40px; }
