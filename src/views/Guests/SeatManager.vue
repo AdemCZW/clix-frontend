@@ -504,7 +504,7 @@ watch(() => participantsStore.participants.length, () => {
       </Transition>
 
       <!-- 舞台+座位 -->
-      <div class="sp-stage-wrap" :style="{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }">
+      <div class="sp-stage-wrap" :style="{ transform: `scale(${zoom / 100})`, transformOrigin: 'top left' }">
         <div class="sp-stage-lbl">舞台</div>
         <div class="sp-stage-bar"></div>
 
