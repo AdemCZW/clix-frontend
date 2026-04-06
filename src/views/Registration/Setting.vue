@@ -347,10 +347,10 @@ const closeGuestDetail = () => {
         <span :class="['status-tag', isPublished ? 'published' : 'draft']">{{ isPublished ? '已發布' : '草稿' }}</span>
       </div>
       <div class="top-bar-right">
-        <button class="btn-preview-top" @click="isPreviewOpen = true">預覽</button>
-        <button class="btn-save" :disabled="saving" @click="saveDraft">{{ saving ? '儲存中...' : '儲存草稿' }}</button>
-        <button v-if="isPublished" class="btn-unpublish" :disabled="saving" @click="handleUnpublish">{{ saving ? '處理中...' : '取消發布' }}</button>
-        <button class="btn-publish" :disabled="saving || isCurrentEventExpired" @click="isPublished ? confirmPublish() : confirmPublish()">{{ saving ? '處理中...' : (isPublished ? '更新發布 / 發布' : '更新發布 / 發布') }}</button>
+        <button class="top-btn outline" @click="isPreviewOpen = true">預覽</button>
+        <button class="top-btn secondary" :disabled="saving" @click="saveDraft">{{ saving ? '儲存中...' : '儲存草稿' }}</button>
+        <button v-if="isPublished" class="top-btn danger" :disabled="saving" @click="handleUnpublish">{{ saving ? '處理中...' : '取消發布' }}</button>
+        <button class="top-btn primary" :disabled="saving || isCurrentEventExpired" @click="confirmPublish">{{ saving ? '處理中...' : '更新發布 / 發布' }}</button>
       </div>
     </div>
 
@@ -805,12 +805,33 @@ const closeGuestDetail = () => {
 .status-tag.draft { background:#f1f5f9; color:#64748b; }
 .status-tag.published { background:#dcfce7; color:#15803d; }
 .top-bar-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.btn-preview-top {
-  padding:8px 16px; border:1px solid var(--border-light); background:var(--bg-card);
-  border-radius:8px; font-size:.84rem; font-weight:600; color:var(--text-gray);
-  cursor:pointer; transition:.15s;
+
+/* 統一按鈕風格 */
+.top-btn {
+  padding:8px 18px; border:none; border-radius:8px;
+  font-size:.84rem; font-weight:600; cursor:pointer;
+  transition:all .15s; white-space:nowrap;
 }
-.btn-preview-top:hover { background:var(--bg-soft); }
+.top-btn:disabled { opacity:.5; cursor:not-allowed; }
+.top-btn.outline {
+  background:var(--bg-card); color:var(--text-gray);
+  border:1px solid var(--border-light);
+}
+.top-btn.outline:hover:not(:disabled) { background:var(--bg-soft); }
+.top-btn.secondary {
+  background:#f1f5f9; color:#475569;
+  border:1px solid #e2e8f0;
+}
+.top-btn.secondary:hover:not(:disabled) { background:#e2e8f0; }
+.top-btn.danger {
+  background:#fee2e2; color:#dc2626;
+  border:1px solid #fecaca;
+}
+.top-btn.danger:hover:not(:disabled) { background:#fecaca; }
+.top-btn.primary {
+  background:#6366f1; color:#fff;
+}
+.top-btn.primary:hover:not(:disabled) { background:#4f46e5; }
 
 /* ── 左右兩欄佈局 ── */
 .setting-two-col {
