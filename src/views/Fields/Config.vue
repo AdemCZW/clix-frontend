@@ -224,19 +224,17 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 .fields-config {
   padding: 12px;
   --primary: #6366f1;
-  --deep-dark: #0f172a;
-  --text-gray: #64748b;
-  --bg-soft: #f8fafc;
+  --deep-dark: var(--text-main);
+  --text-gray: var(--text-secondary);
+  --bg-soft: var(--bg-hover);
   --border-light: var(--border-color);
 }
 
 .page-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 12px;
 
   .title {
     font-size: 1.6rem;
@@ -262,26 +260,18 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   }
 
   .btn-save-fields {
-    font-size: 0.85rem;
-    font-weight: 700;
+    font-size: 0.84rem;
+    font-weight: 600;
     color: white;
-    padding: 8px 20px;
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    padding: 7px 18px;
+    background: #6366f1;
     border: none;
-    border-radius: 20px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    transition: all 0.15s;
 
-    &:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
+    &:hover:not(:disabled) { background: #4f46e5; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
   }
 }
 
@@ -297,26 +287,25 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
 .config-layout {
   display: grid;
-  grid-template-columns: 1fr 420px;
-  gap: 24px;
+  grid-template-columns: 1fr 320px;
+  gap: 14px;
   align-items: start;
 }
 
 .edit-panel {
   background: var(--bg-card);
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+  padding: 14px;
   border: 1px solid var(--border-light);
 }
 
 .section-title {
-  font-size: 1.1rem;
+  font-size: .95rem;
   font-weight: 700;
   color: var(--deep-dark);
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--bg-soft);
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--border-light);
 }
 
 .field-list {
@@ -338,7 +327,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   }
 
   &.is-hidden-field {
-    background-color: #f8fafc;
+    background-color: var(--bg-hover);
     border-style: dashed;
     opacity: 0.7;
 
@@ -362,7 +351,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 10px 14px;
 }
 
 .field-info {
@@ -424,12 +413,12 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 }
 
 .type-badge {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: #6366f1;
-  background: #eef2ff;
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid #e0e7ff;
+  background: rgba(99,102,241,.1);
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(99,102,241,.2);
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -471,10 +460,9 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   }
 
   &.is-active {
-    background: var(--deep-dark);
+    background: #6366f1;
     color: white;
-    border-color: var(--deep-dark);
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.2);
+    border-color: #6366f1;
   }
 }
 
@@ -643,22 +631,22 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 }
 
 .add-control {
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 2px dashed var(--border-light);
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border-light);
   display: flex;
-  gap: 12px;
+  gap: 8px;
 }
 
 .add-input {
   flex: 1;
-  padding: 12px 16px;
-  border-radius: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
   border: 1px solid var(--border-light);
-  font-size: 0.95rem;
+  font-size: .88rem;
   font-weight: 600;
-  color: var(--deep-dark);
-  background: var(--bg-soft);
+  color: var(--text-main);
+  background: var(--bg-card);
   transition: all 0.3s;
 
   &:focus {
@@ -674,13 +662,13 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 }
 
 .add-select {
-  padding: 12px 16px;
-  border-radius: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
   border: 1px solid var(--border-light);
-  background: var(--bg-soft);
-  font-size: 0.95rem;
+  background: var(--bg-card);
+  font-size: .88rem;
   font-weight: 600;
-  color: var(--deep-dark);
+  color: var(--text-main);
   cursor: pointer;
   transition: all 0.3s;
 
@@ -695,13 +683,14 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 .btn-add-field {
   background: #6366f1;
   color: white;
-  width: 48px;
-  height: 48px;
+  width: 38px;
+  height: 38px;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 700;
+  flex-shrink: 0;
   transition: all 0.3s;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
 
@@ -718,53 +707,35 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
 .preview-panel {
   position: sticky;
-  top: 20px;
+  top: 76px;
 }
 
 .phone-frame {
-  background: var(--deep-dark);
-  padding: 16px;
-  border-radius: 42px;
-  box-shadow:
-    0 25px 60px rgba(0, 0, 0, 0.15),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .phone-screen {
-  background: var(--bg-card);
-  height: 640px;
-  border-radius: 32px;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  max-height: calc(100vh - 140px);
 }
 
 .phone-header {
-  padding: 20px;
+  padding: 12px;
   text-align: center;
-  font-weight: 800;
-  font-size: 1.05rem;
-  color: var(--deep-dark);
+  font-weight: 700;
+  font-size: .92rem;
+  color: var(--text-main);
   border-bottom: 1px solid var(--border-light);
-  background: linear-gradient(to bottom, #ffffff, #f8fafc);
 }
 
 .phone-content {
-  padding: 20px;
+  padding: 14px;
   flex: 1;
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 3px;
-  }
 }
 
 .preview-item {
