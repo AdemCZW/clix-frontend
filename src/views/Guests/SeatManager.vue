@@ -577,7 +577,10 @@ watch(() => participantsStore.participants.length, () => {
                 reserved: getSeatStatus(r-1, c-1) === 'reserved',
                 'drag-over': dragOverIdx === getIdx(r-1, c-1),
               }"
+              :draggable="getSeatStatus(r-1, c-1) === 'assigned' ? 'true' : 'false'"
               @click="toggleSeatSelect(r-1, c-1)"
+              @dragstart="getSeatStatus(r-1, c-1) === 'assigned' && onDragStartSeat(r-1, c-1, $event)"
+              @dragend="onDragEnd"
               @dragover="onDragOver(r-1, c-1, $event)"
               @dragleave="onDragLeave"
               @drop="onDrop(r-1, c-1)"
@@ -589,9 +592,6 @@ watch(() => participantsStore.participants.length, () => {
                 <div
                   class="sp-avatar"
                   :class="{ vip: (getSeat(r-1,c-1)?.attendee[0] as any)?.type === 'VIP' }"
-                  draggable="true"
-                  @dragstart.stop="onDragStartSeat(r-1,c-1,$event)"
-                  @dragend="onDragEnd"
                 >
                   {{ (getSeat(r-1,c-1)?.attendee[0] as any)?.name?.charAt(0) || '?' }}
                 </div>
@@ -717,7 +717,7 @@ watch(() => participantsStore.participants.length, () => {
 
 .sp-group { margin-bottom:12px; }
 .sp-empty { font-size:.78rem; color:var(--text-muted); text-align:center; padding:20px 0; }
-.sp-person { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid var(--border-color); border-radius:10px; margin-bottom:5px; cursor:grab; transition:.15s; background:var(--bg-card); }
+.sp-person { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid var(--border-color); border-radius:10px; margin-bottom:5px; cursor:grab; transition:.15s; background:var(--bg-card); user-select:none; -webkit-user-select:none; }
 .sp-person:hover { border-color:#c7d2fe; box-shadow:0 2px 6px rgba(99,102,241,.1); }
 .sp-person:active { cursor:grabbing; opacity:.7; }
 .sp-person-l b { display:block; font-size:.86rem; color:var(--text-main); }
@@ -747,7 +747,7 @@ watch(() => participantsStore.participants.length, () => {
 .sp-stage-bar { width:min(480px,55%); height:10px; background:linear-gradient(135deg,#334155,#1e293b); border-radius:5px; margin:0 auto 20px; }
 
 /* ── 座位表 ── */
-.sp-grid { display:flex; flex-direction:column; gap:calc(4px * var(--z)); margin:0 auto; }
+.sp-grid { display:flex; flex-direction:column; gap:calc(4px * var(--z)); margin:0 auto; user-select:none; -webkit-user-select:none; }
 .sp-grid-head,.sp-grid-row { display:grid; gap:calc(6px * var(--z)); }
 .sp-hdr { display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:700; color:var(--text-muted); cursor:pointer; user-select:none; border-radius:6px; transition:.15s; }
 .sp-hdr:hover { background:#eef2ff; color:#6366f1; }
@@ -760,8 +760,10 @@ watch(() => participantsStore.participants.length, () => {
   border-radius:50%;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   cursor:pointer; transition:all .15s; position:relative; background:var(--bg-card);
-  gap:1px;
+  gap:1px; user-select:none; -webkit-user-select:none;
 }
+.sp-seat.filled { cursor:grab; }
+.sp-seat.filled:active { cursor:grabbing; }
 .sp-seat:hover { border-color:#c7d2fe; box-shadow:0 2px 8px rgba(99,102,241,.12); }
 .sp-seat.sel { border-color: var(--accent); box-shadow:0 0 0 3px rgba(99,102,241,.2); }
 .sp-seat.filled { background:#f5f3ff; border-color:#c7d2fe; }
@@ -779,10 +781,9 @@ watch(() => participantsStore.participants.length, () => {
   background:linear-gradient(135deg,#6366f1,#4f46e5);
   color:#fff; font-size:.82rem; font-weight:700;
   display:flex; align-items:center; justify-content:center;
-  cursor:grab; transition:.15s;
+  pointer-events:none; transition:.15s;
 }
 .sp-avatar.vip { background:linear-gradient(135deg,#f59e0b,#d97706); }
-.sp-avatar:active { cursor:grabbing; opacity:.6; transform:scale(.9); }
 .sp-seat-name { font-size:.62rem; font-weight:600; color:var(--text-secondary); max-width:56px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.1; }
 .sp-x { position:absolute; top:-4px; right:-4px; width:16px; height:16px; border-radius:50%; background:#ef4444; color:#fff; border:2px solid #fff; font-size:.6rem; cursor:pointer; display:none; align-items:center; justify-content:center; line-height:1; }
 .sp-seat:hover .sp-x { display:flex; }
