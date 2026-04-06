@@ -513,7 +513,7 @@ watch(
     display: flex;
     gap: 10px;
     margin-top: 10px;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 12px);
   }
 
   .btn-create-new {
@@ -690,7 +690,7 @@ watch(
   }
 
   .modal-footer {
-    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 12px));
   }
 
   .form-row {

@@ -882,7 +882,7 @@ watch(() => participantsStore.participants.length, () => {
 
 /* ── RWD ── */
 @media(max-width:768px) {
-  .sp { flex-direction:column; padding-bottom:60px; }
+  .sp { flex-direction:column; padding-bottom:72px; }
 
   /* 隱藏桌機元素 */
   .sp-toolbar-desktop { display:none; }
@@ -924,7 +924,7 @@ watch(() => participantsStore.participants.length, () => {
   .sp-mobile-nav {
     display:flex; position:fixed; bottom:0; left:0; right:0; z-index:60;
     background:var(--bg-card); border-top:1px solid var(--border-color);
-    padding:4px 8px calc(4px + env(safe-area-inset-bottom, 0px));
+    padding:6px 8px calc(6px + env(safe-area-inset-bottom, 12px));
     align-items:center; justify-content:space-around;
     box-shadow:0 -2px 10px rgba(0,0,0,.06);
   }
@@ -956,7 +956,7 @@ watch(() => participantsStore.participants.length, () => {
     background:var(--bg-card); border-radius:16px 16px 0 0;
     box-shadow:0 -4px 20px rgba(0,0,0,.12);
     max-height:55dvh; overflow:hidden;
-    padding-bottom:calc(56px + env(safe-area-inset-bottom, 0px));
+    padding-bottom:calc(60px + env(safe-area-inset-bottom, 12px));
   }
   .sp-sheet .sp-tabs { margin:0 12px 8px; border-radius:8px; }
   .sp-sheet-handle {
