@@ -687,6 +687,7 @@ watch(() => participantsStore.participants.length, () => {
     <Transition name="sheet-slide">
       <div v-if="panelOpen" class="sp-sheet">
         <div class="sp-sheet-handle" @click="panelOpen = false"><span></span></div>
+        <div class="sp-sheet-tip">點擊人員 → 再點擊座位即可分配</div>
         <div class="sp-tabs">
           <button class="sp-tab" :class="{ active: activeTab === 'VIP' }" @click="activeTab = 'VIP'">VIP ({{ vipList.length }})</button>
           <button class="sp-tab" :class="{ active: activeTab === 'general' }" @click="activeTab = 'general'">民眾 ({{ generalList.length }})</button>
@@ -874,6 +875,7 @@ watch(() => participantsStore.participants.length, () => {
 .sp-mobile-overlay { display:none; }
 .sp-sheet { display:none; }
 .sp-pick-hint { display:none; }
+.sp-sheet-tip { display:none; }
 .sp-person-active { border-color:#6366f1 !important; background:#eef2ff !important; }
 
 .tb-slide-down-enter-active,.tb-slide-down-leave-active { transition:all .2s ease; }
@@ -958,6 +960,10 @@ watch(() => participantsStore.participants.length, () => {
     box-shadow:0 -4px 20px rgba(0,0,0,.12);
     max-height:55dvh; overflow:hidden;
     padding-bottom:calc(60px + env(safe-area-inset-bottom, 12px));
+  }
+  .sp-sheet-tip {
+    font-size:.72rem; color:var(--text-muted); text-align:center;
+    padding:0 12px 6px; font-weight:500;
   }
   .sp-sheet .sp-tabs { margin:0 12px 8px; border-radius:8px; }
   .sp-sheet-handle {
