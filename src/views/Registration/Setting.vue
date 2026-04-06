@@ -435,15 +435,13 @@ const closeGuestDetail = () => {
           <div v-if="isCurrentEventExpired" class="expired-warning">
             ⚠️ 此活動已過期，報名已停止接受。如需重新開放，請先至活動列表更新活動日期。
           </div>
-          <div class="link-container">
-            <div class="custom-url-editor">
-              <span class="url-base-label">{{ urlBase }}</span>
-              <input v-model="customSlug" class="slug-input" placeholder="自訂連結後綴" @keyup.enter="saveCustomSlug" />
-            </div>
-            <div class="button-row">
-              <button class="btn-copy" @click="copyLink">複製連結</button>
-              <button class="btn-update-slug" @click="saveCustomSlug">更新</button>
-            </div>
+          <div class="link-inline">
+            <span class="link-base">{{ urlBase }}</span>
+            <input v-model="customSlug" class="link-slug-input" placeholder="自訂後綴" @keyup.enter="saveCustomSlug" />
+          </div>
+          <div class="link-actions">
+            <button class="card-btn outline" @click="copyLink">複製連結</button>
+            <button class="card-btn primary" @click="saveCustomSlug">更新</button>
           </div>
         </div>
 
@@ -616,10 +614,10 @@ const closeGuestDetail = () => {
 .registration-view {
   padding: 20px;
   --primary: #6366f1;
-  --deep-dark: #0f172a;
-  --text-gray: #475569;
-  --text-gray-light: #64748b;
-  --bg-soft: #f8fafc;
+  --deep-dark: var(--text-main);
+  --text-gray: var(--text-secondary);
+  --text-gray-light: var(--text-muted);
+  --bg-soft: var(--bg-hover);
   --border-light: var(--border-color);
 }
 
@@ -802,7 +800,7 @@ const closeGuestDetail = () => {
 .status-tag {
   font-size:.78rem; font-weight:700; padding:3px 10px; border-radius:6px;
 }
-.status-tag.draft { background:#f1f5f9; color:#64748b; }
+.status-tag.draft { background:var(--bg-hover); color:var(--text-muted); }
 .status-tag.published { background:#dcfce7; color:#15803d; }
 .top-bar-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 
@@ -819,10 +817,10 @@ const closeGuestDetail = () => {
 }
 .top-btn.outline:hover:not(:disabled) { background:var(--bg-soft); }
 .top-btn.secondary {
-  background:#f1f5f9; color:#475569;
-  border:1px solid #e2e8f0;
+  background:var(--bg-hover); color:var(--text-secondary);
+  border:1px solid var(--border-color);
 }
-.top-btn.secondary:hover:not(:disabled) { background:#e2e8f0; }
+.top-btn.secondary:hover:not(:disabled) { background:var(--border-color); }
 .top-btn.danger {
   background:#fee2e2; color:#dc2626;
   border:1px solid #fecaca;
@@ -839,9 +837,41 @@ const closeGuestDetail = () => {
 }
 .setting-left { min-width:0; }
 .setting-right {
-  display:flex; flex-direction:column; gap:16px;
+  display:flex; flex-direction:column; gap:14px;
   position:sticky; top:80px;
 }
+.setting-right .tech-card { padding:16px; }
+.setting-right .card-subtitle { font-size:.92rem; margin-bottom:12px; }
+
+/* 右側面板統一按鈕 */
+.card-btn {
+  padding:8px 16px; border-radius:8px; font-size:.82rem; font-weight:600;
+  cursor:pointer; transition:.15s; border:none; white-space:nowrap;
+}
+.card-btn.outline {
+  background:var(--bg-hover); color:var(--text-secondary); border:1px solid var(--border-color);
+}
+.card-btn.outline:hover { background:var(--border-color); }
+.card-btn.primary { background:#6366f1; color:#fff; }
+.card-btn.primary:hover { background:#4f46e5; }
+
+/* 連結區塊 */
+.link-inline {
+  display:flex; align-items:center; gap:0;
+  background:var(--bg-hover); border:1px solid var(--border-color);
+  border-radius:8px; overflow:hidden; margin-bottom:10px;
+}
+.link-base {
+  padding:8px 10px; font-size:.78rem; color:var(--text-muted);
+  white-space:nowrap; flex-shrink:0;
+}
+.link-slug-input {
+  flex:1; border:none; background:var(--bg-card); padding:8px 10px;
+  font-size:.88rem; font-weight:600; color:var(--text-main);
+  outline:none; min-width:0;
+}
+.link-actions { display:flex; gap:8px; }
+.link-actions .card-btn { flex:1; text-align:center; }
 
 .editor-autosave-hint {
   font-size:.75rem; color:var(--text-gray-light); padding:8px 0 0; text-align:left;
@@ -988,7 +1018,7 @@ const closeGuestDetail = () => {
   align-items: center;
   justify-content: center;
   background: var(--bg-soft);
-  border: 2px dashed #cbd5e1;
+  border: 2px dashed var(--border-color);
   border-radius: 16px;
   cursor: pointer;
   transition: 0.3s;
