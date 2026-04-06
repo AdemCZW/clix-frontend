@@ -378,191 +378,133 @@ const toggleVIP = (participant: Participant) => {
       <p>載入中...</p>
     </div>
 
-    <div class="page-header">
-      <div class="header-left">
-        <div class="search-wrapper">
-          <span class="search-icon">🔍</span>
-          <input v-model="searchQuery" placeholder="搜尋姓名、公司..." class="search-input" />
+    <!-- 頂部操作列 -->
+    <div class="top-bar">
+      <input type="file" ref="fileInput" style="display:none" accept=".xlsx,.xls" @change="handleImport" />
+      <div class="top-bar-left">
+        <div class="search-compact">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input v-model="searchQuery" placeholder="搜尋..." />
         </div>
-
-        <div class="filter-item">
-          <label>報到狀態</label>
-          <select v-model="filterStatus" class="select-rounded">
-            <option v-for="s in allStatuses" :key="s" :value="s">
-              {{ s === "All" ? "所有狀態" : s }}
-            </option>
-          </select>
-        </div>
+        <select v-model="filterStatus" class="filter-select">
+          <option v-for="s in allStatuses" :key="s" :value="s">{{ s === "All" ? "所有狀態" : s }}</option>
+        </select>
       </div>
-
-      <div class="header-actions">
-        <input
-          type="file"
-          ref="fileInput"
-          style="display: none"
-          accept=".xlsx, .xls"
-          @change="handleImport"
-        />
-        <button class="btn-secondary" @click="triggerImport">匯入名單</button>
-
-        <!-- 匯出選單 -->
+      <div class="top-bar-right">
+        <button class="tb outline" @click="triggerImport">匯入</button>
         <div class="export-dropdown">
-          <button class="btn-secondary" :disabled="isExporting" @click="handleExport">
-            {{ isExporting ? "處理中..." : "匯出 Excel" }}
-          </button>
-
+          <button class="tb outline" :disabled="isExporting" @click="handleExport">匯出</button>
           <Transition name="dropdown-fade">
             <div v-if="showExportMenu" class="export-menu">
-              <button @click="exportData('all')" class="export-option">
-                📊 匯出全部 ({{ participantsStore.participants.length }} 筆)
-              </button>
-              <button @click="exportData('current')" class="export-option">
-                🔍 匯出當前篩選 ({{ filteredList.length }} 筆)
-              </button>
-              <div class="menu-divider"></div>
-              <button @click="exportData('vip')" class="export-option">
-                ⭐ 只匯出 VIP ({{
-                  participantsStore.participants.filter((p) => p.type === "VIP").length
-                }}
-                筆)
-              </button>
-              <button @click="exportData('general')" class="export-option">
-                👥 只匯出一般民眾 ({{
-                  participantsStore.participants.filter((p) => p.type === "一般民眾").length
-                }}
-                筆)
-              </button>
-              <div class="menu-divider"></div>
-              <button @click="exportData('checked')" class="export-option">
-                ✅ 只匯出已報到 ({{
-                  participantsStore.participants.filter((p) => p.status === "已報到").length
-                }}
-                筆)
-              </button>
-              <button @click="exportData('unchecked')" class="export-option">
-                ⏳ 只匯出未報到 ({{
-                  participantsStore.participants.filter((p) => p.status === "未報到").length
-                }}
-                筆)
-              </button>
+              <button @click="exportData('all')" class="export-option">全部 ({{ participantsStore.participants.length }})</button>
+              <button @click="exportData('current')" class="export-option">當前篩選 ({{ filteredList.length }})</button>
+              <button @click="exportData('vip')" class="export-option">VIP</button>
+              <button @click="exportData('general')" class="export-option">一般民眾</button>
+              <button @click="exportData('checked')" class="export-option">已報到</button>
+              <button @click="exportData('unchecked')" class="export-option">未報到</button>
             </div>
           </Transition>
         </div>
-
-        <button class="btn-primary" @click="addParticipant">新增</button>
+        <button class="tb primary" @click="addParticipant">＋ 新增</button>
       </div>
     </div>
 
-    <div class="tech-card table-container">
-      <!-- 標籤切換 -->
-      <div class="tab-navigation">
-        <button :class="['tab-button', { active: activeTab === 'VIP' }]" @click="activeTab = 'VIP'">
-          <span class="tab-icon">⭐</span>
-          <span class="tab-label">貴賓 VIP</span>
-          <span class="tab-count">{{ vipCount }}</span>
-        </button>
-        <button
-          :class="['tab-button', { active: activeTab === '一般民眾' }]"
-          @click="activeTab = '一般民眾'"
-        >
-          <span class="tab-icon">👥</span>
-          <span class="tab-label">一般民眾</span>
-          <span class="tab-count">{{ generalCount }}</span>
-        </button>
+    <!-- 左右兩欄 -->
+    <div class="two-col">
+      <!-- 左欄：表格 -->
+      <div class="col-left">
+        <div class="tab-bar">
+          <button :class="['tab', { active: activeTab === 'VIP' }]" @click="activeTab = 'VIP'">VIP <span class="cnt">{{ vipCount }}</span></button>
+          <button :class="['tab', { active: activeTab === '一般民眾' }]" @click="activeTab = '一般民眾'">民眾 <span class="cnt">{{ generalCount }}</span></button>
+        </div>
+        <div class="list-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>姓名</th>
+                <th>公司 / 職稱</th>
+                <th class="hide-sm">電話</th>
+                <th>狀態</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="p in filteredList" :key="p.id"
+                :class="{ active: editingParticipant?.id === p.id }"
+                @click="openEditPanel(p)"
+              >
+                <td>
+                  <div class="name-cell">
+                    <span class="avatar">{{ p.name.charAt(0) }}</span>
+                    <div>
+                      <div class="name">{{ p.name }}</div>
+                      <div class="sub">{{ p.email }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="name">{{ p.company }}</div>
+                  <div class="sub">{{ p.title }}</div>
+                </td>
+                <td class="hide-sm">{{ p.phone }}</td>
+                <td>
+                  <span :class="['dot', p.status === '已報到' ? 'check' : '']">{{ p.status }}</span>
+                </td>
+              </tr>
+              <tr v-if="filteredList.length === 0">
+                <td colspan="4" class="empty-state">查無符合條件的參與者</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="table-scroll-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th v-if="activeTab === 'VIP'" style="width: 60px; text-align: center"></th>
-            <th>姓名 / Email</th>
-            <th>公司單位 / 職稱</th>
-            <th>聯絡電話</th>
-            <th>身分</th>
-            <th>狀態</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="p in filteredList"
-            :key="p.id"
-            :class="{ selected: activeTab === 'VIP' && isVIPSelected(p.id) }"
-            @click="openEditPanel(p)"
-          >
-            <td v-if="activeTab === 'VIP'" style="text-align: center">
-              <label class="checkbox-wrapper" @click.stop>
-                <input
-                  type="checkbox"
-                  :checked="isVIPSelected(p.id)"
-                  @change="toggleVIP(p)"
-                />
-                <span class="checkmark"></span>
-              </label>
-            </td>
-            <td>
-              <div class="name-cell">
-                <span class="avatar">{{ p.name.charAt(0) }}</span>
-                <div>
-                  <div class="name">{{ p.name }}</div>
-                  <div class="email-sub">{{ p.email }}</div>
-                </div>
-              </div>
-            </td>
-            <td>
-              <div class="comp">{{ p.company }}</div>
-              <div class="title-sub">{{ p.title }}</div>
-            </td>
-            <td>{{ p.phone }}</td>
-            <td>
-              <span :class="['tag', p.type.toLowerCase()]">{{ p.type }}</span>
-            </td>
-            <td>
-              <span :class="['status-dot', p.status === '已報到' ? 'check' : '']">{{
-                p.status
-              }}</span>
-            </td>
-            <td>
-              <div class="action-buttons">
-                <button class="btn-action edit" @click="openEditPanel(p)">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                  </svg>
-                  編輯
-                </button>
-                <button class="btn-action delete" @click="deleteParticipant(p)">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path
-                      d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                    ></path>
-                  </svg>
-                  刪除
-                </button>
-              </div>
-            </td>
-          </tr>
-          <tr v-if="filteredList.length === 0">
-            <td colspan="6" class="empty-state">查無符合條件的參與者</td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- 右欄：編輯面板 -->
+      <div class="col-right">
+        <div v-if="!editingParticipant" class="empty-panel">
+          <p>點擊左側名單查看 / 編輯詳細資訊</p>
+        </div>
+        <template v-else>
+          <div class="panel-header">
+            <h3>{{ editingParticipant.name }}</h3>
+            <button class="panel-close" @click="editingParticipant = null">✕</button>
+          </div>
+          <div class="panel-body">
+            <div class="fg"><label>姓名</label><input v-model="editingParticipant.name" class="fi" /></div>
+            <div class="fg"><label>公司</label><input v-model="editingParticipant.company" class="fi" /></div>
+            <div class="fg"><label>職稱</label><input v-model="editingParticipant.title" class="fi" /></div>
+            <div class="fg">
+              <label>身分</label>
+              <select v-model="editingParticipant.type" class="fi">
+                <option value="VIP">VIP</option>
+                <option value="一般民眾">一般民眾</option>
+              </select>
+            </div>
+            <div class="fg"><label>Email</label><input v-model="editingParticipant.email" type="email" class="fi" /></div>
+            <div class="fg"><label>電話</label><input v-model="editingParticipant.phone" type="tel" class="fi" /></div>
+            <div class="fg">
+              <label>報到狀態</label>
+              <select v-model="editingParticipant.status" class="fi">
+                <option value="已報到">已報到</option>
+                <option value="未報到">未報到</option>
+              </select>
+            </div>
+            <div class="fg readonly" v-if="editingParticipant.eventName">
+              <label>所屬活動</label><div class="fi-ro">{{ editingParticipant.eventName }}</div>
+            </div>
+            <div class="fg readonly">
+              <label>建立時間</label><div class="fi-ro">{{ formatDate(editingParticipant.createdAt) }}</div>
+            </div>
+            <div v-if="editingParticipant.qrCodeUrl" class="qr-block">
+              <img :src="editingParticipant.qrCodeUrl" alt="QR" class="qr-img" />
+              <a :href="editingParticipant.qrCodeUrl" download="qrcode.png" class="qr-dl">下載 QR Code</a>
+            </div>
+          </div>
+          <div class="panel-footer">
+            <button class="tb danger" @click.stop="deleteParticipant(editingParticipant)">刪除</button>
+            <button class="tb primary" @click="saveParticipant">儲存</button>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -572,118 +514,6 @@ const toggleVIP = (participant: Participant) => {
       <button class="mb-export" @click="handleExport">匯出</button>
       <button class="mb-add" @click="addParticipant">＋ 新增</button>
     </div>
-
-    <!-- 右側滑出編輯面板 -->
-    <BasePanel v-model="editPanelOpen" title="編輯參與者資訊">
-      <template v-if="editingParticipant">
-        <div class="form-section">
-          <h4 class="section-title">基本資訊</h4>
-
-          <div class="form-field">
-            <label>姓名 *</label>
-            <input
-              v-model="editingParticipant.name"
-              placeholder="請輸入姓名"
-              class="input-styled"
-            />
-          </div>
-
-          <div class="form-field">
-            <label>公司單位</label>
-            <input
-              v-model="editingParticipant.company"
-              placeholder="請輸入公司名稱"
-              class="input-styled"
-            />
-          </div>
-
-          <div class="form-field">
-            <label>職稱</label>
-            <input
-              v-model="editingParticipant.title"
-              placeholder="請輸入職稱"
-              class="input-styled"
-            />
-          </div>
-
-          <div class="form-field">
-            <label>身分</label>
-            <select v-model="editingParticipant.type" class="select-styled">
-              <option value="VIP">貴賓 VIP</option>
-              <option value="一般民眾">一般民眾</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h4 class="section-title">聯絡資訊</h4>
-
-          <div class="form-field">
-            <label>電子信箱</label>
-            <input
-              v-model="editingParticipant.email"
-              type="email"
-              placeholder="請輸入信箱"
-              class="input-styled"
-            />
-          </div>
-
-          <div class="form-field">
-            <label>聯絡電話</label>
-            <input
-              v-model="editingParticipant.phone"
-              type="tel"
-              placeholder="請輸入電話"
-              class="input-styled"
-            />
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h4 class="section-title">報到狀態</h4>
-
-          <div class="form-field">
-            <label>狀態</label>
-            <select v-model="editingParticipant.status" class="select-styled">
-              <option value="已報到">已報到</option>
-              <option value="未報到">未報到</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- 來源資訊（唯讀） -->
-        <div class="form-section">
-          <h4 class="section-title">來源資訊</h4>
-          <div class="form-field">
-            <label>所屬活動</label>
-            <div class="readonly-value">{{ editingParticipant.eventName || '—' }}</div>
-          </div>
-          <div class="form-field">
-            <label>建立時間</label>
-            <div class="readonly-value">{{ formatDate(editingParticipant.createdAt) }}</div>
-          </div>
-        </div>
-
-        <!-- QR Code 區塊 -->
-        <div class="form-section" v-if="editingParticipant.qrCodeUrl">
-          <h4 class="section-title">專屬報到 QR Code</h4>
-          <div class="qr-display">
-            <img :src="editingParticipant.qrCodeUrl" alt="QR Code" class="qr-image" />
-            <p class="qr-token">{{ editingParticipant.checkInToken }}</p>
-            <a :href="editingParticipant.qrCodeUrl" download="qrcode.png" class="btn-download-qr">
-              ⬇ 下載 QR Code
-            </a>
-          </div>
-        </div>
-      </template>
-
-      <template #footer>
-        <button class="btn-delete-participant" @click="deleteParticipant(editingParticipant)">
-          刪除參與者
-        </button>
-        <button class="btn-save" @click="saveParticipant">儲存</button>
-      </template>
-    </BasePanel>
 
     <ConfirmDialog
       :show="confirmDialog.show"
@@ -697,16 +527,16 @@ const toggleVIP = (participant: Participant) => {
   </div>
 </template>
 
-<style lang="scss" scoped>
+<style scoped>
 .participants-view {
-  padding: 16px;
+  padding: 12px;
   background: var(--bg-primary);
   min-height: 100vh;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
+/* old styles removed — see new layout below */
+._placeholder_removed {
+  display: none;
   align-items: center;
   margin-bottom: 14px;
 }
@@ -1463,4 +1293,182 @@ const toggleVIP = (participant: Participant) => {
 
 /* 桌機隱藏手機元素 */
 .mobile-bottom-bar { display:none; }
+
+/* ══ 新版兩欄佈局 ══ */
+.top-bar {
+  display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;
+}
+.top-bar-left { display:flex; align-items:center; gap:8px; flex:1; min-width:0; }
+.top-bar-right { display:flex; align-items:center; gap:6px; }
+.search-compact {
+  display:flex; align-items:center; gap:6px;
+  background:var(--bg-card); border:1px solid var(--border-color);
+  border-radius:8px; padding:6px 10px; min-width:140px; max-width:220px;
+}
+.search-compact input {
+  border:none; background:transparent; outline:none;
+  font-size:.84rem; color:var(--text-main); width:100%;
+}
+.search-compact svg { color:var(--text-muted); flex-shrink:0; }
+.filter-select {
+  padding:6px 10px; border:1px solid var(--border-color);
+  border-radius:8px; background:var(--bg-card); font-size:.84rem;
+  color:var(--text-secondary); outline:none; cursor:pointer;
+}
+.tb {
+  padding:6px 14px; border-radius:8px; font-size:.82rem; font-weight:600;
+  cursor:pointer; transition:.15s; border:none; white-space:nowrap;
+}
+.tb.outline { background:var(--bg-card); color:var(--text-secondary); border:1px solid var(--border-color); }
+.tb.outline:hover { background:var(--bg-hover); }
+.tb.primary { background:#6366f1; color:#fff; }
+.tb.primary:hover { background:#4f46e5; }
+.tb.danger { background:transparent; color:#ef4444; border:1px solid #fecaca; }
+.tb.danger:hover { background:#fef2f2; }
+.tb:disabled { opacity:.5; cursor:not-allowed; }
+
+/* 兩欄 */
+.two-col { display:grid; grid-template-columns:1fr 340px; gap:12px; align-items:start; }
+.col-left {
+  background:var(--bg-card); border:1px solid var(--border-color);
+  border-radius:10px; overflow:hidden;
+}
+.col-right {
+  background:var(--bg-card); border:1px solid var(--border-color);
+  border-radius:10px; position:sticky; top:76px;
+  display:flex; flex-direction:column; max-height:calc(100vh - 90px);
+}
+
+/* Tabs */
+.tab-bar { display:flex; border-bottom:1px solid var(--border-color); }
+.tab {
+  flex:1; padding:8px 0; border:none; background:transparent;
+  font-size:.84rem; font-weight:600; color:var(--text-muted);
+  cursor:pointer; transition:.15s; text-align:center;
+}
+.tab.active { color:#6366f1; box-shadow:inset 0 -2px 0 #6366f1; }
+.tab:hover:not(.active) { color:var(--text-secondary); }
+.cnt {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:18px; height:18px; padding:0 5px;
+  background:var(--bg-hover); border-radius:9px;
+  font-size:.68rem; font-weight:700; margin-left:4px;
+}
+.tab.active .cnt { background:#6366f1; color:#fff; }
+
+/* 表格 */
+.list-scroll { overflow-y:auto; max-height:calc(100vh - 160px); }
+.data-table { width:100%; border-collapse:collapse; }
+.data-table th {
+  padding:8px 12px; text-align:left; font-size:.76rem; font-weight:700;
+  color:var(--text-muted); border-bottom:1px solid var(--border-color);
+  background:var(--bg-primary); position:sticky; top:0; z-index:1;
+}
+.data-table td { padding:8px 12px; border-bottom:1px solid var(--border-color); font-size:.84rem; }
+.data-table tr { cursor:pointer; transition:.1s; }
+.data-table tbody tr:hover { background:var(--bg-hover); }
+.data-table tbody tr.active { background:rgba(99,102,241,.08); }
+.name-cell { display:flex; align-items:center; gap:8px; }
+.avatar {
+  width:28px; height:28px; background:#e0f2fe; color:#0369a1;
+  border-radius:7px; display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:.8rem; flex-shrink:0;
+}
+.name { font-weight:600; color:var(--text-main); font-size:.84rem; }
+.sub { font-size:.72rem; color:var(--text-muted); }
+.dot {
+  font-size:.8rem; color:var(--text-muted); padding-left:12px; position:relative;
+}
+.dot::before {
+  content:''; position:absolute; left:0; top:50%; transform:translateY(-50%);
+  width:6px; height:6px; background:var(--border-color); border-radius:50%;
+}
+.dot.check { color:#10b981; font-weight:600; }
+.dot.check::before { background:#10b981; }
+.empty-state { text-align:center; padding:32px; color:var(--text-muted); }
+
+/* 右欄面板 */
+.empty-panel {
+  display:flex; align-items:center; justify-content:center;
+  min-height:300px; color:var(--text-muted); font-size:.88rem;
+}
+.panel-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 16px; border-bottom:1px solid var(--border-color);
+}
+.panel-header h3 { margin:0; font-size:1rem; font-weight:700; color:var(--text-main); }
+.panel-close {
+  border:none; background:transparent; font-size:1rem; cursor:pointer;
+  color:var(--text-muted); padding:4px 8px; border-radius:6px;
+}
+.panel-close:hover { background:var(--bg-hover); }
+.panel-body { padding:14px 16px; overflow-y:auto; flex:1; }
+.fg { margin-bottom:12px; }
+.fg label {
+  display:block; font-size:.78rem; font-weight:600;
+  color:var(--text-muted); margin-bottom:4px;
+}
+.fi {
+  width:100%; padding:7px 10px; border:1px solid var(--border-color);
+  border-radius:7px; font-size:.88rem; outline:none; background:var(--bg-card);
+  color:var(--text-main); transition:.15s;
+}
+.fi:focus { border-color:#6366f1; box-shadow:0 0 0 2px rgba(99,102,241,.1); }
+select.fi { cursor:pointer; }
+.fi-ro {
+  padding:7px 10px; background:var(--bg-primary); border:1px solid var(--border-color);
+  border-radius:7px; font-size:.84rem; color:var(--text-muted);
+}
+.qr-block { text-align:center; padding:12px 0; }
+.qr-img { width:140px; height:140px; border:1px solid var(--border-color); border-radius:8px; padding:6px; background:var(--bg-card); }
+.qr-dl { display:inline-block; margin-top:8px; font-size:.78rem; color:#6366f1; text-decoration:none; }
+.panel-footer {
+  display:flex; gap:8px; padding:12px 16px;
+  border-top:1px solid var(--border-color);
+}
+.panel-footer .tb { flex:1; padding:8px 0; text-align:center; }
+
+/* 匯出 */
+.export-dropdown { position:relative; }
+.export-menu {
+  position:absolute; top:calc(100% + 4px); right:0; z-index:100;
+  background:var(--bg-card); border:1px solid var(--border-color);
+  border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.1);
+  min-width:160px; overflow:hidden;
+}
+.export-option {
+  width:100%; padding:8px 14px; border:none; background:transparent;
+  color:var(--text-secondary); font-size:.82rem; text-align:left;
+  cursor:pointer; transition:.15s;
+}
+.export-option:hover { background:#6366f1; color:#fff; }
+.dropdown-fade-enter-active,.dropdown-fade-leave-active { transition:all .15s; }
+.dropdown-fade-enter-from,.dropdown-fade-leave-to { opacity:0; transform:translateY(-6px); }
+
+/* Loading */
+.loading-overlay {
+  position:fixed; inset:0; background:rgba(255,255,255,.9);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2000;
+}
+.loading-overlay p { margin-top:12px; font-size:.9rem; color:var(--text-secondary); }
+.loading-spinner {
+  width:40px; height:40px; border:3px solid var(--border-color);
+  border-top-color:#6366f1; border-radius:50%; animation:spin .8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ── RWD ── */
+@media(max-width:1024px) {
+  .two-col { grid-template-columns:1fr; }
+  .col-right { position:static; max-height:none; }
+}
+@media(max-width:768px) {
+  .participants-view { padding:8px 8px 72px; }
+  .top-bar-right { display:none; }
+  .top-bar-left { flex:1; }
+  .search-compact { max-width:none; flex:1; }
+  .hide-sm { display:none; }
+  .mobile-bottom-bar { display:flex !important; }
+  .data-table th, .data-table td { padding:6px 8px; font-size:.78rem; }
+}
 </style>
