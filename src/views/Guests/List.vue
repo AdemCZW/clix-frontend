@@ -380,7 +380,7 @@ const getInitials = (name: string) => {
 }
 
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 }
 
 .control-bar {

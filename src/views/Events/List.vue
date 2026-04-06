@@ -409,7 +409,7 @@ const createEvent = async () => {
 
 <style lang="scss" scoped>
 .events-view {
-  padding: 32px;
+  padding: 16px;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -418,7 +418,7 @@ const createEvent = async () => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 32px;
+  margin-bottom: 14px;
 
   .header-left {
     .title {

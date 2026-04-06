@@ -336,7 +336,7 @@ const hasActiveFilters = computed(() =>
 
 <style lang="scss" scoped>
 .checkin-view {
-  padding: 24px;
+  padding: 16px;
   max-width: 1200px;
   margin: 0 auto;
   display: flex;

@@ -422,7 +422,7 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 
 .page-header {
   padding: 0 0 20px 0;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
   display: flex;
   justify-content: flex-end;
   align-items: center;

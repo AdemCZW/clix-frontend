@@ -607,7 +607,7 @@ const closeGuestDetail = () => {
 <style lang="scss" scoped>
 /* 原有樣式保持不動 */
 .registration-view {
-  padding: 20px;
+  padding: 16px;
   --primary: #6366f1;
   --deep-dark: var(--text-main);
   --text-gray: var(--text-secondary);
@@ -787,7 +787,7 @@ const closeGuestDetail = () => {
 .page-top-bar {
   display:flex; align-items:center; justify-content:space-between;
   background:var(--bg-card); padding:12px 20px; border-radius:12px;
-  border:1px solid var(--border-light); margin-bottom:20px;
+  border:1px solid var(--border-light); margin-bottom:14px;
   flex-wrap:wrap; gap:10px;
 }
 .top-bar-left { display:flex; align-items:center; gap:8px; }

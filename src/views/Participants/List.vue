@@ -699,7 +699,7 @@ const toggleVIP = (participant: Participant) => {
 
 <style lang="scss" scoped>
 .participants-view {
-  padding: 30px;
+  padding: 16px;
   background: var(--bg-primary);
   min-height: 100vh;
 }
@@ -708,7 +708,7 @@ const toggleVIP = (participant: Participant) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 28px;
+  margin-bottom: 14px;
 }
 
 .header-left {

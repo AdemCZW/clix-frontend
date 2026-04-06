@@ -384,7 +384,7 @@ const selectEvent = (displayEvent) => {
 
 <style lang="scss" scoped>
 .dashboard-view {
-  padding: 32px;
+  padding: 16px;
   max-width: 1400px;
   margin: 0 auto;
 }

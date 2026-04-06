@@ -456,7 +456,7 @@ const copyToClipboard = (text: string) => {
 
 <style scoped lang="scss">
 .account-view {
-  padding: 32px;
+  padding: 16px;
   max-width: 1600px;
   margin: 0 auto;
 }

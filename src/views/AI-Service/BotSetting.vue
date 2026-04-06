@@ -193,7 +193,7 @@ const saveBotSettings = () => {
 }
 
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 
   .page-title {
     font-size: 1.75rem;

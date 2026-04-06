@@ -713,7 +713,7 @@ watch(logoUrl, (val) => {
 
 <style lang="scss" scoped>
 .badge-printer-view {
-  padding: 24px;
+  padding: 16px;
   background: var(--bg-primary);
   min-height: 100vh;
 }
