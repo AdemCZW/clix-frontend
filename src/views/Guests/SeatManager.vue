@@ -17,6 +17,7 @@ const { success: toastSuccess, error: toastError } = useToast();
 
 const panelOpen = ref(false);
 const mobileToolsOpen = ref(false);
+const isMobile = ref(window.innerWidth <= 768);
 const getActivityKey = (eventId?: number) => eventId ? `event_${eventId}` : "act_01";
 const currentActivityId = ref(getActivityKey(eventsStore.currentEvent?.id));
 const layout = seatsStore.layout;
@@ -604,9 +605,9 @@ watch(() => participantsStore.participants.length, () => {
                 reserved: getSeatStatus(r-1, c-1) === 'reserved',
                 'drag-over': dragOverIdx === getIdx(r-1, c-1),
               }"
-              :draggable="getSeatStatus(r-1, c-1) === 'assigned' ? 'true' : 'false'"
+              :draggable="!isMobile && getSeatStatus(r-1, c-1) === 'assigned' ? 'true' : 'false'"
               @click="handleSeatClick(r-1, c-1)"
-              @dragstart="getSeatStatus(r-1, c-1) === 'assigned' && onDragStartSeat(r-1, c-1, $event)"
+              @dragstart="!isMobile && getSeatStatus(r-1, c-1) === 'assigned' && onDragStartSeat(r-1, c-1, $event)"
               @dragend="onDragEnd"
               @dragover="onDragOver(r-1, c-1, $event)"
               @dragleave="onDragLeave"
@@ -984,6 +985,11 @@ watch(() => participantsStore.participants.length, () => {
     margin-left:auto; border:none; background:rgba(255,255,255,.2);
     color:#fff; padding:4px 10px; border-radius:6px;
     font-size:.76rem; font-weight:600; cursor:pointer;
+  }
+
+  /* 禁止手機長按選取/搜尋 */
+  .sp-seat, .sp-person, .sp-grid, .sp-avatar, .sp-seat-name, .sp-seat-lbl {
+    -webkit-touch-callout:none; touch-action:manipulation;
   }
 
   /* 座位縮小 */
