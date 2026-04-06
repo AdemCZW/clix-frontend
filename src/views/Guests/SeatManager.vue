@@ -210,6 +210,33 @@ const onDragEnd = () => {
   dragOverIdx.value = null;
 };
 
+// ── 手機：點選分配模式 ──
+const selectedPerson = ref<SeatPerson | null>(null);
+
+const selectPersonForAssign = (p: SeatPerson) => {
+  if (selectedPerson.value?.id === p.id) {
+    selectedPerson.value = null; // 取消選取
+  } else {
+    selectedPerson.value = p;
+    panelOpen.value = false; // 選完自動收起面板，方便點座位
+  }
+};
+
+const handleSeatClick = (r: number, c: number) => {
+  if (selectedPerson.value) {
+    const status = getSeatStatus(r, c);
+    if (status === "aisle" || status === "reserved") return;
+    const seat = getSeat(r, c);
+    if (seat && seat.attendee.length > 0) removePerson(r, c);
+    assignPerson(selectedPerson.value, r, c);
+    selectedPerson.value = null;
+    return;
+  }
+  toggleSeatSelect(r, c);
+};
+
+const cancelSelectPerson = () => { selectedPerson.value = null; };
+
 // ── 縮放 ──
 const zoom = ref(100);
 const zoomIn = () => { if (zoom.value < 150) zoom.value += 10; };
@@ -578,7 +605,7 @@ watch(() => participantsStore.participants.length, () => {
                 'drag-over': dragOverIdx === getIdx(r-1, c-1),
               }"
               :draggable="getSeatStatus(r-1, c-1) === 'assigned' ? 'true' : 'false'"
-              @click="toggleSeatSelect(r-1, c-1)"
+              @click="handleSeatClick(r-1, c-1)"
               @dragstart="getSeatStatus(r-1, c-1) === 'assigned' && onDragStartSeat(r-1, c-1, $event)"
               @dragend="onDragEnd"
               @dragover="onDragOver(r-1, c-1, $event)"
@@ -626,6 +653,14 @@ watch(() => participantsStore.participants.length, () => {
       </div>
     </main>
 
+    <!-- 手機：已選人員提示 -->
+    <Transition name="tb-slide">
+      <div v-if="selectedPerson" class="sp-pick-hint">
+        <span>點擊座位分配：<b>{{ selectedPerson.name }}</b></span>
+        <button @click="cancelSelectPerson">取消</button>
+      </div>
+    </Transition>
+
     <!-- 手機底部導覽列 -->
     <div class="sp-mobile-nav">
       <button @click="panelOpen = !panelOpen" :class="{ active: panelOpen }">
@@ -646,6 +681,29 @@ watch(() => participantsStore.participants.length, () => {
         <span>{{ savingSeats ? '...' : '儲存' }}</span>
       </button>
     </div>
+
+    <!-- 手機底部面板（名單） -->
+    <Transition name="sheet-slide">
+      <div v-if="panelOpen" class="sp-sheet">
+        <div class="sp-sheet-handle" @click="panelOpen = false"><span></span></div>
+        <div class="sp-tabs">
+          <button class="sp-tab" :class="{ active: activeTab === 'VIP' }" @click="activeTab = 'VIP'">VIP ({{ vipList.length }})</button>
+          <button class="sp-tab" :class="{ active: activeTab === 'general' }" @click="activeTab = 'general'">民眾 ({{ generalList.length }})</button>
+        </div>
+        <div class="sp-sheet-list">
+          <div
+            v-for="p in (activeTab === 'VIP' ? vipList : generalList)" :key="p.id"
+            class="sp-person"
+            :class="{ 'sp-person-active': selectedPerson?.id === p.id }"
+            @click="selectPersonForAssign(p)"
+          >
+            <div class="sp-person-l"><b>{{ p.name }}</b><small>{{ p.company }}</small></div>
+            <div class="sp-person-r"><code>#{{ p.serial }}</code></div>
+          </div>
+          <div v-if="(activeTab === 'VIP' ? vipList : generalList).length === 0" class="sp-empty">無資料</div>
+        </div>
+      </div>
+    </Transition>
 
     <!-- 手機面板遮罩 -->
     <div v-if="panelOpen" class="sp-mobile-overlay" @click="panelOpen = false"></div>
@@ -813,9 +871,14 @@ watch(() => participantsStore.participants.length, () => {
 .sp-mobile-tools { display:none; }
 .sp-mobile-nav { display:none; }
 .sp-mobile-overlay { display:none; }
+.sp-sheet { display:none; }
+.sp-pick-hint { display:none; }
+.sp-person-active { border-color:#6366f1 !important; background:#eef2ff !important; }
 
 .tb-slide-down-enter-active,.tb-slide-down-leave-active { transition:all .2s ease; }
 .tb-slide-down-enter-from,.tb-slide-down-leave-to { opacity:0; max-height:0; margin-top:0; }
+.sheet-slide-enter-active,.sheet-slide-leave-active { transition:transform .3s ease; }
+.sheet-slide-enter-from,.sheet-slide-leave-to { transform:translateY(100%); }
 
 /* ── RWD ── */
 @media(max-width:768px) {
@@ -883,12 +946,44 @@ watch(() => participantsStore.participants.length, () => {
     background:rgba(0,0,0,.3); backdrop-filter:blur(2px);
   }
 
-  /* 手機側邊面板 */
-  .sp-left {
-    position:fixed; left:0; top:0; bottom:0; z-index:30;
-    width:280px; max-width:80vw;
-    box-shadow:4px 0 20px rgba(0,0,0,.12);
-    padding-bottom:calc(60px + env(safe-area-inset-bottom, 0px));
+  /* 隱藏桌機側邊面板 */
+  .sp-left { display:none; }
+
+  /* 手機底部面板（名單） */
+  .sp-sheet {
+    display:flex; flex-direction:column;
+    position:fixed; bottom:0; left:0; right:0; z-index:40;
+    background:var(--bg-card); border-radius:16px 16px 0 0;
+    box-shadow:0 -4px 20px rgba(0,0,0,.12);
+    max-height:55dvh; overflow:hidden;
+    padding-bottom:calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+  .sp-sheet .sp-tabs { margin:0 12px 8px; border-radius:8px; }
+  .sp-sheet-handle {
+    display:flex; justify-content:center; padding:10px 0 6px; cursor:pointer;
+  }
+  .sp-sheet-handle span {
+    width:36px; height:4px; border-radius:2px; background:#d1d5db;
+  }
+  .sp-sheet-list {
+    flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    padding:0 12px 8px;
+  }
+  .sp-sheet-list .sp-person { margin-bottom:6px; }
+
+  /* 手機選人提示 */
+  .sp-pick-hint {
+    display:flex; align-items:center; gap:8px;
+    position:fixed; top:72px; left:12px; right:12px; z-index:50;
+    background:#6366f1; color:#fff; padding:10px 14px;
+    border-radius:10px; box-shadow:0 4px 16px rgba(99,102,241,.3);
+    font-size:.82rem; font-weight:600;
+  }
+  .sp-pick-hint b { color:#fff; }
+  .sp-pick-hint button {
+    margin-left:auto; border:none; background:rgba(255,255,255,.2);
+    color:#fff; padding:4px 10px; border-radius:6px;
+    font-size:.76rem; font-weight:600; cursor:pointer;
   }
 
   /* 座位縮小 */
