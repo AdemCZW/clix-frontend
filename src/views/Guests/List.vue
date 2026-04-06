@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted } from "vue";
+import { reactive, ref, computed, onMounted, watch } from "vue";
 import { useGuestsStore } from "@/stores/guests";
 import { useEventsStore } from "@/stores/events";
 import { useToast } from "@/composables/useToast";
@@ -24,16 +24,22 @@ const editPanelOpen = computed({
 // 直接使用 store 的 reactive guests 陣列
 const guests = guestsStore.guests;
 
-// 進入頁面時載入當前活動的貴賓
-onMounted(async () => {
-  const event = eventsStore.currentEvent;
-  if (event && event.id) {
-    try {
-      await guestsStore.fetchGuests(event.id);
-    } catch (err: unknown) {
-      error((err as Error).message || "載入貴賓列表失敗");
-    }
+// 載入活動貴賓
+const loadGuests = async (eventId: number) => {
+  try {
+    await guestsStore.fetchGuests(eventId);
+  } catch (err: unknown) {
+    error((err as Error).message || "載入貴賓列表失敗");
   }
+};
+
+onMounted(() => {
+  const event = eventsStore.currentEvent;
+  if (event?.id) loadGuests(event.id);
+});
+
+watch(() => eventsStore.currentEvent?.id, (id) => {
+  if (id) loadGuests(id);
 });
 
 const formatDate = (dateStr: string | undefined) => dateStr || "--";

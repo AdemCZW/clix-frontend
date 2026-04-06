@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, onMounted, computed } from "vue";
+import { reactive, ref, onMounted, computed, watch } from "vue";
 import { QuillEditor } from "@vueup/vue-quill";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
 import { useToast } from "@/composables/useToast";
@@ -246,20 +246,25 @@ const editorOptions = {
   theme: "snow",
 };
 
-onMounted(async () => {
-  loadTemplates();
-  // Quill 圖片上傳（取代 base64）
-  setTimeout(() => {
-    if (myQuill.value) setupQuillImageUpload(myQuill.value);
-  }, 100);
+const loadEventParticipants = async (eventId?: number) => {
   try {
-    const eventId = eventsStore.currentEvent?.id;
     await participantsStore.fetchParticipants(eventId ? { event: String(eventId) } : {});
   } catch {
     warning("載入參與者資料失敗");
-  } finally {
-    pageLoading.value = false;
   }
+};
+
+onMounted(async () => {
+  loadTemplates();
+  setTimeout(() => {
+    if (myQuill.value) setupQuillImageUpload(myQuill.value);
+  }, 100);
+  await loadEventParticipants(eventsStore.currentEvent?.id);
+  pageLoading.value = false;
+});
+
+watch(() => eventsStore.currentEvent?.id, (id) => {
+  if (id) loadEventParticipants(id);
 });
 </script>
 

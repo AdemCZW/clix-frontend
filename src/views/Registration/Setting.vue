@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, onMounted, computed } from "vue";
+import { reactive, ref, onMounted, computed, watch } from "vue";
 // 引入 Quill 編輯器元件與樣式
 import { QuillEditor } from "@vueup/vue-quill";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
@@ -149,27 +149,12 @@ const insertEmailTag = (tag: string) => {
 };
 
 // ── 初始化 ────────────────────────────────────────────────────────────────
-onMounted(async () => {
-  userStore.checkAuth();
-  const event = eventsStore.currentEvent;
-
-  // 沒有選擇活動 → 回到活動列表
-  if (!event || !event.id) {
-    router.push("/admin/events");
-    return;
-  }
-
+const loadPageData = async (eventId: number) => {
   loading.value = true;
   try {
-    // 嘗試取得該活動的報名頁設定
-    let page = await pagesStore.fetchByEvent(event.id);
+    let page = await pagesStore.fetchByEvent(eventId);
+    if (!page) page = await pagesStore.createPage(eventId);
 
-    // 尚未建立 → 自動建立
-    if (!page) {
-      page = await pagesStore.createPage(event.id);
-    }
-
-    // 用後端資料初始化表單
     pageId.value = page.id;
     shortLink.value = page.shortLink;
     customSlug.value = extractSlug(page.shortLink);
@@ -191,12 +176,22 @@ onMounted(async () => {
     }
   } finally {
     loading.value = false;
-    // Quill 圖片上傳（取代 base64）
     setTimeout(() => {
       if (myQuill.value) setupQuillImageUpload(myQuill.value);
       if (emailQuill.value) setupQuillImageUpload(emailQuill.value);
     }, 100);
   }
+};
+
+onMounted(() => {
+  userStore.checkAuth();
+  const event = eventsStore.currentEvent;
+  if (!event?.id) { router.push("/admin/events"); return; }
+  loadPageData(event.id);
+});
+
+watch(() => eventsStore.currentEvent?.id, (id) => {
+  if (id) loadPageData(id);
 });
 
 // ── Banner 選擇 ────────────────────────────────────────────────────────────
