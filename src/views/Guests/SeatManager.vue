@@ -572,25 +572,37 @@ const saveSeats = async () => {
 };
 
 // ── 初始化 ──
-watch(() => eventsStore.currentEvent?.id, (id) => {
-  currentActivityId.value = getActivityKey(id);
-  seatsStore.ensureActivity(currentActivityId.value);
-  updateUnassignedList();
-});
-
 const initialized = ref(false);
 const pageLoading = ref(true);
 
-onMounted(async () => {
+const loadEventData = async (eventId: number) => {
+  pageLoading.value = true;
+  try {
+    currentActivityId.value = getActivityKey(eventId);
+    seatsStore.ensureActivity(currentActivityId.value);
+    await seatsStore.loadFromBackend(eventId);
+    await participantsStore.fetchParticipants({ event: String(eventId) });
+    updateUnassignedList();
+  } catch {
+    toastError("載入座位資料失敗");
+  } finally {
+    pageLoading.value = false;
+    initialized.value = true;
+  }
+};
+
+watch(() => eventsStore.currentEvent?.id, (id) => {
+  if (id) loadEventData(id);
+});
+
+onMounted(() => {
   const event = eventsStore.currentEvent;
   seatsStore.ensureActivity(currentActivityId.value);
   if (event?.id) {
-    await seatsStore.loadFromBackend(event.id);
-    await participantsStore.fetchParticipants({ event: String(event.id) });
+    loadEventData(event.id);
+  } else {
+    pageLoading.value = false;
   }
-  updateUnassignedList();
-  initialized.value = true;
-  pageLoading.value = false;
 });
 
 // participants 載入完成後重算一次（只在初始化階段）
