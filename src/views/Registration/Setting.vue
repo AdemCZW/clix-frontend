@@ -340,143 +340,123 @@ const closeGuestDetail = () => {
       </Transition>
     </Teleport>
 
-    <div class="page-header"></div>
-
-    <div class="config-grid-top">
-      <div class="tech-card visual-config">
-        <h3 class="card-subtitle">視覺風格設定</h3>
-        <div class="upload-wrapper">
-          <div class="upload-field">
-            <label>活動 Banner</label>
-            <label
-              class="drop-zone banner-zone"
-              :style="{ backgroundImage: `url(${form.bannerPreview})` }"
-            >
-              <input type="file" @change="onFileChange($event, 'banner')" hidden accept="image/*" />
-              <div v-if="!form.bannerPreview" class="placeholder">點擊上傳主視覺圖</div>
-            </label>
-          </div>
-        </div>
+    <!-- 頂部操作列 -->
+    <div class="page-top-bar">
+      <div class="top-bar-left">
+        <span class="status-label">目前狀態：</span>
+        <span :class="['status-tag', isPublished ? 'published' : 'draft']">{{ isPublished ? '已發布' : '草稿' }}</span>
       </div>
-
-      <div class="tech-card data-card">
-        <h3 class="card-subtitle">
-          活動基本資訊
-          <span v-if="isPublished && !isCurrentEventExpired" class="publish-status published" style="margin-left: 8px;">
-            <span class="status-dot"></span>
-            已發布
-          </span>
-        </h3>
-        <div class="event-info-display">
-          <div class="info-row">
-            <span class="info-label">活動名稱</span>
-            <span class="info-value">{{ currentEvent?.name || '—' }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">日期</span>
-            <span class="info-value">{{ currentEvent?.date || '—' }} {{ currentEvent?.endDate && currentEvent.endDate !== currentEvent.date ? '→ ' + currentEvent.endDate : '' }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">時間</span>
-            <span class="info-value">{{ currentEvent?.time || '—' }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">地點</span>
-            <span class="info-value">{{ currentEvent?.location || '—' }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">地址</span>
-            <span class="info-value">{{ currentEvent?.address || '—' }}</span>
-          </div>
-        </div>
-        <div class="info-hint">如需修改活動基本資訊，請至<a @click.prevent="$router.push('/admin/events')" href="#" class="link-go">活動列表</a>編輯。</div>
+      <div class="top-bar-right">
+        <button class="btn-preview-top" @click="isPreviewOpen = true">預覽</button>
+        <button class="btn-save" :disabled="saving" @click="saveDraft">{{ saving ? '儲存中...' : '儲存草稿' }}</button>
+        <button v-if="isPublished" class="btn-unpublish" :disabled="saving" @click="handleUnpublish">{{ saving ? '處理中...' : '取消發布' }}</button>
+        <button class="btn-publish" :disabled="saving || isCurrentEventExpired" @click="isPublished ? confirmPublish() : confirmPublish()">{{ saving ? '處理中...' : (isPublished ? '更新發布 / 發布' : '更新發布 / 發布') }}</button>
       </div>
+    </div>
 
-      <div class="tech-card link-card accent-blue">
-        <h3 class="card-subtitle">產出報名連結</h3>
-
-        <!-- 過期警告 -->
-        <div v-if="isCurrentEventExpired" class="expired-warning">
-          ⚠️ 此活動已過期，報名已停止接受。如需重新開放，請先至活動列表更新活動日期。
-        </div>
-
-
-        <!-- 已發布狀態移至標題旁，這裡移除 -->
-
-        <div class="link-container">
-          <!-- 自訂 URL 編輯器 -->
-          <div class="custom-url-editor">
-            <span class="url-base-label">{{ urlBase }}</span>
-            <input
-              v-model="customSlug"
-              class="slug-input"
-              placeholder="自訂連結後綴"
-              @keyup.enter="saveCustomSlug"
+    <!-- 左右兩欄佈局 -->
+    <div class="setting-two-col">
+      <!-- 左欄：編輯器 -->
+      <div class="setting-left">
+        <!-- 活動詳細內容編輯 -->
+        <div class="tech-card content-card">
+          <div class="card-header-flex">
+            <h3 class="card-subtitle">活動詳細內容編輯器</h3>
+            <div class="tag-helper">
+              <button class="btn-mini-tag" @click="insertTag('{name}')">+{name}</button>
+              <button class="btn-mini-tag" @click="insertTag('{date}')">+{date}</button>
+            </div>
+          </div>
+          <div class="quill-editor-wrapper">
+            <QuillEditor
+              ref="myQuill"
+              v-model:content="form.mainContent"
+              contentType="html"
+              :options="editorOptions"
             />
-            <button class="btn-update-slug" @click="saveCustomSlug">更新</button>
           </div>
-          <div class="button-row">
-            <button class="btn-copy" @click="copyLink">複製</button>
-            <button class="btn-preview" @click="isPreviewOpen = true">預覽</button>
-          </div>
+          <div class="editor-autosave-hint">每 30 秒自動緩存草稿</div>
         </div>
-        <div class="action-buttons">
-          <button class="btn-save" :disabled="saving" @click="saveDraft">
-            {{ saving ? '儲存中...' : '儲存草稿' }}
-          </button>
-          <button v-if="!isPublished" class="btn-publish" :disabled="saving || isCurrentEventExpired" @click="confirmPublish">
-            {{ saving ? '處理中...' : '發布' }}
-          </button>
-          <button v-else class="btn-unpublish" :disabled="saving" @click="handleUnpublish">
-            {{ saving ? '處理中...' : '取消發布' }}
-          </button>
+
+        <!-- 郵件內文編輯 -->
+        <div class="tech-card content-card" style="margin-top:20px;">
+          <div class="card-header-flex">
+            <h3 class="card-subtitle">郵件內文編輯</h3>
+            <div class="tag-helper">
+              <button class="btn-mini-tag" @click="insertEmailTag('{name}')">+{name}</button>
+              <button class="btn-mini-tag" @click="insertEmailTag('{event_name}')">+{event_name}</button>
+              <button class="btn-mini-tag" @click="insertEmailTag('{order_id}')">+{order_id}</button>
+            </div>
+          </div>
+          <div class="quill-editor-wrapper">
+            <QuillEditor
+              ref="emailQuill"
+              v-model:content="form.emailContent"
+              contentType="html"
+              :options="emailEditorOptions"
+            />
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="content-editor-section">
-      <div class="tech-card content-card">
-        <div class="card-header-flex">
-          <h3 class="card-subtitle">活動詳細內容編輯</h3>
-          <div class="tag-helper">
-            <button class="btn-mini-tag" @click="insertTag('{name}')">+{name}</button>
-            <button class="btn-mini-tag" @click="insertTag('{date}')">+{date}</button>
+      <!-- 右欄：所有設定 -->
+      <div class="setting-right">
+        <!-- 活動視覺 Banner -->
+        <div class="tech-card">
+          <h3 class="card-subtitle">活動視覺 Banner</h3>
+          <label
+            class="drop-zone banner-zone"
+            :style="{ backgroundImage: form.bannerPreview ? `url(${form.bannerPreview})` : 'none' }"
+          >
+            <input type="file" @change="onFileChange($event, 'banner')" hidden accept="image/*" />
+            <div v-if="!form.bannerPreview" class="placeholder">
+              <span>拖拽上傳或點擊選擇</span>
+              <small>建議尺寸 1200×400px, &lt; 5MB</small>
+            </div>
+          </label>
+        </div>
+
+        <!-- 活動基本資訊 -->
+        <div class="tech-card">
+          <h3 class="card-subtitle">活動基本資訊</h3>
+          <div class="event-info-display">
+            <div class="info-row"><span class="info-label">活動名稱：</span><span class="info-value">{{ currentEvent?.name || '—' }}</span></div>
+            <div class="info-row"><span class="info-label">日期：</span><span class="info-value">{{ currentEvent?.date || '—' }} {{ currentEvent?.endDate && currentEvent.endDate !== currentEvent.date ? '→ ' + currentEvent.endDate : '' }}</span></div>
+            <div class="info-row"><span class="info-label">時間：</span><span class="info-value">{{ currentEvent?.time || '—' }}</span></div>
+            <div class="info-row"><span class="info-label">地點：</span><span class="info-value">{{ currentEvent?.location || '—' }}</span></div>
+            <div class="info-row"><span class="info-label">地址：</span><span class="info-value">{{ currentEvent?.address || '—' }}</span></div>
+          </div>
+          <div class="info-hint">如需修改活動基本資訊，請至 <a @click.prevent="$router.push('/admin/events')" href="#" class="link-go">活動列表</a> 編輯。</div>
+        </div>
+
+        <!-- 產出報名連結 -->
+        <div class="tech-card">
+          <h3 class="card-subtitle">產出報名連結</h3>
+          <div v-if="isCurrentEventExpired" class="expired-warning">
+            ⚠️ 此活動已過期，報名已停止接受。如需重新開放，請先至活動列表更新活動日期。
+          </div>
+          <div class="link-container">
+            <div class="custom-url-editor">
+              <span class="url-base-label">{{ urlBase }}</span>
+              <input v-model="customSlug" class="slug-input" placeholder="自訂連結後綴" @keyup.enter="saveCustomSlug" />
+            </div>
+            <div class="button-row">
+              <button class="btn-copy" @click="copyLink">複製連結</button>
+              <button class="btn-update-slug" @click="saveCustomSlug">更新</button>
+            </div>
           </div>
         </div>
-        <div class="quill-editor-wrapper">
-          <QuillEditor
-            ref="myQuill"
-            v-model:content="form.mainContent"
-            contentType="html"
-            :options="editorOptions"
-          />
-        </div>
-      </div>
-    </div>
 
-    <!-- 通知信設定區塊 -->
-    <div class="email-notification-section">
-      <div class="email-config-grid">
         <!-- 發送參數設定 -->
-        <div class="tech-card email-params-card">
+        <div class="tech-card">
           <h3 class="card-subtitle">發送參數設定</h3>
           <div class="field mt-16">
             <label>郵件主旨</label>
-            <input
-              v-model="form.emailSubject"
-              type="text"
-              placeholder="輸入郵件主旨"
-              class="input-styled"
-            />
+            <input v-model="form.emailSubject" type="text" placeholder="輸入郵件主旨" class="input-styled" />
           </div>
           <div class="field mt-16">
             <label>寄件者名稱</label>
-            <input
-              v-model="form.emailSenderName"
-              type="text"
-              placeholder="輸入寄件者名稱"
-              class="input-styled"
-            />
+            <input v-model="form.emailSenderName" type="text" placeholder="輸入寄件者名稱" class="input-styled" />
           </div>
           <div class="auto-send-toggle mt-20">
             <div class="toggle-info">
@@ -487,30 +467,6 @@ const closeGuestDetail = () => {
               <input type="checkbox" v-model="form.enableAutoSend" />
               <span class="switch-slider"></span>
             </label>
-          </div>
-        </div>
-
-        <!-- 郵件內容編輯 -->
-        <div class="tech-card email-content-card">
-          <div class="card-header-flex">
-            <h3 class="card-subtitle">郵件內文編輯</h3>
-            <div class="tag-helper">
-              <button class="btn-mini-tag" @click="insertEmailTag('{name}')">+{name}</button>
-              <button class="btn-mini-tag" @click="insertEmailTag('{event_name}')">
-                +{event_name}
-              </button>
-              <button class="btn-mini-tag" @click="insertEmailTag('{order_id}')">
-                +{order_id}
-              </button>
-            </div>
-          </div>
-          <div class="quill-editor-wrapper">
-            <QuillEditor
-              ref="emailQuill"
-              v-model:content="form.emailContent"
-              contentType="html"
-              :options="emailEditorOptions"
-            />
           </div>
         </div>
       </div>
@@ -834,20 +790,49 @@ const closeGuestDetail = () => {
     }
   }
 }
-.config-grid-top {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  margin-bottom: 20px;
+/* ── 頂部操作列 ── */
+.page-top-bar {
+  display:flex; align-items:center; justify-content:space-between;
+  background:var(--bg-card); padding:12px 20px; border-radius:12px;
+  border:1px solid var(--border-light); margin-bottom:20px;
+  flex-wrap:wrap; gap:10px;
 }
-.content-editor-section {
-  width: 100%;
+.top-bar-left { display:flex; align-items:center; gap:8px; }
+.status-label { font-size:.85rem; color:var(--text-gray); font-weight:500; }
+.status-tag {
+  font-size:.78rem; font-weight:700; padding:3px 10px; border-radius:6px;
+}
+.status-tag.draft { background:#f1f5f9; color:#64748b; }
+.status-tag.published { background:#dcfce7; color:#15803d; }
+.top-bar-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.btn-preview-top {
+  padding:8px 16px; border:1px solid var(--border-light); background:var(--bg-card);
+  border-radius:8px; font-size:.84rem; font-weight:600; color:var(--text-gray);
+  cursor:pointer; transition:.15s;
+}
+.btn-preview-top:hover { background:var(--bg-soft); }
+
+/* ── 左右兩欄佈局 ── */
+.setting-two-col {
+  display:grid; grid-template-columns:1fr 360px; gap:20px; align-items:start;
+}
+.setting-left { min-width:0; }
+.setting-right {
+  display:flex; flex-direction:column; gap:16px;
+  position:sticky; top:80px;
 }
 
-/* 通知信設定區塊 */
-.email-notification-section {
-  width: 100%;
-  margin-top: 20px;
+.editor-autosave-hint {
+  font-size:.75rem; color:var(--text-gray-light); padding:8px 0 0; text-align:left;
+}
+
+@media(max-width:1024px) {
+  .setting-two-col { grid-template-columns:1fr; }
+  .setting-right { position:static; }
+}
+@media(max-width:768px) {
+  .page-top-bar { flex-direction:column; align-items:stretch; }
+  .top-bar-right { justify-content:flex-end; }
 }
 
 .section-title-bar {
@@ -875,11 +860,6 @@ const closeGuestDetail = () => {
   display: grid;
   grid-template-columns: 1fr 1.5fr;
   gap: 20px;
-}
-
-.email-params-card {
-  display: flex;
-  flex-direction: column;
 }
 
 .email-content-card {
