@@ -489,6 +489,7 @@ const toggleVIP = (participant: Participant) => {
             v-for="p in filteredList"
             :key="p.id"
             :class="{ selected: activeTab === 'VIP' && isVIPSelected(p.id) }"
+            @click="openEditPanel(p)"
           >
             <td v-if="activeTab === 'VIP'" style="text-align: center">
               <label class="checkbox-wrapper" @click.stop>
@@ -563,6 +564,13 @@ const toggleVIP = (participant: Participant) => {
         </tbody>
       </table>
       </div>
+    </div>
+
+    <!-- 手機底部操作列 -->
+    <div class="mobile-bottom-bar">
+      <button class="mb-import" @click="triggerImport">匯入</button>
+      <button class="mb-export" @click="handleExport">匯出</button>
+      <button class="mb-add" @click="addParticipant">＋ 新增</button>
     </div>
 
     <!-- 右側滑出編輯面板 -->
@@ -1373,4 +1381,86 @@ const toggleVIP = (participant: Participant) => {
     transform: rotate(360deg);
   }
 }
+
+/* ── 手機版 ── */
+@media (max-width: 768px) {
+  .participants-view { padding:12px 12px 80px; }
+
+  /* 搜尋列：搜尋+篩選上方，按鈕移到底部 */
+  .page-header {
+    flex-direction:column; gap:10px; margin-bottom:16px;
+  }
+  .header-left {
+    flex-direction:column; gap:8px; width:100%;
+    .search-wrapper { max-width:100%; }
+    .filter-item { width:100%; }
+    .select-rounded { flex:1; width:100%; }
+  }
+
+  /* 隱藏桌機版按鈕 */
+  .header-actions { display:none; }
+
+  /* 手機底部操作列 */
+  .mobile-bottom-bar {
+    display:flex !important;
+    position:fixed; bottom:0; left:0; right:0; z-index:60;
+    background:var(--bg-card); border-top:1px solid var(--border-color);
+    padding:8px 12px calc(8px + env(safe-area-inset-bottom, 12px));
+    gap:8px; box-shadow:0 -2px 10px rgba(0,0,0,.06);
+  }
+  .mobile-bottom-bar button {
+    flex:1; padding:10px 0; border-radius:10px;
+    font-size:.78rem; font-weight:600; cursor:pointer; border:none;
+    transition:.15s;
+  }
+  .mobile-bottom-bar .mb-import {
+    background:var(--bg-hover); color:var(--text-secondary);
+    border:1px solid var(--border-color);
+  }
+  .mobile-bottom-bar .mb-export {
+    background:var(--bg-hover); color:var(--text-secondary);
+    border:1px solid var(--border-color);
+  }
+  .mobile-bottom-bar .mb-add {
+    background:#6366f1; color:#fff;
+  }
+
+  /* 標籤頁緊湊 */
+  .tab-navigation { padding:8px 8px 0; }
+  .tab-button {
+    padding:8px 14px; font-size:.82rem;
+    .tab-label { font-size:.82rem; }
+    .tab-count { min-width:18px; height:18px; font-size:.62rem; padding:0 5px; }
+  }
+
+  /* 表格：隱藏部分欄位 */
+  .data-table {
+    min-width:0;
+    th:nth-child(4), td:nth-child(4),  /* 電話 */
+    th:nth-child(5), td:nth-child(5),  /* 身分 */
+    th:nth-child(7), td:nth-child(7) { display:none; }  /* 操作 */
+
+    th, td { padding:10px 12px; font-size:.82rem; }
+  }
+
+  /* 點擊整列可編輯 */
+  .data-table tbody tr { cursor:pointer; }
+  .data-table tbody tr:active { background:var(--bg-hover); }
+
+  .name-cell {
+    gap:8px;
+    .avatar { width:28px; height:28px; font-size:.78rem; }
+    .name { font-size:.84rem; }
+    .email-sub { font-size:.68rem; }
+  }
+
+  .comp { font-size:.82rem; }
+  .title-sub { font-size:.68rem; }
+
+  /* 匯出選單在手機上居中 */
+  .export-menu { right:auto; left:50%; transform:translateX(-50%); min-width:260px; }
+}
+
+/* 桌機隱藏手機元素 */
+.mobile-bottom-bar { display:none; }
 </style>
