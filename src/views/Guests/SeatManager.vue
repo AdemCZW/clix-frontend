@@ -223,9 +223,13 @@ const selectPersonForAssign = (p: SeatPerson) => {
   }
 };
 
+const movingFrom = ref<{ r: number; c: number } | null>(null);
+
 const handleSeatClick = (r: number, c: number) => {
+  const status = getSeatStatus(r, c);
+
+  // 正在分配名單中的人
   if (selectedPerson.value) {
-    const status = getSeatStatus(r, c);
     if (status === "aisle" || status === "reserved") return;
     const seat = getSeat(r, c);
     if (seat && seat.attendee.length > 0) removePerson(r, c);
@@ -233,8 +237,40 @@ const handleSeatClick = (r: number, c: number) => {
     selectedPerson.value = null;
     return;
   }
+
+  // 正在換位
+  if (movingFrom.value) {
+    if (status === "aisle" || status === "reserved") return;
+    const { r: fr, c: fc } = movingFrom.value;
+    const fromSeat = getSeat(fr, fc);
+    if (!fromSeat) { movingFrom.value = null; return; }
+    const fromPerson = fromSeat.attendee[0] as unknown as SeatPerson;
+    const targetSeat = getSeat(r, c);
+    if (targetSeat && targetSeat.attendee.length > 0) {
+      // 交換
+      const targetPerson = targetSeat.attendee[0] as unknown as SeatPerson;
+      removePerson(r, c);
+      removePerson(fr, fc);
+      assignPerson(targetPerson, fr, fc);
+      assignPerson(fromPerson, r, c);
+    } else {
+      removePerson(fr, fc);
+      assignPerson(fromPerson, r, c);
+    }
+    movingFrom.value = null;
+    return;
+  }
+
+  // 手機上點擊已分配座位 → 進入換位模式
+  if (isMobile.value && status === "assigned") {
+    movingFrom.value = { r, c };
+    return;
+  }
+
   toggleSeatSelect(r, c);
 };
+
+const cancelMove = () => { movingFrom.value = null; };
 
 const cancelSelectPerson = () => { selectedPerson.value = null; };
 
@@ -654,11 +690,15 @@ watch(() => participantsStore.participants.length, () => {
       </div>
     </main>
 
-    <!-- 手機：已選人員提示 -->
+    <!-- 手機：已選人員 / 換位提示 -->
     <Transition name="tb-slide">
-      <div v-if="selectedPerson" class="sp-pick-hint">
+      <div v-if="selectedPerson" class="sp-pick-hint" key="pick">
         <span>點擊座位分配：<b>{{ selectedPerson.name }}</b></span>
         <button @click="cancelSelectPerson">取消</button>
+      </div>
+      <div v-else-if="movingFrom" class="sp-pick-hint sp-move-hint" key="move">
+        <span>點擊目標座位換位：<b>{{ (getSeat(movingFrom.r, movingFrom.c)?.attendee[0] as any)?.name }}</b></span>
+        <button @click="cancelMove">取消</button>
       </div>
     </Transition>
 
@@ -958,7 +998,7 @@ watch(() => participantsStore.participants.length, () => {
     position:fixed; bottom:0; left:0; right:0; z-index:40;
     background:var(--bg-card); border-radius:16px 16px 0 0;
     box-shadow:0 -4px 20px rgba(0,0,0,.12);
-    max-height:55dvh; overflow:hidden;
+    max-height:65dvh; overflow:hidden;
     padding-bottom:calc(60px + env(safe-area-inset-bottom, 12px));
   }
   .sp-sheet-tip {
@@ -991,6 +1031,9 @@ watch(() => participantsStore.participants.length, () => {
     margin-left:auto; border:none; background:rgba(255,255,255,.2);
     color:#fff; padding:4px 10px; border-radius:6px;
     font-size:.76rem; font-weight:600; cursor:pointer;
+  }
+  .sp-move-hint {
+    background:#f59e0b; box-shadow:0 4px 16px rgba(245,158,11,.3);
   }
 
   /* 禁止手機長按選取/搜尋 */
