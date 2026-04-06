@@ -274,6 +274,99 @@ const cancelMove = () => { movingFrom.value = null; };
 
 const cancelSelectPerson = () => { selectedPerson.value = null; };
 
+// ── 手機 Touch 拖曳 ──
+const touchDragPerson = ref<SeatPerson | null>(null);
+const touchDragFrom = ref<{ r: number; c: number } | null>(null);
+const touchGhost = ref<HTMLElement | null>(null);
+const touchOverIdx = ref<number | null>(null);
+
+const createGhost = (name: string, x: number, y: number) => {
+  const el = document.createElement('div');
+  el.className = 'sp-touch-ghost';
+  el.textContent = name;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  document.body.appendChild(el);
+  return el;
+};
+
+const onTouchStartPerson = (p: SeatPerson, e: TouchEvent) => {
+  if (!isMobile.value) return;
+  e.preventDefault();
+  touchDragPerson.value = p;
+  touchDragFrom.value = null;
+  const t = e.touches[0];
+  touchGhost.value = createGhost(p.name, t.clientX, t.clientY);
+  panelOpen.value = false;
+};
+
+const onTouchStartSeat = (r: number, c: number, e: TouchEvent) => {
+  if (!isMobile.value) return;
+  const status = getSeatStatus(r, c);
+  if (status !== 'assigned') return;
+  e.preventDefault();
+  const seat = getSeat(r, c);
+  if (!seat || seat.attendee.length === 0) return;
+  const p = seat.attendee[0] as unknown as SeatPerson;
+  touchDragPerson.value = p;
+  touchDragFrom.value = { r, c };
+  const t = e.touches[0];
+  touchGhost.value = createGhost(p.name, t.clientX, t.clientY);
+};
+
+const onTouchMove = (e: TouchEvent) => {
+  if (!touchGhost.value || !touchDragPerson.value) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  touchGhost.value.style.left = t.clientX + 'px';
+  touchGhost.value.style.top = t.clientY + 'px';
+  // 偵測手指下方的座位
+  touchGhost.value.style.display = 'none';
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  touchGhost.value.style.display = '';
+  const seatEl = el?.closest('.sp-seat') as HTMLElement | null;
+  if (seatEl) {
+    const rAttr = seatEl.dataset.row;
+    const cAttr = seatEl.dataset.col;
+    if (rAttr !== undefined && cAttr !== undefined) {
+      touchOverIdx.value = getIdx(Number(rAttr), Number(cAttr));
+      return;
+    }
+  }
+  touchOverIdx.value = null;
+};
+
+const onTouchEnd = () => {
+  if (!touchDragPerson.value) return;
+  if (touchGhost.value) { touchGhost.value.remove(); touchGhost.value = null; }
+
+  if (touchOverIdx.value !== null) {
+    const r = Math.floor(touchOverIdx.value / cols.value);
+    const c = touchOverIdx.value % cols.value;
+    const status = getSeatStatus(r, c);
+    if (status !== 'aisle' && status !== 'reserved') {
+      if (touchDragFrom.value) {
+        const { r: fr, c: fc } = touchDragFrom.value;
+        const target = getSeat(r, c);
+        if (target && target.attendee.length > 0) {
+          const tp = target.attendee[0] as unknown as SeatPerson;
+          removePerson(r, c);
+          assignPerson(tp, fr, fc);
+        } else {
+          removePerson(fr, fc);
+        }
+      } else {
+        const seat = getSeat(r, c);
+        if (seat && seat.attendee.length > 0) removePerson(r, c);
+      }
+      assignPerson(touchDragPerson.value, r, c);
+    }
+  }
+  touchDragPerson.value = null;
+  touchDragFrom.value = null;
+  touchOverIdx.value = null;
+};
+
 // ── 縮放 ──
 const zoom = ref(100);
 const zoomIn = () => { if (zoom.value < 150) zoom.value += 10; };
@@ -640,7 +733,9 @@ watch(() => participantsStore.participants.length, () => {
                 aisle: getSeatStatus(r-1, c-1) === 'aisle',
                 reserved: getSeatStatus(r-1, c-1) === 'reserved',
                 'drag-over': dragOverIdx === getIdx(r-1, c-1),
+                'touch-over': touchOverIdx === getIdx(r-1, c-1),
               }"
+              :data-row="r-1" :data-col="c-1"
               :draggable="!isMobile && getSeatStatus(r-1, c-1) === 'assigned' ? 'true' : 'false'"
               @click="handleSeatClick(r-1, c-1)"
               @dragstart="!isMobile && getSeatStatus(r-1, c-1) === 'assigned' && onDragStartSeat(r-1, c-1, $event)"
@@ -648,6 +743,9 @@ watch(() => participantsStore.participants.length, () => {
               @dragover="onDragOver(r-1, c-1, $event)"
               @dragleave="onDragLeave"
               @drop="onDrop(r-1, c-1)"
+              @touchstart="onTouchStartSeat(r-1, c-1, $event)"
+              @touchmove="onTouchMove($event)"
+              @touchend="onTouchEnd"
             >
               <!-- 走道 -->
               <template v-if="getSeatStatus(r-1,c-1)==='aisle'"></template>
@@ -738,6 +836,9 @@ watch(() => participantsStore.participants.length, () => {
             class="sp-person"
             :class="{ 'sp-person-active': selectedPerson?.id === p.id }"
             @click="selectPersonForAssign(p)"
+            @touchstart="onTouchStartPerson(p, $event)"
+            @touchmove="onTouchMove($event)"
+            @touchend="onTouchEnd"
           >
             <div class="sp-person-l"><b>{{ p.name }}</b><small>{{ p.company }}</small></div>
             <div class="sp-person-r"><code>#{{ p.serial }}</code></div>
@@ -871,7 +972,7 @@ watch(() => participantsStore.participants.length, () => {
 .sp-seat.aisle { background:transparent; border:2px dashed #d1d5db; cursor:default; border-radius:8px; }
 .sp-seat.aisle:hover { box-shadow:none; border-color:#d1d5db; }
 .sp-seat.reserved { background:#fef2f2; border-color:#fca5a5; }
-.sp-seat.drag-over { border-color: var(--accent); background:#eef2ff; box-shadow:0 0 0 4px rgba(99,102,241,.25); transform:scale(1.05); }
+.sp-seat.drag-over, .sp-seat.touch-over { border-color: var(--accent); background:#eef2ff; box-shadow:0 0 0 4px rgba(99,102,241,.25); transform:scale(1.05); }
 
 .sp-seat-lbl { font-size:.78rem; font-weight:600; color:var(--text-muted); }
 
@@ -1038,8 +1139,10 @@ watch(() => participantsStore.participants.length, () => {
 
   /* 禁止手機長按選取/搜尋 */
   .sp-seat, .sp-person, .sp-grid, .sp-avatar, .sp-seat-name, .sp-seat-lbl {
-    -webkit-touch-callout:none; touch-action:manipulation;
+    -webkit-touch-callout:none;
   }
+  .sp-seat.filled { touch-action:none; }
+  .sp-sheet-list .sp-person { touch-action:none; }
 
   /* 座位縮小 */
   .sp { --seat-base:52px; --hdr-w:24px; }
@@ -1061,5 +1164,19 @@ watch(() => participantsStore.participants.length, () => {
   }
   .sp-sel-count { font-size:.76rem; padding-right:6px; }
   .sp-sel-bar button { padding:5px 8px; font-size:.72rem; }
+}
+</style>
+
+<style>
+/* Ghost 元素掛在 body 上，不能用 scoped */
+.sp-touch-ghost {
+  position:fixed; z-index:9999; pointer-events:none;
+  transform:translate(-50%, -110%);
+  background:#6366f1; color:#fff;
+  padding:6px 14px; border-radius:20px;
+  font-size:.78rem; font-weight:700;
+  box-shadow:0 4px 16px rgba(99,102,241,.4);
+  white-space:nowrap; max-width:160px;
+  overflow:hidden; text-overflow:ellipsis;
 }
 </style>
