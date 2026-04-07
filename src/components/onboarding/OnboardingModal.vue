@@ -338,8 +338,6 @@ const complete = () => {
     });
   } else {
     // 建立模式：發送新建的系列和活動
-    console.log("Series:", seriesForm.value);
-    console.log("Event:", eventForm.value);
 
     emit("complete", {
       series: seriesForm.value,

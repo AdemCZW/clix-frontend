@@ -5,7 +5,6 @@ const loadXLSX = () => import("xlsx");
 import { useToast } from "@/composables/useToast";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
-import BasePanel from "@/components/shared/BasePanel.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import PageLoader from "@/components/shared/PageLoader.vue";
 import type { Participant } from "@/types";
@@ -268,16 +267,6 @@ const closeEditPanel = () => {
   if (hasUnsavedParticipant.value && !confirm("尚未儲存變更，確定要離開嗎？")) return;
   editingParticipant.value = null;
 };
-const editPanelOpen = computed({
-  get: () => !!editingParticipant.value,
-  set: (v) => {
-    if (!v) {
-      if (hasUnsavedParticipant.value && !confirm("尚未儲存變更，確定要離開嗎？")) return;
-      editingParticipant.value = null;
-    }
-  },
-});
-
 // 確認刪除 dialog
 const confirmDialog = ref<{ show: boolean; participant: Participant | null }>({ show: false, participant: null });
 
@@ -353,18 +342,6 @@ const formatDate = (isoString: string) => {
   });
 };
 
-// VIP 勾選管理（本地狀態）
-const selectedVIPIds = ref(new Set());
-const isVIPSelected = (id: number) => selectedVIPIds.value.has(id);
-const toggleVIP = (participant: Participant) => {
-  const s = new Set(selectedVIPIds.value);
-  if (s.has(participant.id)) {
-    s.delete(participant.id);
-  } else {
-    s.add(participant.id);
-  }
-  selectedVIPIds.value = s;
-};
 </script>
 
 <template>

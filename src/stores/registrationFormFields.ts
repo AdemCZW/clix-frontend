@@ -27,7 +27,6 @@ export const useRegistrationFormFieldsStore = defineStore('registrationFormField
             currentPageId.value = pageId
         } catch (err) {
             error.value = (err as Error).message
-            console.error('fetchFields error:', err)
         } finally {
             loading.value = false
         }

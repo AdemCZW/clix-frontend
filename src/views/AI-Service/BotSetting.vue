@@ -175,7 +175,6 @@ const removeFaq = (index) => {
 };
 
 const saveBotSettings = () => {
-  console.log("保存 AI 客服設定:", botSettings);
   // 這裡可以添加 API 呼叫
   success("AI 客服設定已儲存！");
 };
