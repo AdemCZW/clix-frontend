@@ -463,33 +463,27 @@ const createEvent = async () => {
 .filter-bar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 32px;
+  gap: 10px;
+  margin-bottom: 14px;
   justify-content: space-between;
 
   .btn-create {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: #6366f1;
     color: white;
     border: none;
-    padding: 12px 24px;
-    border-radius: 12px;
+    padding: 8px 16px;
+    border-radius: 8px;
     font-weight: 600;
+    font-size: 0.84rem;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: all 0.3s;
+    gap: 6px;
+    transition: all 0.15s;
     white-space: nowrap;
 
-    &:hover {
-      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-      transform: translateY(-2px);
-    }
-
-    .icon {
-      font-size: 1.2rem;
-    }
+    &:hover { background: #4f46e5; }
+    .icon { font-size: 1rem; }
   }
 }
 
@@ -499,12 +493,13 @@ const createEvent = async () => {
 
   input {
     width: 100%;
-    border: 2px solid var(--border-color);
+    border: 1px solid var(--border-color);
     background: var(--bg-card);
-    padding: 12px 18px;
-    font-size: 0.95rem;
-    border-radius: 10px;
-    transition: all 0.3s;
+    color: var(--text-main);
+    padding: 8px 12px;
+    font-size: 0.88rem;
+    border-radius: 8px;
+    transition: all 0.15s;
     font-weight: 500;
 
     &:focus {
@@ -528,13 +523,13 @@ const createEvent = async () => {
 .filter-tab {
   background: transparent;
   border: 1px solid var(--border-color);
-  padding: 8px 16px;
+  padding: 6px 14px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.84rem;
+  font-weight: 600;
   color: var(--text-secondary);
-  transition: all 0.3s;
+  transition: all 0.15s;
 
   &:hover {
     border-color: var(--accent);
@@ -586,24 +581,24 @@ const createEvent = async () => {
 .events-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: 14px;
 }
 
 .event-card {
   background: var(--bg-card);
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--border-color);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.15s;
 
   &:hover {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
   }
 
   .card-banner {
-    height: 160px;
+    height: 130px;
     background-size: cover;
     background-position: center;
     background-color: #e5e7eb;
@@ -637,39 +632,39 @@ const createEvent = async () => {
   }
 
   .card-content {
-    padding: 20px;
+    padding: 14px;
 
     .event-title {
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: 700;
       color: var(--text-main);
-      margin: 0 0 16px 0;
+      margin: 0 0 10px 0;
     }
 
     .event-meta {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      margin-bottom: 16px;
+      gap: 5px;
+      margin-bottom: 12px;
 
       .meta-item {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 0.85rem;
+        gap: 6px;
+        font-size: 0.82rem;
         color: var(--text-secondary);
 
         .meta-icon {
-          font-size: 1rem;
+          font-size: 0.9rem;
         }
       }
     }
 
     .card-actions {
       display: flex;
-      gap: 8px;
-      padding-top: 16px;
-      border-top: 1px solid var(--border-light);
+      gap: 6px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-color);
       align-items: center;
 
       .reg-page-badge {
@@ -688,27 +683,22 @@ const createEvent = async () => {
 
       .btn-action {
         flex: 1;
-        padding: 8px 16px;
-        border-radius: 8px;
+        padding: 6px 12px;
+        border-radius: 7px;
         border: 1px solid #6366f1;
         background: #6366f1;
         color: white;
         font-weight: 600;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         cursor: pointer;
-        transition: all 0.3s;
+        transition: all 0.15s;
 
-        &:hover {
-          background: #4f46e5;
-        }
+        &:hover { background: #4f46e5; }
 
         &.secondary {
           background: var(--bg-card);
           color: #6366f1;
-
-          &:hover {
-            background: #eef2ff;
-          }
+          &:hover { background: rgba(99,102,241,.08); }
         }
       }
     }
@@ -772,18 +762,17 @@ const createEvent = async () => {
 }
 
 .btn-confirm {
-  padding: 10px 24px;
-  border-radius: 10px;
+  padding: 8px 20px;
+  border-radius: 8px;
   font-weight: 600;
+  font-size: 0.88rem;
   cursor: pointer;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: #6366f1;
   border: none;
   color: white;
-  transition: all 0.3s;
+  transition: all 0.15s;
 
-  &:hover {
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-  }
+  &:hover { background: #4f46e5; }
 }
 
 /* 過期活動卡片樣式 */
@@ -799,13 +788,12 @@ const createEvent = async () => {
 
 /* 編輯活動按鈕 */
 .btn-edit-event {
-  background: white !important;
+  background: var(--bg-card) !important;
   color: var(--text-secondary) !important;
   border-color: var(--border-color) !important;
 
   &:hover {
-    background: #f8fafc !important;
-    border-color: #cbd5e1 !important;
+    background: var(--bg-hover) !important;
   }
 }
 
@@ -825,18 +813,17 @@ const createEvent = async () => {
 }
 
 .btn-panel-save {
-  padding: 10px 24px;
-  border-radius: 10px;
+  padding: 8px 20px;
+  border-radius: 8px;
   font-weight: 600;
+  font-size: 0.88rem;
   cursor: pointer;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: #6366f1;
   border: none;
   color: white;
-  transition: all 0.2s;
+  transition: all 0.15s;
 
-  &:hover {
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-  }
+  &:hover { background: #4f46e5; }
 }
 
 @media (max-width: 1200px) {
@@ -886,11 +873,11 @@ const createEvent = async () => {
   pointer-events: none;
 }
 .skeleton-banner {
-  height: 140px;
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  height: 120px;
+  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--border-color) 50%, var(--bg-hover) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s infinite;
-  border-radius: 16px 16px 0 0;
+  border-radius: 10px 10px 0 0;
 }
 .skeleton-body {
   padding: 20px;
@@ -901,7 +888,7 @@ const createEvent = async () => {
 .skeleton-line {
   height: 14px;
   border-radius: 6px;
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--border-color) 50%, var(--bg-hover) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s infinite;
 }
