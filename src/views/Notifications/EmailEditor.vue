@@ -401,12 +401,11 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 .email-editor-view {
   background: var(--bg-primary);
   min-height: 100vh;
-  padding: 24px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 12px;
   --primary: #6366f1;
-  --deep-dark: #0f172a;
-  --text-gray: #475569;
-  --bg-soft: #f8fafc;
+  --deep-dark: var(--text-main);
+  --text-gray: var(--text-secondary);
+  --bg-soft: var(--bg-hover);
   --border-light: var(--border-color);
 }
 
@@ -421,8 +420,7 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
    =========================================== */
 
 .page-header {
-  padding: 0 0 20px 0;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -430,96 +428,38 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 
 .header-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
   flex-wrap: wrap;
 }
 
-/* ===========================================
-   🔘 按鈕樣式
-   =========================================== */
-
-.btn-send,
-.btn-save {
-  padding: 12px 24px;
-  border-radius: 10px;
+/* 統一按鈕 */
+.btn-send, .btn-save, .btn-view-templates, .btn-secondary {
+  padding: 7px 16px;
+  border-radius: 8px;
   border: none;
   cursor: pointer;
-  color: white;
   font-weight: 600;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
+  font-size: 0.84rem;
+  transition: all 0.15s;
   white-space: nowrap;
 }
-
-.btn-send {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-.btn-send:hover:not(:disabled) {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
-}
-
-.btn-send:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.btn-save {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
-
-.btn-save:hover {
-  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
-}
-
+.btn-send { background: #10b981; color: #fff; }
+.btn-send:hover:not(:disabled) { background: #059669; }
+.btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-save { background: #6366f1; color: #fff; }
+.btn-save:hover { background: #4f46e5; }
 .btn-view-templates {
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  padding: 12px 24px;
-  border-radius: 10px;
-  border: 2px solid var(--border-color);
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  white-space: nowrap;
+  background: var(--bg-card); color: var(--text-secondary);
+  border: 1px solid var(--border-color);
 }
-
-.btn-view-templates:hover {
-  background: var(--bg-primary);
-  border-color: #cbd5e1;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
+.btn-view-templates:hover { background: var(--bg-hover); }
 .btn-secondary {
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  border: 2px solid var(--border-color);
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  cursor: pointer;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  padding: 6px 14px; background: var(--bg-hover);
+  color: var(--text-secondary); border: 1px solid var(--border-color);
+  border-radius: 7px;
 }
-
-.btn-secondary:hover {
-  background: var(--bg-primary);
-  border-color: #cbd5e1;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-}
+.btn-secondary:hover { background: var(--border-color); }
 
 /* ===========================================
    📐 主要佈局
@@ -527,39 +467,33 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 
 .editor-layout {
   display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 20px;
+  grid-template-columns: 1fr 320px;
+  gap: 12px;
   align-items: start;
 }
 
 .left-section {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
   min-width: 0;
 }
 
 .panel {
   background: var(--bg-card);
-  border-radius: 16px;
+  border-radius: 10px;
   border: 1px solid var(--border-light);
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: box-shadow 0.3s;
+  padding: 14px;
   min-width: 0;
 }
 
-.panel:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
 .panel-title {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: var(--deep-dark);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid var(--border-light);
+  font-size: .92rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-light);
 }
 
 /* ===========================================
@@ -586,16 +520,18 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 
 .custom-input {
   width: 100%;
-  padding: 12px 16px;
-  border-radius: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
   border: 1px solid var(--border-light);
-  font-weight: 600;
-  font-size: 0.9rem;
-  transition: 0.3s;
+  font-weight: 500;
+  font-size: 0.88rem;
+  transition: 0.15s;
+  background: var(--bg-card);
+  color: var(--text-main);
 }
 
 .custom-input:hover {
-  border-color: #cbd5e1;
+  border-color: var(--accent);
 }
 
 .custom-input:focus {
@@ -619,22 +555,20 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 }
 
 .tag-item {
-  background: #eef2ff;
-  border: 1px solid #e0e7ff;
+  background: rgba(99,102,241,.1);
+  border: 1px solid rgba(99,102,241,.2);
   color: #6366f1;
-  padding: 5px 12px;
-  border-radius: 8px;
-  font-size: 0.8rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
-  transition: 0.2s;
+  transition: 0.15s;
 }
 
 .tag-item:hover {
   background: #6366f1;
   color: white;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
 .tag-item span {
@@ -676,7 +610,7 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 
 .participants-side {
   position: sticky;
-  top: 20px;
+  top: 76px;
 }
 
 .participants-header {
@@ -688,12 +622,12 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 }
 
 .selection-info {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: #6366f1;
-  background: #eef2ff;
-  padding: 4px 10px;
-  border-radius: 8px;
+  background: rgba(99,102,241,.1);
+  padding: 3px 8px;
+  border-radius: 6px;
   white-space: nowrap;
 }
 
@@ -707,17 +641,19 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 
 .filter-select {
   width: 100%;
-  padding: 10px 14px;
-  border-radius: 10px;
+  padding: 7px 10px;
+  border-radius: 7px;
   border: 1px solid var(--border-light);
-  font-weight: 600;
-  font-size: 0.85rem;
-  transition: 0.3s;
+  font-weight: 500;
+  font-size: 0.84rem;
+  transition: 0.15s;
   cursor: pointer;
+  background: var(--bg-card);
+  color: var(--text-main);
 }
 
 .filter-select:hover {
-  border-color: #cbd5e1;
+  border-color: var(--accent);
 }
 
 .filter-select:focus {
@@ -728,17 +664,19 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 
 .search-input {
   width: 100%;
-  padding: 10px 14px;
-  border-radius: 10px;
+  padding: 7px 10px;
+  border-radius: 7px;
   border: 1px solid var(--border-light);
-  font-weight: 600;
-  font-size: 0.85rem;
-  transition: 0.3s;
-  margin-bottom: 12px;
+  font-weight: 500;
+  font-size: 0.84rem;
+  transition: 0.15s;
+  margin-bottom: 8px;
+  background: var(--bg-card);
+  color: var(--text-main);
 }
 
 .search-input:hover {
-  border-color: #cbd5e1;
+  border-color: var(--accent);
 }
 
 .search-input:focus {
@@ -755,9 +693,9 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 .participants-list {
   max-height: 500px;
   overflow-y: auto;
-  border: 1px solid #f1f5f9;
-  border-radius: 10px;
-  background: #fafbfc;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--bg-primary);
 }
 
 .participant-item {
@@ -776,7 +714,7 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 }
 
 .participant-item.selected {
-  background: #eef2ff;
+  background: rgba(99,102,241,.08);
   border-left: 3px solid #6366f1;
 }
 
@@ -848,7 +786,7 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  border-left: 1px solid #f1f5f9;
+  border-left: 1px solid var(--border-light);
 }
 
 .drawer-header {
@@ -888,7 +826,7 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 
 .btn-close:hover {
   color: var(--text-main);
-  background: #e2e8f0;
+  background: var(--bg-hover);
 }
 
 .drawer-content {
