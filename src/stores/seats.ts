@@ -101,16 +101,18 @@ export const useSeatsStore = defineStore("seats", () => {
     const actId = `event_${eventId}`
 
     try {
-      // 拉 layout
-      const layoutRes = await apiRequest(`/api/seats/layout/${eventId}/`)
+      // 並行拉 layout + assignments
+      const [layoutRes, assignRes] = await Promise.all([
+        apiRequest(`/api/seats/layout/${eventId}/`),
+        apiRequest(`/api/seats/assignments/${eventId}/`),
+      ])
+
       if (layoutRes.ok) {
         const data = await layoutRes.json()
         layout.rows = data.rows
         layout.cols = data.cols
       }
 
-      // 拉 assignments + seat_metas
-      const assignRes = await apiRequest(`/api/seats/assignments/${eventId}/`)
       if (!assignRes.ok) return
       const resData = await assignRes.json()
       const assignments: Array<{

@@ -580,8 +580,10 @@ const loadEventData = async (eventId: number) => {
   try {
     currentActivityId.value = getActivityKey(eventId);
     seatsStore.ensureActivity(currentActivityId.value);
-    await seatsStore.loadFromBackend(eventId);
-    await participantsStore.fetchParticipants({ event: String(eventId) });
+    await Promise.all([
+      seatsStore.loadFromBackend(eventId),
+      participantsStore.fetchParticipants({ event: String(eventId) }),
+    ]);
     updateUnassignedList();
   } catch {
     toastError("載入座位資料失敗");

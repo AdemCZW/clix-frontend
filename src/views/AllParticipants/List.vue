@@ -150,13 +150,11 @@ const pageLoading = ref(true);
 
 onMounted(async () => {
   try {
-    // 確保管理者列表已載入
-    if (!adminAccounts.value.length) {
-      await adminStore.fetchManagers();
-    }
-
-    // 拉取全部參與者（不限活動），並重建成以活動為單位的資料結構
-    const all = await participantsStore.fetchParticipants({});
+    // 並行載入管理者 + 全部參與者
+    const [, all] = await Promise.all([
+      adminAccounts.value.length ? Promise.resolve() : adminStore.fetchManagers(),
+      participantsStore.fetchParticipants({}),
+    ]);
     const eventMap: Record<number, LocalEvent> = {};
     all.forEach((p: Participant) => {
       if (!p.eventId) return;
