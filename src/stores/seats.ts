@@ -152,6 +152,7 @@ export const useSeatsStore = defineStore("seats", () => {
       activitySeats[actId] = seats
     } catch (err) {
       console.error('loadFromBackend error:', err)
+      throw err
     }
   }
 

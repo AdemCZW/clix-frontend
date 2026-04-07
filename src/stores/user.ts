@@ -1,6 +1,6 @@
 import { defineStore } from "pinia"
 import { ref, computed } from "vue"
-import { apiRequest, API_BASE_URL } from "@/utils/api"
+import { apiRequest } from "@/utils/api"
 import type { User, LoginResponse } from "@/types"
 
 export const useUserStore = defineStore("user", () => {
@@ -33,9 +33,8 @@ export const useUserStore = defineStore("user", () => {
 
     // 登入 (呼叫 POST /api/auth/login/)
     const login = async (username: string, password: string) => {
-        const res = await fetch(`${API_BASE_URL}/api/auth/login/`, {
+        const res = await apiRequest('/api/auth/login/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password }),
         })
 

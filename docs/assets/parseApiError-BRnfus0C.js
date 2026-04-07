@@ -1,0 +1,1 @@
+async function e(e,t){let n=t||`請求失敗 (${e.status})`;try{let t=await e.json();return t.detail||t.message||(t.non_field_errors&&Array.isArray(t.non_field_errors)?t.non_field_errors.join(`, `):null)||n}catch{return n}}export{e as t};

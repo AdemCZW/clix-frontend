@@ -43,6 +43,20 @@ const refreshAccessToken = async (): Promise<string> => {
 }
 
 /**
+ * 帶超時的 fetch（預設 30 秒）
+ */
+const fetchWithTimeout = (url: string, options: RequestInit = {}, timeoutMs = 30000): Promise<Response> => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+    return fetch(url, { ...options, signal: controller.signal })
+        .catch((err) => {
+            if (err.name === 'AbortError') throw new Error('請求超時，請檢查網路連線')
+            throw err
+        })
+        .finally(() => clearTimeout(timer))
+}
+
+/**
  * 統一 API 請求，自動處理 401 → Token 刷新 → 重試
  */
 export const apiRequest = async (path: string, options: RequestInit = {}): Promise<Response> => {
@@ -60,7 +74,7 @@ export const apiRequest = async (path: string, options: RequestInit = {}): Promi
         return { ...getHeaders(), ...(options.headers as Record<string, string>) }
     }
 
-    let response = await fetch(url, {
+    let response = await fetchWithTimeout(url, {
         ...options,
         headers: makeHeaders(),
     })
@@ -69,7 +83,7 @@ export const apiRequest = async (path: string, options: RequestInit = {}): Promi
     if (response.status === 401) {
         try {
             await refreshAccessToken()
-            response = await fetch(url, {
+            response = await fetchWithTimeout(url, {
                 ...options,
                 headers: makeHeaders(),
             })

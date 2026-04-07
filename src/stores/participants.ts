@@ -140,49 +140,81 @@ export const useParticipantsStore = defineStore('participants', () => {
     }
 
     async function checkIn(id: number) {
-        const res = await apiRequest(`/api/participants/${id}/check_in/`, {
-            method: 'POST',
-            body: JSON.stringify({}),
-        })
-        if (!res.ok) throw new Error(`報到失敗 (${res.status})`)
-        const updated = mapParticipant(await res.json())
-        const idx = participants.value.findIndex(p => p.id === id)
-        if (idx !== -1) participants.value[idx] = updated
-        return updated
+        loading.value = true
+        error.value = null
+        try {
+            const res = await apiRequest(`/api/participants/${id}/check_in/`, {
+                method: 'POST',
+                body: JSON.stringify({}),
+            })
+            if (!res.ok) throw new Error(await parseApiError(res, `報到失敗 (${res.status})`))
+            const updated = mapParticipant(await res.json())
+            const idx = participants.value.findIndex(p => p.id === id)
+            if (idx !== -1) participants.value[idx] = updated
+            return updated
+        } catch (err) {
+            error.value = (err as Error).message
+            throw err
+        } finally {
+            loading.value = false
+        }
     }
 
     async function checkOut(id: number) {
-        const res = await apiRequest(`/api/participants/${id}/check_out/`, {
-            method: 'POST',
-            body: JSON.stringify({}),
-        })
-        if (!res.ok) throw new Error(`取消報到失敗 (${res.status})`)
-        const updated = mapParticipant(await res.json())
-        const idx = participants.value.findIndex(p => p.id === id)
-        if (idx !== -1) participants.value[idx] = updated
-        return updated
+        loading.value = true
+        error.value = null
+        try {
+            const res = await apiRequest(`/api/participants/${id}/check_out/`, {
+                method: 'POST',
+                body: JSON.stringify({}),
+            })
+            if (!res.ok) throw new Error(await parseApiError(res, `取消報到失敗 (${res.status})`))
+            const updated = mapParticipant(await res.json())
+            const idx = participants.value.findIndex(p => p.id === id)
+            if (idx !== -1) participants.value[idx] = updated
+            return updated
+        } catch (err) {
+            error.value = (err as Error).message
+            throw err
+        } finally {
+            loading.value = false
+        }
     }
 
     async function regenerateQr(id: number) {
-        const res = await apiRequest(`/api/participants/${id}/regenerate_qr/`, {
-            method: 'POST',
-            body: JSON.stringify({}),
-        })
-        if (!res.ok) throw new Error(`重新產生 QR Code 失敗 (${res.status})`)
-        const data: { qr_code_url: string } = await res.json()
-        const newUrl = data.qr_code_url
-        const idx = participants.value.findIndex(p => p.id === id)
-        if (idx !== -1) participants.value[idx].qrCodeUrl = newUrl
-        return newUrl
+        loading.value = true
+        error.value = null
+        try {
+            const res = await apiRequest(`/api/participants/${id}/regenerate_qr/`, {
+                method: 'POST',
+                body: JSON.stringify({}),
+            })
+            if (!res.ok) throw new Error(await parseApiError(res, `重新產生 QR Code 失敗 (${res.status})`))
+            const data: { qr_code_url: string } = await res.json()
+            const newUrl = data.qr_code_url
+            const idx = participants.value.findIndex(p => p.id === id)
+            if (idx !== -1) participants.value[idx].qrCodeUrl = newUrl
+            return newUrl
+        } catch (err) {
+            error.value = (err as Error).message
+            throw err
+        } finally {
+            loading.value = false
+        }
     }
 
     async function fetchStatistics(eventId?: number) {
-        const url = eventId
-            ? `/api/participants/statistics/?event=${eventId}`
-            : '/api/participants/statistics/'
-        const res = await apiRequest(url)
-        if (!res.ok) throw new Error('取得統計資料失敗')
-        return res.json()
+        try {
+            const url = eventId
+                ? `/api/participants/statistics/?event=${eventId}`
+                : '/api/participants/statistics/'
+            const res = await apiRequest(url)
+            if (!res.ok) throw new Error('取得統計資料失敗')
+            return res.json()
+        } catch (err) {
+            error.value = (err as Error).message
+            throw err
+        }
     }
 
     async function importParticipants(data: Record<string, unknown>[], eventId: number) {

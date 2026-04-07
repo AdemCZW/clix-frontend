@@ -7,6 +7,12 @@ export const useAdminAccountsStore = defineStore('adminAccounts', () => {
     const adminAccounts = ref<Manager[]>([])
     const staffAccounts = ref<Staff[]>([])
     const loading = ref(false)
+    const error = ref<string | null>(null)
+
+    // 快取
+    const CACHE_TTL = 30_000
+    let _managersLastFetch = 0
+    let _staffLastFetch = 0
 
     // ----- 資料格式轉換（API snake_case → 前端 camelCase）-----
 
@@ -32,26 +38,38 @@ export const useAdminAccountsStore = defineStore('adminAccounts', () => {
     // ----- 讀取資料 -----
 
     const fetchManagers = async () => {
+        if (adminAccounts.value.length > 0 && Date.now() - _managersLastFetch < CACHE_TTL) return
         loading.value = true
+        error.value = null
         try {
             const res = await apiRequest('/api/managers/')
             if (!res.ok) throw new Error('無法取得管理者列表')
             const data = await res.json()
             const list: RawManager[] = Array.isArray(data) ? data : (data.results || [])
             adminAccounts.value = list.map(mapManager)
+            _managersLastFetch = Date.now()
+        } catch (err) {
+            error.value = (err as Error).message
+            throw err
         } finally {
             loading.value = false
         }
     }
 
     const fetchStaff = async () => {
+        if (staffAccounts.value.length > 0 && Date.now() - _staffLastFetch < CACHE_TTL) return
         loading.value = true
+        error.value = null
         try {
             const res = await apiRequest('/api/staff/')
             if (!res.ok) throw new Error('無法取得員工列表')
             const data = await res.json()
             const list: RawStaff[] = Array.isArray(data) ? data : (data.results || [])
             staffAccounts.value = list.map(mapStaff)
+            _staffLastFetch = Date.now()
+        } catch (err) {
+            error.value = (err as Error).message
+            throw err
         } finally {
             loading.value = false
         }
@@ -171,6 +189,7 @@ export const useAdminAccountsStore = defineStore('adminAccounts', () => {
         adminAccounts,
         staffAccounts,
         loading,
+        error,
         getStaffCountByAdmin,
         canAddStaff,
         fetchManagers,
