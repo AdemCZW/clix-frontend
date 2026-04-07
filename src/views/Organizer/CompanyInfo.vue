@@ -4,123 +4,81 @@
 
     <template v-else>
     <div class="page-container">
-      <div class="page-header">
-        <h1 class="page-title">主辦單位資訊</h1>
-        <p class="page-description">管理您的主辦單位基本資訊</p>
+      <!-- 頂部儲存列 -->
+      <div class="top-bar">
+        <span class="save-hint" v-if="saving">儲存中...</span>
+        <button type="button" class="btn-save" :disabled="saving" @click="saveCompanyInfo">{{ saving ? '儲存中...' : '儲存設定' }}</button>
       </div>
 
-      <div class="content-panel">
-        <form @submit.prevent="saveCompanyInfo" class="company-form">
-          <div class="form-section">
-            <h3 class="section-title">基本資訊</h3>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>公司名稱 *</label>
-                <input
-                  v-model="companyInfo.name"
-                  type="text"
-                  placeholder="請輸入公司名稱"
-                  required
-                />
-              </div>
-
-              <div class="form-group">
+      <div class="two-col">
+        <!-- 左欄：基本資訊 + 聯絡人 -->
+        <div class="col-main">
+          <div class="card">
+            <h3 class="card-title">基本資訊</h3>
+            <div class="fg">
+              <label>公司名稱 <span class="req">*</span></label>
+              <input v-model="companyInfo.name" type="text" placeholder="請輸入公司名稱" required class="fi" />
+            </div>
+            <div class="row2">
+              <div class="fg">
                 <label>統一編號</label>
-                <input v-model="companyInfo.taxId" type="text" placeholder="請輸入統一編號" />
+                <input v-model="companyInfo.taxId" type="text" placeholder="12345678" class="fi" maxlength="8" />
+                <span class="hint">8 碼數字</span>
+              </div>
+              <div class="fg">
+                <label>聯絡電話 <span class="req">*</span></label>
+                <input v-model="companyInfo.phone" type="tel" placeholder="02-1234-5678" required class="fi" />
+                <span class="hint">格式：02-1234-5678 或 0912-345-678</span>
               </div>
             </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>聯絡電話 *</label>
-                <input
-                  v-model="companyInfo.phone"
-                  type="tel"
-                  placeholder="請輸入聯絡電話"
-                  required
-                />
-              </div>
-
-              <div class="form-group">
-                <label>聯絡信箱 *</label>
-                <input
-                  v-model="companyInfo.email"
-                  type="email"
-                  placeholder="請輸入聯絡信箱"
-                  required
-                />
-              </div>
+            <div class="fg">
+              <label>聯絡信箱 <span class="req">*</span></label>
+              <input v-model="companyInfo.email" type="email" placeholder="contact@company.com" required class="fi" :class="{ 'fi-error': companyInfo.email && !isValidEmail(companyInfo.email) }" />
+              <span v-if="companyInfo.email && !isValidEmail(companyInfo.email)" class="hint error">請輸入正確的信箱格式</span>
             </div>
-
-            <div class="form-group full-width">
+            <div class="fg">
               <label>公司地址</label>
-              <input v-model="companyInfo.address" type="text" placeholder="請輸入公司地址" />
+              <input v-model="companyInfo.address" type="text" placeholder="例：台北市信義區信義路五段7號" class="fi" />
             </div>
-
-            <div class="form-group full-width">
+            <div class="fg">
               <label>公司網站</label>
-              <input v-model="companyInfo.website" type="url" placeholder="https://" />
+              <input v-model="companyInfo.website" type="url" placeholder="https://www.example.com" class="fi" :class="{ 'fi-error': companyInfo.website && !isValidUrl(companyInfo.website) }" />
+              <span v-if="companyInfo.website && !isValidUrl(companyInfo.website)" class="hint error">請輸入正確的網址（以 http:// 或 https:// 開頭）</span>
             </div>
           </div>
 
-          <div class="form-section">
-            <h3 class="section-title">聯絡人資訊</h3>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>聯絡人姓名</label>
-                <input
-                  v-model="companyInfo.contactName"
-                  type="text"
-                  placeholder="請輸入聯絡人姓名"
-                />
-              </div>
-
-              <div class="form-group">
-                <label>聯絡人職稱</label>
-                <input v-model="companyInfo.contactTitle" type="text" placeholder="請輸入職稱" />
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>聯絡人電話</label>
-                <input
-                  v-model="companyInfo.contactPhone"
-                  type="tel"
-                  placeholder="請輸入聯絡人電話"
-                />
-              </div>
-
-              <div class="form-group">
-                <label>聯絡人信箱</label>
-                <input
-                  v-model="companyInfo.contactEmail"
-                  type="email"
-                  placeholder="請輸入聯絡人信箱"
-                />
-              </div>
+          <div class="card">
+            <h3 class="card-title">公司簡介</h3>
+            <div class="fg">
+              <textarea v-model="companyInfo.description" rows="5" placeholder="簡要介紹您的公司或主辦單位..." class="fi ta"></textarea>
+              <span class="hint">此內容可能顯示在活動報名頁面上</span>
             </div>
           </div>
+        </div>
 
-          <div class="form-section">
-            <h3 class="section-title">其他資訊</h3>
-
-            <div class="form-group full-width">
-              <label>公司簡介</label>
-              <textarea
-                v-model="companyInfo.description"
-                rows="5"
-                placeholder="請輸入公司簡介..."
-              ></textarea>
+        <!-- 右欄：聯絡人資訊 -->
+        <div class="col-side">
+          <div class="card">
+            <h3 class="card-title">聯絡人資訊</h3>
+            <div class="fg">
+              <label>聯絡人姓名</label>
+              <input v-model="companyInfo.contactName" type="text" placeholder="王大明" class="fi" />
+            </div>
+            <div class="fg">
+              <label>聯絡人職稱</label>
+              <input v-model="companyInfo.contactTitle" type="text" placeholder="活動企劃經理" class="fi" />
+            </div>
+            <div class="fg">
+              <label>聯絡人電話</label>
+              <input v-model="companyInfo.contactPhone" type="tel" placeholder="0912-345-678" class="fi" />
+            </div>
+            <div class="fg">
+              <label>聯絡人信箱</label>
+              <input v-model="companyInfo.contactEmail" type="email" placeholder="contact@company.com" class="fi" :class="{ 'fi-error': companyInfo.contactEmail && !isValidEmail(companyInfo.contactEmail) }" />
+              <span v-if="companyInfo.contactEmail && !isValidEmail(companyInfo.contactEmail)" class="hint error">請輸入正確的信箱格式</span>
             </div>
           </div>
-
-          <div class="form-actions">
-            <button type="submit" class="btn-primary">儲存設定</button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
     </template>
@@ -138,6 +96,9 @@ const { success, error: toastError } = useToast();
 
 const loading = ref(false);
 const saving = ref(false);
+
+const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const isValidUrl = (url: string) => /^https?:\/\/.+/.test(url);
 
 const companyInfo = reactive({
   name: "",
@@ -211,164 +172,82 @@ const saveCompanyInfo = async () => {
 };
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .company-info-page {
   min-height: 100%;
-  background: var(--bg-primary, #f8f9fa);
+  background: var(--bg-primary);
+  padding: 12px;
+}
+.page-container { max-width: 1100px; margin: 0 auto; }
+
+/* 頂部列 */
+.top-bar {
+  display: flex; justify-content: flex-end; align-items: center;
+  gap: 10px; margin-bottom: 12px;
+}
+.save-hint { font-size: .82rem; color: var(--text-muted); }
+.btn-save {
+  padding: 7px 20px; background: #6366f1; color: #fff;
+  border: none; border-radius: 8px; font-size: .84rem; font-weight: 600;
+  cursor: pointer; transition: .15s;
+}
+.btn-save:hover:not(:disabled) { background: #4f46e5; }
+.btn-save:disabled { opacity: .5; cursor: not-allowed; }
+
+/* 兩欄 */
+.two-col {
+  display: grid; grid-template-columns: 1fr 340px;
+  gap: 12px; align-items: start;
+}
+.col-side { position: sticky; top: 76px; }
+
+/* 卡片 */
+.card {
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: 10px; padding: 16px; margin-bottom: 12px;
+}
+.card-title {
+  font-size: .92rem; font-weight: 700; color: var(--text-main);
+  margin: 0 0 12px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.page-container {
-  max-width: 1200px;
-  margin: 0 auto;
+/* 欄位 */
+.fg { margin-bottom: 14px; }
+.fg:last-child { margin-bottom: 0; }
+.fg label {
+  display: block; font-size: .82rem; font-weight: 600;
+  color: var(--text-secondary); margin-bottom: 4px;
 }
-
-.page-header {
-  margin-bottom: 14px;
-
-  .page-title {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--text-main, #1f2937);
-    margin: 0 0 8px 0;
-  }
-
-  .page-description {
-    color: var(--text-muted, #6b7280);
-    margin: 0;
-    font-size: 0.95rem;
-  }
+.req { color: #ef4444; }
+.fi {
+  width: 100%; padding: 8px 12px;
+  border: 1px solid var(--border-color); border-radius: 8px;
+  font-size: .88rem; background: var(--bg-card); color: var(--text-main);
+  transition: .15s; outline: none; font-family: inherit;
 }
-
-.content-panel {
-  background: var(--bg-card);
-  border-radius: 12px;
-  padding: 32px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+.fi:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,.1); }
+.fi::placeholder { color: var(--text-muted); }
+.fi-error { border-color: #ef4444 !important; }
+.fi-error:focus { box-shadow: 0 0 0 2px rgba(239,68,68,.1) !important; }
+.ta { resize: vertical; min-height: 100px; }
+.hint {
+  display: block; font-size: .72rem; color: var(--text-muted);
+  margin-top: 3px;
 }
+.hint.error { color: #ef4444; }
 
-.company-form {
-  .form-section {
-    margin-bottom: 32px;
+/* 兩欄排列 */
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-    &:last-child {
-      margin-bottom: 0;
-    }
-
-    .section-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--text-main, #1f2937);
-      margin: 0 0 20px 0;
-      padding-bottom: 12px;
-      border-bottom: 2px solid var(--border-light, #e5e7eb);
-    }
-  }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  .form-group {
-    margin-bottom: 20px;
-
-    &.full-width {
-      grid-column: 1 / -1;
-    }
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-
-    label {
-      display: block;
-      font-weight: 600;
-      color: var(--text-main, #374151);
-      margin-bottom: 8px;
-      font-size: 0.9rem;
-    }
-
-    input,
-    textarea {
-      width: 100%;
-      padding: 10px 14px;
-      border: 2px solid var(--border-light, #e5e7eb);
-      border-radius: 8px;
-      font-size: 0.95rem;
-      transition: all 0.2s ease;
-      font-family: inherit;
-
-      &:focus {
-        outline: none;
-        border-color: var(--accent);
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-      }
-
-      &::placeholder {
-        color: #9ca3af;
-      }
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 100px;
-    }
-  }
+/* RWD */
+@media (max-width: 1024px) {
+  .two-col { grid-template-columns: 1fr; }
+  .col-side { position: static; }
 }
-
-.form-actions {
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 2px solid var(--border-light, #e5e7eb);
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.btn-primary {
-  background: #6366f1;
-  color: white;
-  border: none;
-  padding: 12px 28px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #4f46e5;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-}
-
 @media (max-width: 768px) {
-  .content-panel {
-    padding: 16px;
-  }
-
-  .company-form .form-row {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-
-  .page-header .page-title {
-    font-size: 1.4rem;
-  }
-
-  .btn-primary {
-    width: 100%;
-  }
+  .company-info-page { padding: 8px; }
+  .row2 { grid-template-columns: 1fr; gap: 0; }
+  .btn-save { width: 100%; }
 }
 </style>
