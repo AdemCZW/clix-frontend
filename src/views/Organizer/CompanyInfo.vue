@@ -10,74 +10,70 @@
         <button type="button" class="btn-save" :disabled="saving" @click="saveCompanyInfo">{{ saving ? '儲存中...' : '儲存設定' }}</button>
       </div>
 
+      <!-- 左右兩欄：基本資訊 / 聯絡人 -->
       <div class="two-col">
-        <!-- 左欄：基本資訊 + 聯絡人 -->
-        <div class="col-main">
-          <div class="card">
-            <h3 class="card-title">基本資訊</h3>
+        <div class="card">
+          <h3 class="card-title">基本資訊</h3>
+          <div class="fg">
+            <label>公司名稱 <span class="req">*</span></label>
+            <input v-model="companyInfo.name" type="text" placeholder="請輸入公司名稱" required class="fi" />
+          </div>
+          <div class="row2">
             <div class="fg">
-              <label>公司名稱 <span class="req">*</span></label>
-              <input v-model="companyInfo.name" type="text" placeholder="請輸入公司名稱" required class="fi" />
-            </div>
-            <div class="row2">
-              <div class="fg">
-                <label>統一編號</label>
-                <input v-model="companyInfo.taxId" type="text" placeholder="12345678" class="fi" maxlength="8" />
-                <span class="hint">8 碼數字</span>
-              </div>
-              <div class="fg">
-                <label>聯絡電話 <span class="req">*</span></label>
-                <input v-model="companyInfo.phone" type="tel" placeholder="02-1234-5678" required class="fi" />
-                <span class="hint">格式：02-1234-5678 或 0912-345-678</span>
-              </div>
+              <label>統一編號</label>
+              <input v-model="companyInfo.taxId" type="text" placeholder="12345678" class="fi" maxlength="8" />
+              <span class="hint">8 碼數字</span>
             </div>
             <div class="fg">
-              <label>聯絡信箱 <span class="req">*</span></label>
-              <input v-model="companyInfo.email" type="email" placeholder="contact@company.com" required class="fi" :class="{ 'fi-error': companyInfo.email && !isValidEmail(companyInfo.email) }" />
-              <span v-if="companyInfo.email && !isValidEmail(companyInfo.email)" class="hint error">請輸入正確的信箱格式</span>
-            </div>
-            <div class="fg">
-              <label>公司地址</label>
-              <input v-model="companyInfo.address" type="text" placeholder="例：台北市信義區信義路五段7號" class="fi" />
-            </div>
-            <div class="fg">
-              <label>公司網站</label>
-              <input v-model="companyInfo.website" type="url" placeholder="https://www.example.com" class="fi" :class="{ 'fi-error': companyInfo.website && !isValidUrl(companyInfo.website) }" />
-              <span v-if="companyInfo.website && !isValidUrl(companyInfo.website)" class="hint error">請輸入正確的網址（以 http:// 或 https:// 開頭）</span>
+              <label>聯絡電話 <span class="req">*</span></label>
+              <input v-model="companyInfo.phone" type="tel" placeholder="02-1234-5678" required class="fi" />
+              <span class="hint">格式：02-1234-5678 或 0912-345-678</span>
             </div>
           </div>
-
-          <div class="card">
-            <h3 class="card-title">公司簡介</h3>
-            <div class="fg">
-              <textarea v-model="companyInfo.description" rows="5" placeholder="簡要介紹您的公司或主辦單位..." class="fi ta"></textarea>
-              <span class="hint">此內容可能顯示在活動報名頁面上</span>
-            </div>
+          <div class="fg">
+            <label>聯絡信箱 <span class="req">*</span></label>
+            <input v-model="companyInfo.email" type="email" placeholder="contact@company.com" required class="fi" :class="{ 'fi-error': companyInfo.email && !isValidEmail(companyInfo.email) }" />
+            <span v-if="companyInfo.email && !isValidEmail(companyInfo.email)" class="hint error">請輸入正確的信箱格式</span>
+          </div>
+          <div class="fg">
+            <label>公司地址</label>
+            <input v-model="companyInfo.address" type="text" placeholder="例：台北市信義區信義路五段7號" class="fi" />
+          </div>
+          <div class="fg">
+            <label>公司網站</label>
+            <input v-model="companyInfo.website" type="url" placeholder="https://www.example.com" class="fi" :class="{ 'fi-error': companyInfo.website && !isValidUrl(companyInfo.website) }" />
+            <span v-if="companyInfo.website && !isValidUrl(companyInfo.website)" class="hint error">請輸入正確的網址（以 http:// 或 https:// 開頭）</span>
           </div>
         </div>
 
-        <!-- 右欄：聯絡人資訊 -->
-        <div class="col-side">
-          <div class="card">
-            <h3 class="card-title">聯絡人資訊</h3>
-            <div class="fg">
-              <label>聯絡人姓名</label>
-              <input v-model="companyInfo.contactName" type="text" placeholder="王大明" class="fi" />
-            </div>
-            <div class="fg">
-              <label>聯絡人職稱</label>
-              <input v-model="companyInfo.contactTitle" type="text" placeholder="活動企劃經理" class="fi" />
-            </div>
-            <div class="fg">
-              <label>聯絡人電話</label>
-              <input v-model="companyInfo.contactPhone" type="tel" placeholder="0912-345-678" class="fi" />
-            </div>
-            <div class="fg">
-              <label>聯絡人信箱</label>
-              <input v-model="companyInfo.contactEmail" type="email" placeholder="contact@company.com" class="fi" :class="{ 'fi-error': companyInfo.contactEmail && !isValidEmail(companyInfo.contactEmail) }" />
-              <span v-if="companyInfo.contactEmail && !isValidEmail(companyInfo.contactEmail)" class="hint error">請輸入正確的信箱格式</span>
-            </div>
+        <div class="card">
+          <h3 class="card-title">聯絡人資訊</h3>
+          <div class="fg">
+            <label>聯絡人姓名</label>
+            <input v-model="companyInfo.contactName" type="text" placeholder="王大明" class="fi" />
           </div>
+          <div class="fg">
+            <label>聯絡人職稱</label>
+            <input v-model="companyInfo.contactTitle" type="text" placeholder="活動企劃經理" class="fi" />
+          </div>
+          <div class="fg">
+            <label>聯絡人電話</label>
+            <input v-model="companyInfo.contactPhone" type="tel" placeholder="0912-345-678" class="fi" />
+          </div>
+          <div class="fg">
+            <label>聯絡人信箱</label>
+            <input v-model="companyInfo.contactEmail" type="email" placeholder="contact@company.com" class="fi" :class="{ 'fi-error': companyInfo.contactEmail && !isValidEmail(companyInfo.contactEmail) }" />
+            <span v-if="companyInfo.contactEmail && !isValidEmail(companyInfo.contactEmail)" class="hint error">請輸入正確的信箱格式</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 下方全寬：公司簡介 -->
+      <div class="card" style="margin-top:12px;">
+        <h3 class="card-title">公司簡介</h3>
+        <div class="fg">
+          <textarea v-model="companyInfo.description" rows="4" placeholder="簡要介紹您的公司或主辦單位..." class="fi ta"></textarea>
+          <span class="hint">此內容可能顯示在活動報名頁面上</span>
         </div>
       </div>
     </div>
@@ -196,10 +192,9 @@ const saveCompanyInfo = async () => {
 
 /* 兩欄 */
 .two-col {
-  display: grid; grid-template-columns: 1fr 340px;
+  display: grid; grid-template-columns: 1fr 1fr;
   gap: 12px; align-items: start;
 }
-.col-side { position: sticky; top: 76px; }
 
 /* 卡片 */
 .card {
@@ -243,7 +238,6 @@ const saveCompanyInfo = async () => {
 /* RWD */
 @media (max-width: 1024px) {
   .two-col { grid-template-columns: 1fr; }
-  .col-side { position: static; }
 }
 @media (max-width: 768px) {
   .company-info-page { padding: 8px; }
