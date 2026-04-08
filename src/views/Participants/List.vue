@@ -382,7 +382,7 @@ const formatDate = (isoString: string) => {
             </div>
           </Transition>
         </div>
-        <button class="tb primary" @click="addParticipant">＋ 新增</button>
+        <button class="tb primary" @click="addParticipant">+ 新增</button>
       </div>
     </div>
 
@@ -489,7 +489,7 @@ const formatDate = (isoString: string) => {
     <div class="mobile-bottom-bar">
       <button class="mb-import" @click="triggerImport">匯入</button>
       <button class="mb-export" @click="handleExport">匯出</button>
-      <button class="mb-add" @click="addParticipant">＋ 新增</button>
+      <button class="mb-add" @click="addParticipant">+ 新增</button>
     </div>
 
     <ConfirmDialog

@@ -428,7 +428,7 @@ const closeGuestDetail = () => {
         <div class="tech-card">
           <h3 class="card-subtitle">產出報名連結</h3>
           <div v-if="isCurrentEventExpired" class="expired-warning">
-            ⚠️ 此活動已過期，報名已停止接受。如需重新開放，請先至活動列表更新活動日期。
+            此活動已過期，報名已停止接受。如需重新開放，請先至活動列表更新活動日期。
           </div>
           <div class="link-inline">
             <span class="link-base">{{ urlBase }}</span>
@@ -476,13 +476,13 @@ const closeGuestDetail = () => {
                   :class="{ active: previewMode === 'mobile' }"
                   @click="previewMode = 'mobile'"
                 >
-                  📱 手機
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> 手機
                 </button>
                 <button
                   :class="{ active: previewMode === 'desktop' }"
                   @click="previewMode = 'desktop'"
                 >
-                  💻 電腦
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> 電腦
                 </button>
               </div>
               <button class="btn-close-circle" @click="isPreviewOpen = false">✕</button>
@@ -501,8 +501,8 @@ const closeGuestDetail = () => {
                     <span class="p-tag">UPCOMING EVENT</span>
                     <h1 class="p-title">您的活動名稱顯示區</h1>
                     <div class="p-badges">
-                      <span>📅 {{ currentEvent?.date }}</span>
-                      <span>📍 {{ currentEvent?.location }}</span>
+                      <span>{{ currentEvent?.date }}</span>
+                      <span>{{ currentEvent?.location }}</span>
                     </div>
 
                     <div class="p-main-body-render" v-html="form.mainContent"></div>

@@ -65,14 +65,14 @@
 
             <!-- 新增活動按鈕 -->
             <div class="add-event-in-series" @click="showAddEventForSeries(series)">
-              <span class="add-event-text">➕ 新增活動</span>
+              <span class="add-event-text">+ 新增活動</span>
             </div>
           </div>
         </div>
       </div>
 
       <div class="dropdown-footer">
-        <button class="add-btn" @click="showAddSeries = true">➕ 新增系列</button>
+        <button class="add-btn" @click="showAddSeries = true">+ 新增系列</button>
       </div>
     </div>
 

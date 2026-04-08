@@ -27,8 +27,8 @@
                     >
                       <div class="event-name">{{ event.name }}</div>
                       <div class="event-details">
-                        <span>&#x1F4C5; {{ event.date }}</span>
-                        <span v-if="event.location">&#x1F4CD; {{ event.location }}</span>
+                        <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:2px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> {{ event.date }}</span>
+                        <span v-if="event.location"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:2px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> {{ event.location }}</span>
                       </div>
                     </div>
                   </div>
@@ -36,7 +36,7 @@
 
                 <div class="select-actions">
                   <button v-if="userStore.isSuperAdmin" class="btn-create-new" @click="showCreateForm = true">
-                    ＋ 建立新活動
+                    + 建立新活動
                   </button>
                   <div v-else-if="eventsStore.events.length === 0" class="no-permission-hint">
                     如需建立新活動，請聯絡系統管理員
@@ -176,13 +176,13 @@
                   <h3>{{ seriesForm.name }}</h3>
                   <div class="event-summary">
                     <h4>{{ eventForm.name }}</h4>
-                    <p>📅 {{ eventForm.date }} {{ eventForm.time }}</p>
-                    <p>📍 {{ eventForm.location }}</p>
+                    <p>{{ eventForm.date }} {{ eventForm.time }}</p>
+                    <p>{{ eventForm.location }}</p>
                   </div>
                 </div>
 
                 <div class="welcome-message">
-                  <p>🎉 現在您可以開始使用報到系統的所有功能了！</p>
+                  <p>現在您可以開始使用報到系統的所有功能了！</p>
                 </div>
               </div>
             </div>

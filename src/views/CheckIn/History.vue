@@ -198,7 +198,7 @@ const hasActiveFilters = computed(() =>
     <!-- 頂部統計列 -->
     <div class="stats-bar">
       <div class="stat-item">
-        <div class="stat-label">📅 {{ eventDateDisplay }}</div>
+        <div class="stat-label">{{ eventDateDisplay }}</div>
       </div>
       <div class="stat-group">
         <div class="stat-item">

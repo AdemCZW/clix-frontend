@@ -16,7 +16,7 @@
 
         <!-- 未登入警告 -->
         <div v-if="!isLoggedIn" class="login-warning">
-          <div class="warning-icon">⚠️</div>
+          <div class="warning-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
           <p class="warning-text">掃描報到需要登入帳號</p>
           <button class="btn-goto-login" @click="goToLogin">前往登入</button>
         </div>
@@ -24,13 +24,13 @@
         <div class="help-tips">
           <p class="tip-item">💡 請使用 Chrome 或 Safari 瀏覽器</p>
           <p class="tip-item">🔒 首次使用需允許相機權限</p>
-          <p class="tip-item">📱 建議使用手機後置鏡頭</p>
+          <p class="tip-item">建議使用手機後置鏡頭</p>
         </div>
         <button class="btn-start-scan" @click="startScanning">
-          <span class="icon">📱</span>
+          <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></span>
           啟動掃描器
         </button>
-        <button class="btn-test-camera" @click="testCamera">🔍 測試相機權限</button>
+        <button class="btn-test-camera" @click="testCamera">測試相機權限</button>
       </div>
 
       <div v-else class="camera-view">
