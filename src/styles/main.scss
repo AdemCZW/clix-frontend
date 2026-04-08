@@ -36,27 +36,27 @@
   color-scheme: light;
 }
 
-/* === Dark Theme === */
+/* === Dark Theme（偏灰調）=== */
 [data-theme="dark"] {
-  --bg-primary: #0f1117;
-  --bg-secondary: #1a1d27;
-  --bg-card: #1e2130;
-  --bg-input: #252838;
-  --bg-hover: #2a2d3d;
-  --bg-active: #2d2b4e;
+  --bg-primary: #2b2d31;
+  --bg-secondary: #313338;
+  --bg-card: #383a40;
+  --bg-input: #3e4046;
+  --bg-hover: #43454b;
+  --bg-active: #4a4c52;
 
-  --text-main: #e8e4df;
-  --text-secondary: #b8b0a8;
-  --text-muted: #706a62;
-  --text-inverse: #0f1117;
+  --text-main: #f0f0f0;
+  --text-secondary: #c4c4c4;
+  --text-muted: #8b8b8b;
+  --text-inverse: #2b2d31;
 
   --accent: #818cf8;
   --accent-hover: #6366f1;
-  --accent-light: #2d2b4e;
+  --accent-light: #3d3b5e;
   --accent-glow: rgba(129, 140, 248, 0.2);
 
-  --border-color: #2d3348;
-  --border-light: #252838;
+  --border-color: #4a4c52;
+  --border-light: #43454b;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
