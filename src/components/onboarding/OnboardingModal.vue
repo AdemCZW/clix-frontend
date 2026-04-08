@@ -188,8 +188,8 @@
             </div>
           </div>
 
-          <!-- 按鈕區域 -->
-          <div class="modal-footer">
+          <!-- 按鈕區域（只在 create 模式或 select+建立表單時顯示） -->
+          <div v-if="mode === 'create' || (mode === 'select' && showCreateForm)" class="modal-footer">
             <button
               v-if="mode === 'create' && currentStep > 1"
               class="btn-secondary"
@@ -215,7 +215,6 @@
               開始使用系統
             </button>
 
-            <!-- select 模式：建立新活動表單時 -->
             <template v-if="mode === 'select' && showCreateForm">
               <button class="btn-secondary" @click="showCreateForm = false">
                 ← 返回列表
