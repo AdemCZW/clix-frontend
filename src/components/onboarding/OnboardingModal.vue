@@ -401,7 +401,7 @@ watch(
 }
 
 .step-content {
-  padding: 0 20px 16px;
+  padding: 16px 20px;
   flex: 1;
   overflow-y: auto;
   min-height: 0;
