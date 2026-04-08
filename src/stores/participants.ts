@@ -288,7 +288,23 @@ export const usePublicRegisterStore = defineStore('publicRegister', () => {
                 throw new Error(error.value)
             }
             if (!res.ok) throw new Error('載入報名頁面失敗')
-            page.value = await res.json()
+            const raw = await res.json()
+            // 後端回傳 snake_case，前端模板用 camelCase，做映射
+            page.value = {
+                ...raw,
+                shortLink: raw.short_link,
+                mainContent: raw.main_content,
+                isPublished: raw.is_published,
+                eventName: raw.event_name,
+                eventDate: raw.event_date,
+                eventEndDate: raw.event_end_date,
+                eventTime: raw.event_time,
+                eventLocation: raw.event_location,
+                eventAddress: raw.event_address,
+                eventStatus: raw.event_status,
+                eventStatusText: raw.event_status_text,
+                formFields: raw.form_fields || [],
+            } as RegistrationPage
             return page.value
         } catch (err) {
             if (!error.value) error.value = (err as Error).message
