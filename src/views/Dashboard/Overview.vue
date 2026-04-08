@@ -145,9 +145,23 @@
           <defs>
             <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stop-color="#6366f1" />
-              <stop offset="100%" stop-color="#4f46e5" />
+              <stop offset="100%" stop-color="#818cf8" />
             </linearGradient>
+            <!-- 流動光點漸變 -->
+            <radialGradient id="glowGrad">
+              <stop offset="0%" stop-color="#818cf8" stop-opacity="1" />
+              <stop offset="50%" stop-color="#6366f1" stop-opacity="0.6" />
+              <stop offset="100%" stop-color="#6366f1" stop-opacity="0" />
+            </radialGradient>
           </defs>
+
+          <!-- 流動光點特效 -->
+          <circle r="3" fill="#fff" class="flow-dot">
+            <animateMotion :dur="selectedRange <= 7 ? '3s' : '5s'" repeatCount="indefinite" :path="linePath" />
+          </circle>
+          <circle r="8" fill="url(#glowGrad)" class="flow-glow">
+            <animateMotion :dur="selectedRange <= 7 ? '3s' : '5s'" repeatCount="indefinite" :path="linePath" />
+          </circle>
 
           <!-- 資料點（7 天顯示，30/90 天隱藏改用 hover 區域） -->
           <g v-if="selectedRange <= 7" v-for="(pt, i) in chartPoints" :key="'dot'+i">
@@ -568,6 +582,18 @@ const selectEvent = (displayEvent) => {
 
 .axis-label { color: var(--text-muted); }
 .hover-zone { cursor: pointer; }
+
+.flow-dot {
+  filter: drop-shadow(0 0 4px rgba(99,102,241,0.8));
+}
+.flow-glow {
+  opacity: 0.5;
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
 
 .data-dot {
   cursor: pointer;
