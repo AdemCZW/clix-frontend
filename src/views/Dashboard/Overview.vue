@@ -9,25 +9,48 @@
     </div>
 
     <template v-else>
-    <div class="stats-bar">
-      <div class="stat-item">
-        <div class="stat-label">活動總數</div>
-        <div class="stat-value">{{ eventStats.total }}</div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(99,102,241,.1);color:#6366f1;">📋</div>
+        <div class="stat-body">
+          <div class="stat-value">{{ eventStats.total }}</div>
+          <div class="stat-label">活動總數</div>
+        </div>
       </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <div class="stat-label">進行中</div>
-        <div class="stat-value">{{ eventStats.active }}</div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(16,185,129,.1);color:#10b981;">🟢</div>
+        <div class="stat-body">
+          <div class="stat-value">{{ eventStats.active }}</div>
+          <div class="stat-label">進行中</div>
+        </div>
       </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <div class="stat-label">總參與人數</div>
-        <div class="stat-value">{{ eventStats.participants }}</div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(59,130,246,.1);color:#3b82f6;">👥</div>
+        <div class="stat-body">
+          <div class="stat-value">{{ eventStats.participants }}</div>
+          <div class="stat-label">總參與人數</div>
+        </div>
       </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <div class="stat-label">已報到</div>
-        <div class="stat-value">{{ eventStats.checkedIn }}</div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(245,158,11,.1);color:#f59e0b;">⭐</div>
+        <div class="stat-body">
+          <div class="stat-value">{{ eventStats.vipCount }}</div>
+          <div class="stat-label">VIP 貴賓</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(16,185,129,.1);color:#10b981;">✅</div>
+        <div class="stat-body">
+          <div class="stat-value">{{ eventStats.checkedIn }}</div>
+          <div class="stat-label">已報到</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(139,92,246,.1);color:#8b5cf6;">📊</div>
+        <div class="stat-body">
+          <div class="stat-value">{{ eventStats.checkinRate }}%</div>
+          <div class="stat-label">報到率</div>
+        </div>
       </div>
     </div>
 
@@ -72,7 +95,7 @@
               :y1="y"
               :x2="SVG_W - PADDING_R"
               :y2="y"
-              stroke="#f1f5f9"
+              stroke="var(--border-color)"
               stroke-width="1"
             />
           </g>
@@ -86,7 +109,7 @@
               :y="item.y + 4"
               text-anchor="end"
               font-size="11"
-              fill="#94a3b8"
+              fill="currentColor" class="axis-label"
             >{{ item.label }}</text>
           </g>
 
@@ -99,7 +122,7 @@
               :y="SVG_H - PADDING_B + 16"
               text-anchor="middle"
               font-size="11"
-              fill="#94a3b8"
+              fill="currentColor" class="axis-label"
             >{{ item.label }}</text>
           </g>
 
@@ -126,8 +149,8 @@
             </linearGradient>
           </defs>
 
-          <!-- 資料點 -->
-          <g v-for="(pt, i) in chartPoints" :key="i">
+          <!-- 資料點（7 天顯示，30/90 天隱藏改用 hover 區域） -->
+          <g v-if="selectedRange <= 7" v-for="(pt, i) in chartPoints" :key="'dot'+i">
             <circle
               :cx="pt.x"
               :cy="pt.y"
@@ -138,6 +161,28 @@
               class="data-dot"
               @mouseenter="showTooltip(pt, i, $event)"
               @mouseleave="hideTooltip"
+            />
+          </g>
+          <!-- 30/90 天：透明寬條 hover 區域 -->
+          <g v-else v-for="(pt, i) in chartPoints" :key="'area'+i">
+            <rect
+              :x="pt.x - 6"
+              :y="PADDING_T"
+              :width="12"
+              :height="SVG_H - PADDING_T - PADDING_B"
+              fill="transparent"
+              class="hover-zone"
+              @mouseenter="showTooltip(pt, i, $event)"
+              @mouseleave="hideTooltip"
+            />
+            <circle
+              v-if="tooltip.visible && tooltip.date === `${pt.date.getMonth()+1}/${pt.date.getDate()}`"
+              :cx="pt.x"
+              :cy="pt.y"
+              r="4"
+              fill="white"
+              stroke="#6366f1"
+              stroke-width="2"
             />
           </g>
         </svg>
@@ -215,12 +260,19 @@ const eventsStore = useEventsStore();
 const userStore = useUserStore();
 const { stats: checkinStats, dailyTrend, trendSummary } = useCheckinStats();
 
-const eventStats = computed(() => ({
-  total: eventsStore.events.length,
-  active: eventsStore.events.filter((e) => e.status === "active").length,
-  participants: checkinStats.value.total,
-  checkedIn: checkinStats.value.checkedIn,
-}));
+const eventStats = computed(() => {
+  const total = checkinStats.value.total || 0;
+  const checkedIn = checkinStats.value.checkedIn || 0;
+  const rate = total > 0 ? Math.round((checkedIn / total) * 100) : 0;
+  return {
+    total: eventsStore.events.length,
+    active: eventsStore.events.filter((e) => e.status === "active").length,
+    participants: total,
+    vipCount: participantsStore.participants.filter((p) => p.type === "VIP").length,
+    checkedIn,
+    checkinRate: rate,
+  };
+});
 
 const recentEvents = computed(() => {
   return [...eventsStore.events]
@@ -310,16 +362,19 @@ const yLabels = computed(() =>
   })),
 );
 
-// X 軸標籤（抽樣顯示）
+// X 軸標籤（抽樣顯示，90 天時只顯示每月 1 號和 15 號）
 const xLabels = computed(() => {
   const pts = chartPoints.value;
-  const step = selectedRange.value <= 7 ? 1 : selectedRange.value <= 30 ? 5 : 15;
-  return pts
-    .filter((_, i) => i % step === 0 || i === pts.length - 1)
-    .map((pt) => ({
-      x: pt.x,
-      label: `${pt.date.getMonth() + 1}/${pt.date.getDate()}`,
-    }));
+  if (selectedRange.value <= 7) {
+    return pts.map((pt) => ({ x: pt.x, label: `${pt.date.getMonth() + 1}/${pt.date.getDate()}` }));
+  }
+  if (selectedRange.value <= 30) {
+    return pts.filter((_, i) => i % 5 === 0 || i === pts.length - 1)
+      .map((pt) => ({ x: pt.x, label: `${pt.date.getMonth() + 1}/${pt.date.getDate()}` }));
+  }
+  // 90 天：只顯示每月 1 號和 15 號
+  return pts.filter((pt) => pt.date.getDate() === 1 || pt.date.getDate() === 15)
+    .map((pt) => ({ x: pt.x, label: `${pt.date.getMonth() + 1}/${pt.date.getDate()}` }));
 });
 
 // Tooltip
@@ -389,56 +444,63 @@ const selectEvent = (displayEvent) => {
   margin: 0 auto;
 }
 
-// Stats Bar
-.stats-bar {
-  background: var(--bg-card);
-  border-radius: 16px;
-  padding: 16px;
-  border: 1px solid var(--border-color);
-  margin-bottom: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+// Stats Grid
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.stat-item {
-  flex: 1;
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 14px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  text-align: center;
+  gap: 12px;
+}
 
+.stat-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.stat-body {
+  .stat-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--text-main);
+    line-height: 1.2;
+  }
   .stat-label {
-    font-size: 0.85rem;
+    font-size: 0.74rem;
     color: var(--text-muted);
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .stat-value {
-    font-size: 2.25rem;
-    font-weight: 800;
-    color: #6366f1;
-    line-height: 1;
   }
 }
 
-.stat-divider {
-  width: 1px;
-  height: 50px;
-  background: linear-gradient(to bottom, transparent, var(--border-color) 20%, var(--border-color) 80%, transparent);
+@media (max-width: 1200px) {
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 // Chart Card
 .chart-card {
   background: var(--bg-card);
-  border-radius: 16px;
+  border-radius: 10px;
   border: 1px solid var(--border-color);
   padding: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
@@ -503,6 +565,9 @@ const selectEvent = (displayEvent) => {
   height: 100%;
   overflow: visible;
 }
+
+.axis-label { color: var(--text-muted); }
+.hover-zone { cursor: pointer; }
 
 .data-dot {
   cursor: pointer;
@@ -582,10 +647,9 @@ const selectEvent = (displayEvent) => {
 
 .recent-events-section {
   background: var(--bg-card);
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 16px;
   border: 1px solid var(--border-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .events-list {
