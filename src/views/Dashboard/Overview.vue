@@ -393,7 +393,7 @@ const selectEvent = (displayEvent) => {
 .stats-bar {
   background: var(--bg-card);
   border-radius: 16px;
-  padding: 28px 32px;
+  padding: 16px;
   border: 1px solid var(--border-color);
   margin-bottom: 24px;
   display: flex;
@@ -421,10 +421,7 @@ const selectEvent = (displayEvent) => {
   .stat-value {
     font-size: 2.25rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #6366f1;
     line-height: 1;
   }
 }
@@ -432,7 +429,7 @@ const selectEvent = (displayEvent) => {
 .stat-divider {
   width: 1px;
   height: 50px;
-  background: linear-gradient(to bottom, transparent, #e5e7eb 20%, #e5e7eb 80%, transparent);
+  background: linear-gradient(to bottom, transparent, var(--border-color) 20%, var(--border-color) 80%, transparent);
 }
 
 // Chart Card
@@ -440,7 +437,7 @@ const selectEvent = (displayEvent) => {
   background: var(--bg-card);
   border-radius: 16px;
   border: 1px solid var(--border-color);
-  padding: 28px;
+  padding: 16px;
   margin-bottom: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
@@ -518,7 +515,7 @@ const selectEvent = (displayEvent) => {
 
 .chart-tooltip {
   position: absolute;
-  background: #0f172a;
+  background: var(--text-main);
   color: white;
   border-radius: 8px;
   padding: 8px 12px;
@@ -551,7 +548,7 @@ const selectEvent = (displayEvent) => {
 
 .chart-summary {
   display: flex;
-  gap: 24px;
+  gap: 14px;
   padding-top: 16px;
   border-top: 1px solid var(--border-light);
   margin-top: 16px;
@@ -586,7 +583,7 @@ const selectEvent = (displayEvent) => {
 .recent-events-section {
   background: var(--bg-card);
   border-radius: 16px;
-  padding: 28px;
+  padding: 16px;
   border: 1px solid var(--border-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
@@ -616,7 +613,7 @@ const selectEvent = (displayEvent) => {
   .event-date {
     width: 60px;
     height: 60px;
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: #6366f1;
     border-radius: 12px;
     display: flex;
     flex-direction: column;
@@ -770,13 +767,14 @@ const selectEvent = (displayEvent) => {
   padding: 10px 24px;
   border-radius: 10px;
   border: none;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: #6366f1;
   color: white;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
+    background: #4f46e5;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
   }

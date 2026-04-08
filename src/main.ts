@@ -13,5 +13,10 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(router)
 
-// 3. 實體掛載
+// 3. 全域錯誤處理（避免白屏）
+app.config.errorHandler = (err, _instance, info) => {
+  console.error(`[Global Error] ${info}:`, err)
+}
+
+// 4. 實體掛載
 app.mount('#app')

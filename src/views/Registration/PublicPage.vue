@@ -45,7 +45,16 @@ watch(customFields, (fields) => {
 
 onMounted(() => {
   store.reset()
-  store.fetchPage(shortLink).catch(() => {})
+  store.fetchPage(shortLink).then(() => {
+    // 動態設定頁面標題和 SEO meta
+    if (store.page?.eventName) {
+      document.title = `${store.page.eventName} — 活動報名`
+      const metaDesc = document.querySelector('meta[name="description"]')
+      if (metaDesc) metaDesc.setAttribute('content', `${store.page.eventName} 線上報名`)
+      const ogTitle = document.querySelector('meta[property="og:title"]')
+      if (ogTitle) ogTitle.setAttribute('content', store.page.eventName)
+    }
+  }).catch(() => {})
 })
 
 const validate = () => {

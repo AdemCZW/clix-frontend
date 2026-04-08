@@ -341,7 +341,7 @@ const hasActiveFilters = computed(() =>
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
   min-height: calc(100vh - 48px);
 }
 
@@ -361,7 +361,7 @@ const hasActiveFilters = computed(() =>
 .stat-group {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
 }
 
 .stat-item {
@@ -395,12 +395,12 @@ const hasActiveFilters = computed(() =>
 .stat-divider {
   width: 1px;
   height: 28px;
-  background: #e5e7eb;
+  background: var(--border-color);
 }
 
 .btn-manual {
   padding: 10px 20px;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: #6366f1;
   color: white;
   border: none;
   border-radius: 10px;
@@ -525,7 +525,7 @@ const hasActiveFilters = computed(() =>
   white-space: nowrap;
 
   &:hover {
-    background: #e2e8f0;
+    background: var(--bg-hover);
     color: var(--text-secondary);
   }
 }
@@ -538,7 +538,7 @@ const hasActiveFilters = computed(() =>
   &::-webkit-scrollbar { width: 6px; }
   &::-webkit-scrollbar-track { background: var(--bg-primary); }
   &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: var(--border-color);
     border-radius: 3px;
     &:hover { background: #94a3b8; }
   }
@@ -549,10 +549,10 @@ const hasActiveFilters = computed(() =>
   align-items: center;
   justify-content: space-between;
   padding: 14px 20px;
-  border-bottom: 1px solid #f8fafc;
+  border-bottom: 1px solid var(--bg-hover);
   transition: background 0.15s;
 
-  &:hover { background: #fafbfc; }
+  &:hover { background: var(--bg-hover); }
 }
 
 .log-left {
@@ -603,7 +603,7 @@ const hasActiveFilters = computed(() =>
   font-weight: 600;
 }
 
-.log-separator { color: #cbd5e1; }
+.log-separator { color: var(--border-color); }
 
 .log-method {
   font-size: 0.72rem;
@@ -642,9 +642,9 @@ const hasActiveFilters = computed(() =>
 }
 
 .empty-state {
-  padding: 60px;
+  padding: 30px;
   text-align: center;
-  color: #cbd5e1;
+  color: var(--border-color);
   font-weight: 600;
   font-size: 0.95rem;
 }
@@ -720,7 +720,7 @@ const hasActiveFilters = computed(() =>
 
 .btn-check-action {
   padding: 7px 16px;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: #6366f1;
   color: white;
   border: none;
   border-radius: 8px;
@@ -738,7 +738,7 @@ const hasActiveFilters = computed(() =>
 .no-result {
   padding: 30px;
   text-align: center;
-  color: #cbd5e1;
+  color: var(--border-color);
   font-weight: 600;
 }
 
@@ -766,11 +766,11 @@ const hasActiveFilters = computed(() =>
   &.cancel {
     background: var(--bg-hover);
     color: var(--text-secondary);
-    &:hover { background: #e2e8f0; }
+    &:hover { background: var(--bg-hover); }
   }
 
   &.confirm {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: #ef4444;
     color: white;
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
     &:hover { box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4); }
