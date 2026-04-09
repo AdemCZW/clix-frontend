@@ -974,19 +974,28 @@ watch(() => participantsStore.participants.length, () => {
   border:2px solid var(--border-color);
   border-radius:50%;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  cursor:pointer; transition:all .15s; position:relative; background:var(--bg-card);
+  cursor:pointer; transition:all .2s cubic-bezier(.4,0,.2,1); position:relative; background:var(--bg-card);
   gap:1px; user-select:none; -webkit-user-select:none;
 }
 .sp-seat.filled { cursor:grab; }
 .sp-seat.filled:active { cursor:grabbing; }
 .sp-seat:hover { border-color:#c7d2fe; box-shadow:0 2px 8px rgba(99,102,241,.12); }
 .sp-seat.sel { border-color: var(--accent); box-shadow:0 0 0 3px rgba(99,102,241,.2); }
-.sp-seat.filled { background:#f5f3ff; border-color:#c7d2fe; }
-.sp-seat.filled.vip-seat { background:#fffbeb; border-color:#fde68a; }
-.sp-seat.aisle { background:transparent; border:2px dashed #d1d5db; cursor:default; border-radius:8px; }
-.sp-seat.aisle:hover { box-shadow:none; border-color:#d1d5db; }
-.sp-seat.reserved { background:#fef2f2; border-color:#fca5a5; }
-.sp-seat.drag-over, .sp-seat.touch-over { border-color: var(--accent); background:#eef2ff; box-shadow:0 0 0 4px rgba(99,102,241,.25); transform:scale(1.05); }
+.sp-seat.filled { background:rgba(99,102,241,.06); border-color:rgba(99,102,241,.3); }
+.sp-seat.filled.vip-seat { background:rgba(245,158,11,.06); border-color:rgba(245,158,11,.3); }
+.sp-seat.aisle { background:transparent; border:2px dashed var(--border-color); cursor:default; border-radius:8px; }
+.sp-seat.aisle:hover { box-shadow:none; }
+.sp-seat.reserved { background:rgba(239,68,68,.06); border-color:rgba(239,68,68,.3); }
+.sp-seat.drag-over, .sp-seat.touch-over {
+  border-color:#6366f1; background:rgba(99,102,241,.12);
+  box-shadow:0 0 0 4px rgba(99,102,241,.2), 0 0 16px rgba(99,102,241,.15);
+  transform:scale(1.08);
+  animation:seat-pulse .8s ease-in-out infinite;
+}
+@keyframes seat-pulse {
+  0%,100% { box-shadow:0 0 0 4px rgba(99,102,241,.2), 0 0 16px rgba(99,102,241,.15); }
+  50% { box-shadow:0 0 0 6px rgba(99,102,241,.3), 0 0 24px rgba(99,102,241,.2); }
+}
 
 .sp-seat-lbl { font-size:.78rem; font-weight:600; color:var(--text-muted); }
 
@@ -1185,12 +1194,18 @@ watch(() => participantsStore.participants.length, () => {
 /* Ghost 元素掛在 body 上，不能用 scoped */
 .sp-touch-ghost {
   position:fixed; z-index:9999; pointer-events:none;
-  transform:translate(-50%, -110%);
+  transform:translate(-50%, -120%);
   background:#6366f1; color:#fff;
-  padding:6px 14px; border-radius:20px;
+  padding:6px 16px; border-radius:20px;
   font-size:.78rem; font-weight:700;
-  box-shadow:0 4px 16px rgba(99,102,241,.4);
+  box-shadow:0 6px 20px rgba(99,102,241,.5), 0 0 40px rgba(99,102,241,.2);
   white-space:nowrap; max-width:160px;
   overflow:hidden; text-overflow:ellipsis;
+  animation: ghost-appear .15s ease-out;
+  backdrop-filter: blur(4px);
+}
+@keyframes ghost-appear {
+  from { opacity:0; transform:translate(-50%, -80%) scale(0.8); }
+  to { opacity:1; transform:translate(-50%, -120%) scale(1); }
 }
 </style>

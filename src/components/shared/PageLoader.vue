@@ -14,7 +14,7 @@
 
 <script setup lang="ts">
 const props = defineProps<{ text?: string }>();
-const brandChars = 'Dabang'.split('');
+const brandChars = 'Clix'.split('');
 </script>
 
 <style scoped>
@@ -37,7 +37,7 @@ const brandChars = 'Dabang'.split('');
 .ring-outer {
   position: absolute;
   inset: 0;
-  border: 3px solid #eef2ff;
+  border: 3px solid var(--border-color);
   border-top-color: #6366f1;
   border-radius: 50%;
   animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
@@ -46,7 +46,7 @@ const brandChars = 'Dabang'.split('');
 .ring-inner {
   position: absolute;
   inset: 8px;
-  border: 3px solid #eef2ff;
+  border: 3px solid var(--border-color);
   border-bottom-color: #a5b4fc;
   border-radius: 50%;
   animation: spin-reverse 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;

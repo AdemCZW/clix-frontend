@@ -214,7 +214,11 @@ const selectEvent = (event: any) => {
 
       <!-- 頁面內容 -->
       <section class="view-port">
-        <router-view :key="route.fullPath" />
+        <router-view v-slot="{ Component }" :key="route.fullPath">
+          <Transition name="page-fade" mode="out-in">
+            <component :is="Component" />
+          </Transition>
+        </router-view>
       </section>
     </main>
 
@@ -613,5 +617,20 @@ const selectEvent = (event: any) => {
 @media (max-width: 480px) {
   .header-search { display: none; }
   .role-badge { display: none; }
+}
+
+/* 頁面切換淡入動畫 */
+.page-fade-enter-active {
+  transition: opacity .2s ease, transform .2s ease;
+}
+.page-fade-leave-active {
+  transition: opacity .15s ease;
+}
+.page-fade-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.page-fade-leave-to {
+  opacity: 0;
 }
 </style>
