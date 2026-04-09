@@ -988,13 +988,9 @@ watch(() => participantsStore.participants.length, () => {
 .sp-seat.reserved { background:rgba(239,68,68,.06); border-color:rgba(239,68,68,.3); }
 .sp-seat.drag-over, .sp-seat.touch-over {
   border-color:#6366f1; background:rgba(99,102,241,.12);
-  box-shadow:0 0 0 4px rgba(99,102,241,.2), 0 0 16px rgba(99,102,241,.15);
-  transform:scale(1.08);
-  animation:seat-pulse .8s ease-in-out infinite;
-}
-@keyframes seat-pulse {
-  0%,100% { box-shadow:0 0 0 4px rgba(99,102,241,.2), 0 0 16px rgba(99,102,241,.15); }
-  50% { box-shadow:0 0 0 6px rgba(99,102,241,.3), 0 0 24px rgba(99,102,241,.2); }
+  box-shadow:0 0 0 4px rgba(99,102,241,.25);
+  transform:scale(1.06);
+  will-change:transform, box-shadow;
 }
 
 .sp-seat-lbl { font-size:.78rem; font-weight:600; color:var(--text-muted); }
@@ -1005,7 +1001,7 @@ watch(() => participantsStore.participants.length, () => {
   background:linear-gradient(135deg,#6366f1,#4f46e5);
   color:#fff; font-size:.82rem; font-weight:700;
   display:flex; align-items:center; justify-content:center;
-  pointer-events:none; transition:.15s;
+  transition:.15s;
 }
 .sp-avatar.vip { background:linear-gradient(135deg,#f59e0b,#d97706); }
 .sp-seat-name { font-size:.62rem; font-weight:600; color:var(--text-secondary); max-width:56px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.1; }
