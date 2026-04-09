@@ -150,12 +150,34 @@ const dragPerson = ref<SeatPerson | null>(null);
 const dragFrom = ref<{ r: number; c: number } | null>(null);
 const dragOverIdx = ref<number | null>(null);
 
+// 建立自訂拖曳影像（避免圓形座位截圖露出方角背景）
+let _dragGhost: HTMLElement | null = null;
+const setCustomDragImage = (name: string, e: DragEvent) => {
+  if (!e.dataTransfer) return;
+  _dragGhost = document.createElement('div');
+  _dragGhost.textContent = name;
+  _dragGhost.style.cssText = `
+    position:fixed; left:-999px; top:-999px;
+    background:#6366f1; color:#fff;
+    padding:6px 16px; border-radius:20px;
+    font-size:13px; font-weight:700;
+    box-shadow:0 4px 12px rgba(99,102,241,.4);
+    white-space:nowrap; z-index:9999;
+  `;
+  document.body.appendChild(_dragGhost);
+  e.dataTransfer.setDragImage(_dragGhost, _dragGhost.offsetWidth / 2, _dragGhost.offsetHeight / 2);
+};
+const cleanDragGhost = () => {
+  if (_dragGhost) { _dragGhost.remove(); _dragGhost = null; }
+};
+
 const onDragStartPerson = (p: SeatPerson, e: DragEvent) => {
   dragPerson.value = p;
   dragFrom.value = null;
   if (e.dataTransfer) {
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", p.name);
+    setCustomDragImage(p.name, e);
   }
 };
 
@@ -167,6 +189,7 @@ const onDragStartSeat = (r: number, c: number, e: DragEvent) => {
   if (e.dataTransfer) {
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", dragPerson.value.name);
+    setCustomDragImage(dragPerson.value.name, e);
   }
 };
 
@@ -209,6 +232,7 @@ const onDragEnd = () => {
   dragPerson.value = null;
   dragFrom.value = null;
   dragOverIdx.value = null;
+  cleanDragGhost();
 };
 
 // ── 手機：點選分配模式 ──
