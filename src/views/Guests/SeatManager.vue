@@ -1188,16 +1188,18 @@ watch(() => participantsStore.participants.length, () => {
   .sp-sheet-list .sp-person { touch-action:none; }
 
   /* 座位縮小 */
-  .sp { --seat-base:52px; --hdr-w:24px; }
-  .row-hdr { font-size:.64rem; }
-  .sp-hdr { font-size:.62rem; }
-  .sp-avatar { width:24px; height:24px; font-size:.68rem; }
-  .sp-seat-name { font-size:.52rem; max-width:40px; }
-  .sp-seat-lbl { font-size:.64rem; }
-  .sp-x { width:14px; height:14px; font-size:.5rem; top:-3px; right:-3px; }
-  .sp-stage-bar { height:6px; margin-bottom:12px; }
-  .sp-stage-lbl { font-size:.72rem; margin-bottom:4px; }
-  .sp-main { padding:8px; }
+  .sp { --seat-base:38px; --hdr-w:18px; }
+  .sp-grid { gap:calc(2px * var(--z)); }
+  .sp-grid-head,.sp-grid-row { gap:calc(3px * var(--z)); }
+  .row-hdr { font-size:.58rem; }
+  .sp-hdr { font-size:.56rem; }
+  .sp-avatar { width:22px; height:22px; font-size:.62rem; }
+  .sp-seat-name { display:none; }  /* 手機隱藏名字，只顯示頭像 */
+  .sp-seat-lbl { font-size:.56rem; }
+  .sp-x { width:12px; height:12px; font-size:.45rem; top:-2px; right:-2px; }
+  .sp-stage-bar { height:5px; margin-bottom:8px; }
+  .sp-stage-lbl { font-size:.68rem; margin-bottom:3px; }
+  .sp-main { padding:6px; overflow:auto; }
 
   /* 選取工具列 */
   .sp-sel-bar {
