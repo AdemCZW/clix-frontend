@@ -175,60 +175,72 @@ const formatDate = (date, endDate, time) => {
       </div>
     </div>
 
-    <!-- Info Page -->
+    <!-- Info Page（設計稿版面：左側欄 + 右側內容） -->
     <template v-else-if="pageData && !showForm">
+      <div class="info-layout">
 
-      <!-- Banner -->
-      <div
-        class="page-banner"
-        :style="pageData.banner ? { backgroundImage: `url(${pageData.banner})` } : {}"
-      ></div>
+        <!-- 左側欄：Banner + 活動資訊 + 按鈕 -->
+        <aside class="info-sidebar">
+          <div class="sidebar-sticky">
+            <!-- Banner 圖片 -->
+            <div class="sidebar-banner" v-if="pageData.banner">
+              <img :src="pageData.banner" :alt="pageData.eventName" />
+            </div>
 
-      <!-- Floating white card (overlaps banner) -->
-      <div class="float-card">
+            <!-- 活動資訊 -->
+            <div class="sidebar-meta">
+              <div class="meta-row" v-if="pageData.eventDate">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span>{{ formatDate(pageData.eventDate, pageData.eventEndDate, null) }}</span>
+              </div>
+              <div class="meta-row" v-if="pageData.eventTime">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span>{{ pageData.eventTime }}</span>
+              </div>
+              <div class="meta-row" v-if="pageData.eventLocation">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>{{ pageData.eventLocation }}</span>
+              </div>
+            </div>
 
-        <!-- Event Header -->
-        <div class="event-header">
+            <!-- 按鈕 -->
+            <div class="sidebar-actions">
+              <button class="sb-btn outline" @click="openForm" :disabled="isFull">聯絡主辦單位</button>
+              <button class="sb-btn primary" @click="openForm" :disabled="isFull">立即預約</button>
+            </div>
+          </div>
+        </aside>
+
+        <!-- 右側：活動內容 -->
+        <main class="info-main">
           <span class="p-tag">UPCOMING EVENT</span>
           <h1 class="p-title">{{ pageData.eventName }}</h1>
-          <div class="p-badges">
-            <span v-if="pageData.eventDate">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:3px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>{{ formatDate(pageData.eventDate, pageData.eventEndDate, pageData.eventTime) }}
-            </span>
-            <span v-if="pageData.eventLocation"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:3px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>{{ pageData.eventLocation }}</span>
-            <span v-if="pageData.eventAddress"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:3px"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg>{{ pageData.eventAddress }}</span>
-            <span class="badge-count">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:3px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> {{ participantsCount }} / {{ maxParticipants }}
-            </span>
-            <span class="badge-status">{{ statusText }}</span>
+
+          <!-- 報名截止提示 -->
+          <div v-if="isFull" class="full-alert">報名已截止，名額已滿</div>
+
+          <!-- 活動內文 -->
+          <div v-if="pageData.mainContent" class="p-main-body-render" v-html="pageData.mainContent"></div>
+
+          <!-- 活動地點區塊 -->
+          <div v-if="pageData.eventAddress || pageData.eventLocation" class="venue-section">
+            <h2 class="section-heading">活動地點</h2>
+            <div class="venue-info">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <div>
+                <strong>{{ pageData.eventLocation }}</strong>
+                <p v-if="pageData.eventAddress" style="margin:4px 0 0; font-size:.88rem; color:#64748b;">{{ pageData.eventAddress }}</p>
+              </div>
+            </div>
           </div>
-        </div>
-
-        <!-- 報名截止提示 -->
-        <div v-if="isFull" class="full-alert">
-          <span>報名已截止，名額已滿</span>
-        </div>
-
-        <!-- Rich text content -->
-        <div v-if="pageData.mainContent" class="p-main-body-render" v-html="pageData.mainContent"></div>
-
-      </div><!-- /.float-card -->
-
-      <!-- Sticky Footer -->
-      <div class="sticky-footer">
-        <div class="footer-inner">
-          <div class="footer-info">
-            <span class="f-title">立即報名參加</span>
-            <span class="f-date">
-              <template v-if="pageData.eventDate"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:3px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>{{ formatDate(pageData.eventDate, pageData.eventEndDate, pageData.eventTime) }}</template>
-              <template v-if="pageData.eventLocation">{{ pageData.eventLocation }}</template>
-            </span>
-          </div>
-          <button class="btn-apply" @click="openForm" :disabled="isFull">
-            <span>立即報名</span>
-          </button>
-        </div>
+        </main>
       </div>
+
+      <!-- 底部版權 -->
+      <footer class="page-footer">
+        <span>&copy; Clix 活動報到系統</span>
+        <span>WEBSITE DESIGNED BY CLIX</span>
+      </footer>
 
     </template>
 
@@ -344,9 +356,8 @@ const formatDate = (date, endDate, time) => {
 /* ─── Base ─── */
 .public-page {
   min-height: 100vh;
-  background: var(--bg-hover);
+  background: #f8fafc;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', sans-serif;
-  padding-bottom: 90px;
 }
 
 /* ─── State Screens ─── */
@@ -431,98 +442,125 @@ const formatDate = (date, endDate, time) => {
 .r-icon { font-size: 1.1rem; flex-shrink: 0; }
 
 /* ─── Banner ─── */
-.page-banner {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  max-height: 540px;
-  background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 50%, #1e293b 100%);
-  background-size: cover;
-  background-position: center;
-  position: relative;
-}
-.page-banner::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 50%;
-  background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.45));
+/* ─── Info Layout（左右兩欄） ─── */
+.info-layout {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 60px;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 40px;
+  align-items: start;
 }
 
-/* ─── Float Card ─── */
-.float-card {
-  background: rgba(255,255,255,0.98);
-  margin-top: -36px;
-  border-radius: 28px 28px 0 0;
-  position: relative;
-  z-index: 2;
-  box-shadow: 0 -12px 40px rgba(0,0,0,0.1);
-  width: 100%;
-  /* RWD: fluid padding scales with viewport, no fixed max-width */
-  padding: clamp(24px, 4vw, 52px) clamp(16px, 7vw, 96px) 60px;
+/* 左側欄 */
+.info-sidebar { min-width: 0; }
+.sidebar-sticky { position: sticky; top: 24px; }
+.sidebar-banner img {
+  width: 100%; border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
 }
-@media (max-width: 640px) {
-  .float-card { padding: 24px 16px 48px; margin-top: -20px; }
+.sidebar-meta {
+  margin-top: 16px; display: flex; flex-direction: column; gap: 10px;
+  padding: 14px; background: #f8fafc; border-radius: 10px;
+  border: 1px solid #e2e8f0;
 }
+.meta-row {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: .86rem; color: #334155; line-height: 1.4;
+}
+.meta-row svg { flex-shrink: 0; margin-top: 2px; color: #6366f1; }
+.sidebar-actions {
+  margin-top: 14px; display: flex; flex-direction: column; gap: 8px;
+}
+.sb-btn {
+  width: 100%; padding: 10px 0; border-radius: 8px;
+  font-size: .88rem; font-weight: 600; cursor: pointer;
+  transition: .15s; text-align: center; border: none;
+}
+.sb-btn.outline {
+  background: #fff; color: #334155;
+  border: 1px solid #d1d5db;
+}
+.sb-btn.outline:hover { background: #f9fafb; }
+.sb-btn.primary { background: #6366f1; color: #fff; }
+.sb-btn.primary:hover { background: #4f46e5; }
+.sb-btn:disabled { opacity: .5; cursor: not-allowed; }
 
-/* ─── Event Header ─── */
-.event-header { margin-bottom: 32px; }
+/* 右側主內容 */
+.info-main { min-width: 0; }
+
 .p-tag {
   display: inline-block;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  color: #fff;
-  padding: 7px 20px;
-  border-radius: 20px;
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 14px rgba(102,126,234,0.3);
+  background: #6366f1; color: #fff;
+  padding: 5px 14px; border-radius: 4px;
+  font-size: 0.68rem; font-weight: 800;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  margin-bottom: 12px;
 }
 .p-title {
-  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
   font-weight: 900;
   margin: 0 0 24px;
-  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  color: #0f172a;
+  line-height: 1.3;
   word-break: break-word;
 }
-.p-badges { display: flex; flex-wrap: wrap; gap: 12px; }
-.p-badges span {
-  background: linear-gradient(135deg, rgba(99,102,241,0.09) 0%, rgba(37,99,235,0.14) 100%);
-  color: #3730a3;
-  padding: 10px 18px;
-  border-radius: 14px;
-  font-size: 0.92rem;
-  font-weight: 700;
-  white-space: nowrap;
-  border: 1.5px solid rgba(99,102,241,0.28);
-  box-shadow: 0 3px 10px rgba(99,102,241,0.12);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.p-badges span:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(99,102,241,0.22);
-}
 
-/* ─── Rich Text ─── */
+/* Rich Text */
 .p-main-body-render {
-  color: var(--text-secondary);
-  font-size: 1rem;
-  line-height: 1.9;
-  margin-bottom: 40px;
-  padding-bottom: 40px;
-  border-bottom: 1px solid var(--border-light);
+  color: #334155;
+  font-size: .95rem;
+  line-height: 1.85;
+  margin-bottom: 32px;
 }
 .p-main-body-render :deep(h1),
 .p-main-body-render :deep(h2),
-.p-main-body-render :deep(h3) { color: var(--text-main); font-weight: 800; margin-top: 1.4em; }
-.p-main-body-render :deep(img) { max-width: 100%; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-.p-main-body-render :deep(a)   { color: #6366f1; font-weight: 600; }
+.p-main-body-render :deep(h3) { color: #0f172a; font-weight: 800; margin-top: 1.4em; }
+.p-main-body-render :deep(h3) { border-left: 3px solid #6366f1; padding-left: 10px; }
+.p-main-body-render :deep(img) { max-width: 100%; border-radius: 8px; }
+.p-main-body-render :deep(a) { color: #6366f1; font-weight: 600; }
+.p-main-body-render :deep(ul),
+.p-main-body-render :deep(ol) { padding-left: 20px; }
+.p-main-body-render :deep(li) { margin-bottom: 6px; }
+
+/* 活動地點 */
+.venue-section { margin-top: 40px; padding-top: 32px; border-top: 1px solid #e2e8f0; }
+.section-heading { font-size: 1.3rem; font-weight: 800; color: #0f172a; margin: 0 0 16px; }
+.venue-info { display: flex; gap: 10px; align-items: flex-start; }
+.venue-info svg { flex-shrink: 0; margin-top: 3px; }
+.venue-info strong { font-size: .92rem; color: #0f172a; }
+
+/* 底部版權 */
+.page-footer {
+  max-width: 1100px; margin: 0 auto;
+  padding: 20px 24px;
+  display: flex; justify-content: space-between;
+  font-size: .75rem; color: #94a3b8;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* 報名截止 */
+.full-alert {
+  background: #fef2f2; color: #dc2626;
+  padding: 12px 16px; border-radius: 8px;
+  font-size: .88rem; font-weight: 600;
+  margin-bottom: 20px; border: 1px solid #fecaca;
+}
+
+/* RWD */
+@media (max-width: 768px) {
+  .info-layout {
+    grid-template-columns: 1fr;
+    padding: 16px 16px 60px;
+    gap: 20px;
+  }
+  .sidebar-sticky { position: static; }
+  .sidebar-banner img { max-height: 240px; object-fit: cover; }
+  .sidebar-actions { flex-direction: row; }
+  .sb-btn { flex: 1; }
+  .page-footer { flex-direction: column; gap: 4px; text-align: center; }
+}
 
 /* ─── Form View ─── */
 .form-view {
@@ -733,69 +771,7 @@ const formatDate = (date, endDate, time) => {
   animation: spin 0.7s linear infinite;
 }
 
-/* ─── Sticky Footer ─── */
-.sticky-footer {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  background: linear-gradient(to top, rgba(255,255,255,0.98), rgba(255,255,255,0.95));
-  backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(226,232,240,0.8);
-  box-shadow: 0 -4px 24px rgba(0,0,0,0.1);
-  padding: 16px 24px;
-  z-index: 100;
-}
-.footer-inner {
-  max-width: 900px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-.footer-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.f-title {
-  font-size: 1.1rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.f-date {
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.btn-apply {
-  position: relative;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  color: #fff;
-  border: none;
-  padding: 14px 40px;
-  border-radius: 14px;
-  font-size: 1rem;
-  font-weight: 800;
-  cursor: pointer;
-  overflow: hidden;
-  flex-shrink: 0;
-  box-shadow: 0 8px 20px rgba(102,126,234,0.35);
-  transition: transform 0.3s, box-shadow 0.3s;
-}
-.btn-apply::after {
-  content: '';
-  position: absolute;
-  top: -50%; left: -60%;
-  width: 20%; height: 200%;
-  background: rgba(255,255,255,0.3);
-  transform: rotate(30deg);
-  transition: left 0.5s ease-in-out;
-}
+/* (sticky-footer removed — replaced by sidebar buttons) */
 .btn-apply:hover {
   transform: translateY(-2px) scale(1.02);
   box-shadow: 0 12px 28px rgba(102,126,234,0.45);
