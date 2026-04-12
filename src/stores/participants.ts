@@ -304,6 +304,8 @@ export const usePublicRegisterStore = defineStore('publicRegister', () => {
                 eventStatus: raw.event_status,
                 eventStatusText: raw.event_status_text,
                 formFields: raw.form_fields || [],
+                tickets: raw.tickets || [],
+                faqs: raw.faqs || [],
             } as RegistrationPage
             return page.value
         } catch (err) {
