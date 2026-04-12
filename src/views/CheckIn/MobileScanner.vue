@@ -504,7 +504,7 @@ onUnmounted(() => {
 }
 
 .help-tips {
-  background: rgba(99, 102, 241, 0.08);
+  background: rgba(22, 122, 103, 0.08);
   border-radius: 12px;
   padding: 16px 20px;
   margin-bottom: 32px;
@@ -519,7 +519,7 @@ onUnmounted(() => {
 }
 
 .btn-start-scan {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
   color: white;
   border: none;
   padding: 16px 40px;
@@ -530,14 +530,14 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 8px 24px rgba(22, 122, 103, 0.4);
   transition: all 0.3s ease;
   margin-bottom: 12px;
 }
 
 .btn-start-scan:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 12px 32px rgba(22, 122, 103, 0.5);
 }
 
 .btn-start-scan .icon {
@@ -594,7 +594,7 @@ onUnmounted(() => {
 .scan-box {
   width: 100%;
   height: 100%;
-  border: 3px solid #6366f1;
+  border: 3px solid #167A67;
   border-radius: 16px;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
   animation: pulse 2s ease-in-out infinite;
@@ -606,7 +606,7 @@ onUnmounted(() => {
     border-color: var(--accent);
     box-shadow:
       0 0 0 9999px rgba(0, 0, 0, 0.5),
-      0 0 20px rgba(99, 102, 241, 0.5);
+      0 0 20px rgba(22, 122, 103, 0.5);
   }
   50% {
     border-color: #60a5fa;
@@ -794,7 +794,7 @@ onUnmounted(() => {
 }
 
 .btn-continue {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
   color: white;
   border: none;
   padding: 14px 40px;
@@ -808,7 +808,7 @@ onUnmounted(() => {
 
 .btn-continue:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 8px 20px rgba(22, 122, 103, 0.4);
 }
 
 /* 統計欄 */
@@ -837,7 +837,7 @@ onUnmounted(() => {
   display: block;
   font-size: 1.75rem;
   font-weight: 800;
-  color: #6366f1;
+  color: #167A67;
 }
 
 /* 動畫 */

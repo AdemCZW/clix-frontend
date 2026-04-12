@@ -296,7 +296,7 @@ onUnmounted(() => disconnectWebSocket());
 .slot-badge {
   font-size: 2rem;
   font-weight: 900;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
   color: white;
   padding: 8px 24px;
   border-radius: 12px;
@@ -355,7 +355,7 @@ onUnmounted(() => disconnectWebSocket());
 }
 .btn-reconnect:hover {
   border-color: var(--accent);
-  color: #6366f1;
+  color: #167A67;
 }
 
 /* ===== Body ===== */
@@ -487,8 +487,8 @@ onUnmounted(() => disconnectWebSocket());
 }
 .log-row.newest {
   background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%);
-  border: 1px solid #6366f1;
-  box-shadow: 0 0 16px rgba(99, 102, 241, 0.15);
+  border: 1px solid #167A67;
+  box-shadow: 0 0 16px rgba(22, 122, 103, 0.15);
 }
 .log-seq {
   width: 28px;
@@ -504,7 +504,7 @@ onUnmounted(() => disconnectWebSocket());
   flex-shrink: 0;
 }
 .log-row.newest .log-seq {
-  background: #6366f1;
+  background: #167A67;
   color: white;
 }
 .log-name {

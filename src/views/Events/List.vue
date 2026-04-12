@@ -436,7 +436,7 @@ const createEvent = async () => {
   }
 
   .btn-create {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
     color: white;
     border: none;
     padding: 12px 24px;
@@ -449,8 +449,8 @@ const createEvent = async () => {
     transition: all 0.3s;
 
     &:hover {
-      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+      background: linear-gradient(135deg, #0f5d4e 0%, #4338ca 100%);
+      box-shadow: 0 4px 12px rgba(22, 122, 103, 0.3);
       transform: translateY(-2px);
     }
 
@@ -468,7 +468,7 @@ const createEvent = async () => {
   justify-content: space-between;
 
   .btn-create {
-    background: #6366f1;
+    background: #167A67;
     color: white;
     border: none;
     padding: 8px 16px;
@@ -482,7 +482,7 @@ const createEvent = async () => {
     transition: all 0.15s;
     white-space: nowrap;
 
-    &:hover { background: #4f46e5; }
+    &:hover { background: #0f5d4e; }
     .icon { font-size: 1rem; }
   }
 }
@@ -505,7 +505,7 @@ const createEvent = async () => {
     &:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+      box-shadow: 0 0 0 4px rgba(22, 122, 103, 0.1);
     }
 
     &::placeholder {
@@ -533,11 +533,11 @@ const createEvent = async () => {
 
   &:hover {
     border-color: var(--accent);
-    color: #6366f1;
+    color: #167A67;
   }
 
   &.active {
-    background: #6366f1;
+    background: #167A67;
     color: white;
     border-color: var(--accent);
   }
@@ -685,20 +685,20 @@ const createEvent = async () => {
         flex: 1;
         padding: 6px 12px;
         border-radius: 7px;
-        border: 1px solid #6366f1;
-        background: #6366f1;
+        border: 1px solid #167A67;
+        background: #167A67;
         color: white;
         font-weight: 600;
         font-size: 0.8rem;
         cursor: pointer;
         transition: all 0.15s;
 
-        &:hover { background: #4f46e5; }
+        &:hover { background: #0f5d4e; }
 
         &.secondary {
           background: var(--bg-card);
-          color: #6366f1;
-          &:hover { background: rgba(99,102,241,.08); }
+          color: #167A67;
+          &:hover { background: rgba(22,122,103,.08); }
         }
       }
     }
@@ -741,7 +741,7 @@ const createEvent = async () => {
     &:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      box-shadow: 0 0 0 3px rgba(22, 122, 103, 0.1);
     }
   }
 }
@@ -767,12 +767,12 @@ const createEvent = async () => {
   font-weight: 600;
   font-size: 0.88rem;
   cursor: pointer;
-  background: #6366f1;
+  background: #167A67;
   border: none;
   color: white;
   transition: all 0.15s;
 
-  &:hover { background: #4f46e5; }
+  &:hover { background: #0f5d4e; }
 }
 
 /* 過期活動卡片樣式 */
@@ -818,12 +818,12 @@ const createEvent = async () => {
   font-weight: 600;
   font-size: 0.88rem;
   cursor: pointer;
-  background: #6366f1;
+  background: #167A67;
   border: none;
   color: white;
   transition: all 0.15s;
 
-  &:hover { background: #4f46e5; }
+  &:hover { background: #0f5d4e; }
 }
 
 @media (max-width: 1200px) {

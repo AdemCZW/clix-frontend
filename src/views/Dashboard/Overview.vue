@@ -63,8 +63,8 @@
         >
           <defs>
             <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#6366f1" stop-opacity="0.25" />
-              <stop offset="100%" stop-color="#6366f1" stop-opacity="0.02" />
+              <stop offset="0%" stop-color="#167A67" stop-opacity="0.25" />
+              <stop offset="100%" stop-color="#167A67" stop-opacity="0.02" />
             </linearGradient>
           </defs>
 
@@ -126,14 +126,14 @@
 
           <defs>
             <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="#6366f1" />
-              <stop offset="100%" stop-color="#818cf8" />
+              <stop offset="0%" stop-color="#167A67" />
+              <stop offset="100%" stop-color="#1a9a80" />
             </linearGradient>
             <!-- 流動光點漸變 -->
             <radialGradient id="glowGrad">
-              <stop offset="0%" stop-color="#818cf8" stop-opacity="1" />
-              <stop offset="50%" stop-color="#6366f1" stop-opacity="0.6" />
-              <stop offset="100%" stop-color="#6366f1" stop-opacity="0" />
+              <stop offset="0%" stop-color="#1a9a80" stop-opacity="1" />
+              <stop offset="50%" stop-color="#167A67" stop-opacity="0.6" />
+              <stop offset="100%" stop-color="#167A67" stop-opacity="0" />
             </radialGradient>
           </defs>
 
@@ -152,7 +152,7 @@
               :cy="pt.y"
               r="4"
               fill="white"
-              stroke="#6366f1"
+              stroke="#167A67"
               stroke-width="2"
               class="data-dot"
               @mouseenter="showTooltip(pt, i, $event)"
@@ -177,7 +177,7 @@
               :cy="pt.y"
               r="4"
               fill="white"
-              stroke="#6366f1"
+              stroke="#167A67"
               stroke-width="2"
             />
           </g>
@@ -467,7 +467,7 @@ const selectEvent = (displayEvent) => {
   justify-content: center;
   flex-shrink: 0;
 }
-.si-indigo { background: rgba(99,102,241,.1); color: #6366f1; }
+.si-indigo { background: rgba(22,122,103,.1); color: #167A67; }
 .si-green { background: rgba(16,185,129,.1); color: #10b981; }
 .si-blue { background: rgba(59,130,246,.1); color: #3b82f6; }
 .si-amber { background: rgba(245,158,11,.1); color: #f59e0b; }
@@ -546,7 +546,7 @@ const selectEvent = (displayEvent) => {
 
   &.active {
     background: var(--bg-card);
-    color: #6366f1;
+    color: #167A67;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   }
 
@@ -570,7 +570,7 @@ const selectEvent = (displayEvent) => {
 .hover-zone { cursor: pointer; }
 
 .flow-dot {
-  filter: drop-shadow(0 0 4px rgba(99,102,241,0.8));
+  filter: drop-shadow(0 0 4px rgba(22,122,103,0.8));
 }
 .flow-glow {
   opacity: 0.5;
@@ -689,7 +689,7 @@ const selectEvent = (displayEvent) => {
   .event-date {
     width: 60px;
     height: 60px;
-    background: #6366f1;
+    background: #167A67;
     border-radius: 12px;
     display: flex;
     flex-direction: column;
@@ -843,16 +843,16 @@ const selectEvent = (displayEvent) => {
   padding: 10px 24px;
   border-radius: 10px;
   border: none;
-  background: #6366f1;
+  background: #167A67;
   color: white;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #4f46e5;
+    background: #0f5d4e;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 12px rgba(22, 122, 103, 0.3);
   }
 }
 </style>

@@ -112,7 +112,7 @@ const selectEvent = (event: any) => {
       <div class="sidebar-header">
         <div class="logo-icon">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-            <rect width="24" height="24" rx="6" fill="#6366f1"/>
+            <rect width="24" height="24" rx="6" fill="#167A67"/>
             <path d="M7 12l3 3 7-7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
@@ -526,7 +526,7 @@ const selectEvent = (event: any) => {
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #167A67 0%, #8b5cf6 100%);
     color: white;
     font-weight: 700;
     font-size: 0.9rem;

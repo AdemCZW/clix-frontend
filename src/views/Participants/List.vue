@@ -617,7 +617,7 @@ const formatDate = (isoString: string) => {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 
@@ -672,7 +672,7 @@ const formatDate = (isoString: string) => {
   gap: 8px;
 
   &:hover {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
     color: white;
   }
 
@@ -771,7 +771,7 @@ const formatDate = (isoString: string) => {
 
   &.active {
     background: var(--bg-card);
-    color: #6366f1;
+    color: #167A67;
     border-color: var(--border-color);
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
     z-index: 1;
@@ -782,7 +782,7 @@ const formatDate = (isoString: string) => {
     }
 
     .tab-count {
-      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
       color: white;
       box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
     }
@@ -842,7 +842,7 @@ const formatDate = (isoString: string) => {
     width: 0;
 
     &:checked ~ .checkmark {
-      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
       border-color: var(--accent);
 
       &::after {
@@ -975,7 +975,7 @@ const formatDate = (isoString: string) => {
   }
 
   &.edit {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
     color: white;
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
 
@@ -1106,14 +1106,14 @@ const formatDate = (isoString: string) => {
 
   .btn-download-qr {
     font-size: 0.82rem;
-    color: #6366f1;
+    color: #167A67;
     text-decoration: none;
-    border: 1px solid #6366f1;
+    border: 1px solid #167A67;
     padding: 6px 16px;
     border-radius: 8px;
 
     &:hover {
-      background: rgba(99, 102, 241, 0.08);
+      background: rgba(22, 122, 103, 0.08);
     }
   }
 }
@@ -1138,7 +1138,7 @@ const formatDate = (isoString: string) => {
 .btn-save {
   flex: 1;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
   border: none;
   color: white;
   border-radius: 10px;
@@ -1178,7 +1178,7 @@ const formatDate = (isoString: string) => {
   width: 48px;
   height: 48px;
   border: 4px solid var(--border-color);
-  border-top-color: #6366f1;
+  border-top-color: #167A67;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -1229,7 +1229,7 @@ const formatDate = (isoString: string) => {
     border:1px solid var(--border-color);
   }
   .mobile-bottom-bar .mb-add {
-    background:#6366f1; color:#fff;
+    background:#167A67; color:#fff;
   }
 
   /* 標籤頁緊湊 */
@@ -1298,8 +1298,8 @@ const formatDate = (isoString: string) => {
 }
 .tb.outline { background:var(--bg-card); color:var(--text-secondary); border:1px solid var(--border-color); }
 .tb.outline:hover { background:var(--bg-hover); }
-.tb.primary { background:#6366f1; color:#fff; }
-.tb.primary:hover { background:#4f46e5; }
+.tb.primary { background:#167A67; color:#fff; }
+.tb.primary:hover { background:#0f5d4e; }
 .tb.danger { background:transparent; color:#ef4444; border:1px solid #fecaca; }
 .tb.danger:hover { background:#fef2f2; }
 .tb:disabled { opacity:.5; cursor:not-allowed; }
@@ -1323,7 +1323,7 @@ const formatDate = (isoString: string) => {
   font-size:.84rem; font-weight:600; color:var(--text-muted);
   cursor:pointer; transition:.15s; text-align:center;
 }
-.tab.active { color:#6366f1; box-shadow:inset 0 -2px 0 #6366f1; }
+.tab.active { color:#167A67; box-shadow:inset 0 -2px 0 #167A67; }
 .tab:hover:not(.active) { color:var(--text-secondary); }
 .cnt {
   display:inline-flex; align-items:center; justify-content:center;
@@ -1331,7 +1331,7 @@ const formatDate = (isoString: string) => {
   background:var(--bg-hover); border-radius:9px;
   font-size:.68rem; font-weight:700; margin-left:4px;
 }
-.tab.active .cnt { background:#6366f1; color:#fff; }
+.tab.active .cnt { background:#167A67; color:#fff; }
 
 /* 表格 */
 .list-scroll { overflow-y:auto; max-height:calc(100vh - 160px); }
@@ -1344,7 +1344,7 @@ const formatDate = (isoString: string) => {
 .data-table td { padding:8px 12px; border-bottom:1px solid var(--border-color); font-size:.84rem; }
 .data-table tr { cursor:pointer; transition:.1s; }
 .data-table tbody tr:hover { background:var(--bg-hover); }
-.data-table tbody tr.active { background:rgba(99,102,241,.08); }
+.data-table tbody tr.active { background:rgba(22,122,103,.08); }
 .name-cell { display:flex; align-items:center; gap:8px; }
 .avatar {
   width:28px; height:28px; background:#e0f2fe; color:#0369a1;
@@ -1390,7 +1390,7 @@ const formatDate = (isoString: string) => {
   border-radius:7px; font-size:.88rem; outline:none; background:var(--bg-card);
   color:var(--text-main); transition:.15s;
 }
-.fi:focus { border-color:#6366f1; box-shadow:0 0 0 2px rgba(99,102,241,.1); }
+.fi:focus { border-color:#167A67; box-shadow:0 0 0 2px rgba(22,122,103,.1); }
 select.fi { cursor:pointer; }
 .fi-ro {
   padding:7px 10px; background:var(--bg-primary); border:1px solid var(--border-color);
@@ -1398,7 +1398,7 @@ select.fi { cursor:pointer; }
 }
 .qr-block { text-align:center; padding:12px 0; }
 .qr-img { width:140px; height:140px; border:1px solid var(--border-color); border-radius:8px; padding:6px; background:var(--bg-card); }
-.qr-dl { display:inline-block; margin-top:8px; font-size:.78rem; color:#6366f1; text-decoration:none; }
+.qr-dl { display:inline-block; margin-top:8px; font-size:.78rem; color:#167A67; text-decoration:none; }
 .panel-footer {
   display:flex; gap:8px; padding:12px 16px;
   border-top:1px solid var(--border-color);
@@ -1418,7 +1418,7 @@ select.fi { cursor:pointer; }
   color:var(--text-secondary); font-size:.82rem; text-align:left;
   cursor:pointer; transition:.15s;
 }
-.export-option:hover { background:#6366f1; color:#fff; }
+.export-option:hover { background:#167A67; color:#fff; }
 .dropdown-fade-enter-active,.dropdown-fade-leave-active { transition:all .15s; }
 .dropdown-fade-enter-from,.dropdown-fade-leave-to { opacity:0; transform:translateY(-6px); }
 
@@ -1430,7 +1430,7 @@ select.fi { cursor:pointer; }
 .loading-overlay p { margin-top:12px; font-size:.9rem; color:var(--text-secondary); }
 .loading-spinner {
   width:40px; height:40px; border:3px solid var(--border-color);
-  border-top-color:#6366f1; border-radius:50%; animation:spin .8s linear infinite;
+  border-top-color:#167A67; border-radius:50%; animation:spin .8s linear infinite;
 }
 @keyframes spin { to { transform:rotate(360deg); } }
 

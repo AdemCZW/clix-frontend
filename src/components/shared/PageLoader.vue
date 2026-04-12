@@ -38,7 +38,7 @@ const brandChars = 'Clix'.split('');
   position: absolute;
   inset: 0;
   border: 3px solid var(--border-color);
-  border-top-color: #6366f1;
+  border-top-color: #167A67;
   border-radius: 50%;
   animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
@@ -59,7 +59,7 @@ const brandChars = 'Clix'.split('');
   width: 8px;
   height: 8px;
   margin: -4px 0 0 -4px;
-  background: #6366f1;
+  background: #167A67;
   border-radius: 50%;
   animation: pulse 1.2s ease-in-out infinite;
 }
@@ -86,7 +86,7 @@ const brandChars = 'Clix'.split('');
 .brand-char {
   font-size: 1.2rem;
   font-weight: 800;
-  color: #6366f1;
+  color: #167A67;
   opacity: 0;
   animation: char-in 0.4s ease forwards, char-pulse 2s ease-in-out 0.6s infinite;
 }

@@ -737,7 +737,7 @@ watch(logoUrl, (val) => {
     color: var(--text-secondary);
 
     strong { color: var(--text-main); }
-    .highlight { color: #6366f1; font-size: 1.1rem; }
+    .highlight { color: #167A67; font-size: 1.1rem; }
   }
 }
 
@@ -754,7 +754,7 @@ watch(logoUrl, (val) => {
   font-weight: 600;
   cursor: pointer;
   border: none;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   transition: all 0.3s;
@@ -774,7 +774,7 @@ watch(logoUrl, (val) => {
   color: var(--text-secondary);
   transition: all 0.2s;
 
-  &:hover, &.active { border-color: var(--accent); color: #6366f1; background: #f5f3ff; }
+  &:hover, &.active { border-color: var(--accent); color: #167A67; background: #f5f3ff; }
 }
 
 /* ===== 站台管理 ===== */
@@ -827,7 +827,7 @@ watch(logoUrl, (val) => {
   background: var(--bg-card);
   color: var(--text-main);
   transition: all 0.2s;
-  &:hover { background: #eef2ff; border-color: var(--accent); color: #4f46e5; }
+  &:hover { background: #eef2ff; border-color: var(--accent); color: #0f5d4e; }
 }
 
 .btn-test {
@@ -840,7 +840,7 @@ watch(logoUrl, (val) => {
   background: var(--bg-card);
   color: var(--text-muted);
   transition: all 0.2s;
-  &:hover:not(:disabled) { border-color: var(--accent); color: #4f46e5; }
+  &:hover:not(:disabled) { border-color: var(--accent); color: #0f5d4e; }
   &:disabled { opacity: 0.6; cursor: default; }
   &.online  { border-color: #bbf7d0; color: #16a34a; background: #f0fdf4; }
   &.offline { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
@@ -922,12 +922,12 @@ watch(logoUrl, (val) => {
   }
 
   &.active .toggle-icon {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
     border-color: var(--accent);
     color: white;
   }
 
-  &:hover { color: #6366f1; }
+  &:hover { color: #167A67; }
   &:hover .toggle-icon { border-color: var(--accent); }
 }
 
@@ -959,7 +959,7 @@ watch(logoUrl, (val) => {
     background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
     border-color: var(--accent);
 
-    .name { color: #6366f1; }
+    .name { color: #167A67; }
   }
 
   .p-info {
@@ -978,7 +978,7 @@ watch(logoUrl, (val) => {
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
     color: white;
     font-size: 12px;
     font-weight: bold;
@@ -1025,7 +1025,7 @@ watch(logoUrl, (val) => {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.2s;
-  &:hover { border-color: var(--accent); color: #4f46e5; background: #eef2ff; }
+  &:hover { border-color: var(--accent); color: #0f5d4e; background: #eef2ff; }
   &.danger { border-color: #fca5a5; background: #fff1f2; color: #ef4444; &:hover { background: #fee2e2; } }
 }
 
@@ -1076,11 +1076,11 @@ watch(logoUrl, (val) => {
   border-radius: 4px;
   transition: border-color 0.2s, background 0.2s;
 
-  &:hover { background: rgba(99, 102, 241, 0.05); border-color: #cbd5e1; }
+  &:hover { background: rgba(22, 122, 103, 0.05); border-color: #cbd5e1; }
 
   &.active {
-    border: 2px dashed #6366f1;
-    background: rgba(99, 102, 241, 0.08);
+    border: 2px dashed #167A67;
+    background: rgba(22, 122, 103, 0.08);
 
     .drag-handle {
       position: absolute;
@@ -1088,7 +1088,7 @@ watch(logoUrl, (val) => {
       right: -6px;
       width: 12px;
       height: 12px;
-      background: #6366f1;
+      background: #167A67;
       border: 2px solid white;
       border-radius: 50%;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -1156,9 +1156,9 @@ watch(logoUrl, (val) => {
       width: 14px;
       height: 14px;
       border-radius: 50%;
-      background: #6366f1;
+      background: #167A67;
       cursor: pointer;
-      box-shadow: 0 2px 4px rgba(99, 102, 241, 0.4);
+      box-shadow: 0 2px 4px rgba(22, 122, 103, 0.4);
     }
   }
 
@@ -1246,7 +1246,7 @@ watch(logoUrl, (val) => {
   &:hover {
     border-color: var(--accent);
     background: #eef2ff;
-    color: #6366f1;
+    color: #167A67;
   }
 }
 
@@ -1365,7 +1365,7 @@ watch(logoUrl, (val) => {
   width: 40px;
   height: 40px;
   border: 3px solid var(--border-color);
-  border-top-color: #6366f1;
+  border-top-color: #167A67;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -1495,7 +1495,7 @@ watch(logoUrl, (val) => {
   }
 
   .btn-scan-done {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
     color: white;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     &:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4); }

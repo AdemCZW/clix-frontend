@@ -426,12 +426,12 @@ const getInitials = (name: string) => {
   &:focus {
     border-color: var(--accent);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    box-shadow: 0 0 0 3px rgba(22, 122, 103, 0.12);
   }
 }
 
 .btn-add-guest {
-  background: #6366f1;
+  background: #167A67;
   color: white;
   border: none;
   padding: 10px 24px;
@@ -443,11 +443,11 @@ const getInitials = (name: string) => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 4px 12px rgba(22, 122, 103, 0.25);
 
   &:hover {
-    background: #4f46e5;
-    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35);
+    background: #0f5d4e;
+    box-shadow: 0 6px 16px rgba(22, 122, 103, 0.35);
     transform: translateY(-2px);
   }
 
@@ -530,7 +530,7 @@ const getInitials = (name: string) => {
 
   &.active {
     border-color: var(--accent);
-    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 4px 16px rgba(22, 122, 103, 0.2);
   }
 
   &.selected {
@@ -614,7 +614,7 @@ const getInitials = (name: string) => {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
   background-size: cover;
   background-position: center;
   display: flex;
@@ -665,7 +665,7 @@ const getInitials = (name: string) => {
   border-radius: 50%;
   border: 2px solid var(--border-light, #e5e7eb);
   background: var(--bg-card);
-  color: #6366f1;
+  color: #167A67;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -673,7 +673,7 @@ const getInitials = (name: string) => {
   transition: all 0.3s;
 
   &:hover {
-    background: #6366f1;
+    background: #167A67;
     color: white;
     border-color: var(--accent);
     transform: rotate(90deg);
@@ -732,7 +732,7 @@ const getInitials = (name: string) => {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(99, 102, 241, 0.9);
+    background: rgba(22, 122, 103, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -800,7 +800,7 @@ const getInitials = (name: string) => {
   &:focus {
     border-color: var(--accent);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    box-shadow: 0 0 0 3px rgba(22, 122, 103, 0.12);
   }
 }
 
@@ -830,7 +830,7 @@ const getInitials = (name: string) => {
   &:focus {
     border-color: var(--accent);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    box-shadow: 0 0 0 3px rgba(22, 122, 103, 0.12);
   }
 }
 

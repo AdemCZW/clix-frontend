@@ -402,7 +402,7 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
   background: var(--bg-primary);
   min-height: 100vh;
   padding: 12px;
-  --primary: #6366f1;
+  --primary: #167A67;
   --deep-dark: var(--text-main);
   --text-gray: var(--text-secondary);
   --bg-soft: var(--bg-hover);
@@ -447,8 +447,8 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 .btn-send { background: #10b981; color: #fff; }
 .btn-send:hover:not(:disabled) { background: #059669; }
 .btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-save { background: #6366f1; color: #fff; }
-.btn-save:hover { background: #4f46e5; }
+.btn-save { background: #167A67; color: #fff; }
+.btn-save:hover { background: #0f5d4e; }
 .btn-view-templates {
   background: var(--bg-card); color: var(--text-secondary);
   border: 1px solid var(--border-color);
@@ -537,7 +537,7 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 .custom-input:focus {
   border-color: var(--accent);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 0 0 3px rgba(22, 122, 103, 0.12);
 }
 
 /* ===========================================
@@ -555,9 +555,9 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 }
 
 .tag-item {
-  background: rgba(99,102,241,.1);
-  border: 1px solid rgba(99,102,241,.2);
-  color: #6366f1;
+  background: rgba(22,122,103,.1);
+  border: 1px solid rgba(22,122,103,.2);
+  color: #167A67;
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 0.78rem;
@@ -567,7 +567,7 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 }
 
 .tag-item:hover {
-  background: #6366f1;
+  background: #167A67;
   color: white;
 }
 
@@ -601,7 +601,7 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 
 .quill-container-fixed:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 0 0 3px rgba(22, 122, 103, 0.12);
 }
 
 /* ===========================================
@@ -624,8 +624,8 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 .selection-info {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #6366f1;
-  background: rgba(99,102,241,.1);
+  color: #167A67;
+  background: rgba(22,122,103,.1);
   padding: 3px 8px;
   border-radius: 6px;
   white-space: nowrap;
@@ -659,7 +659,7 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 .filter-select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 0 0 3px rgba(22, 122, 103, 0.12);
 }
 
 .search-input {
@@ -682,7 +682,7 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 .search-input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 0 0 3px rgba(22, 122, 103, 0.12);
 }
 
 .action-buttons {
@@ -714,8 +714,8 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 }
 
 .participant-item.selected {
-  background: rgba(99,102,241,.08);
-  border-left: 3px solid #6366f1;
+  background: rgba(22,122,103,.08);
+  border-left: 3px solid #167A67;
 }
 
 .participant-info {

@@ -226,7 +226,7 @@ const formatDate = (date, endDate, time) => {
           <div v-if="pageData.eventAddress || pageData.eventLocation" class="venue-section">
             <h2 class="section-heading">活動地點</h2>
             <div class="venue-info">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#167A67" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
               <div>
                 <strong>{{ pageData.eventLocation }}</strong>
                 <p v-if="pageData.eventAddress" style="margin:4px 0 0; font-size:.88rem; color:#64748b;">{{ pageData.eventAddress }}</p>
@@ -376,7 +376,7 @@ const formatDate = (date, endDate, time) => {
   width: 44px;
   height: 44px;
   border: 3px solid var(--border-color);
-  border-top-color: #6366f1;
+  border-top-color: #167A67;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -395,7 +395,7 @@ const formatDate = (date, endDate, time) => {
 .success-title {
   font-size: 2rem;
   font-weight: 900;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -469,7 +469,7 @@ const formatDate = (date, endDate, time) => {
   display: flex; align-items: flex-start; gap: 8px;
   font-size: .86rem; color: #334155; line-height: 1.4;
 }
-.meta-row svg { flex-shrink: 0; margin-top: 2px; color: #6366f1; }
+.meta-row svg { flex-shrink: 0; margin-top: 2px; color: #167A67; }
 .sidebar-actions {
   margin-top: 14px; display: flex; flex-direction: column; gap: 8px;
 }
@@ -483,8 +483,8 @@ const formatDate = (date, endDate, time) => {
   border: 1px solid #d1d5db;
 }
 .sb-btn.outline:hover { background: #f9fafb; }
-.sb-btn.primary { background: #6366f1; color: #fff; }
-.sb-btn.primary:hover { background: #4f46e5; }
+.sb-btn.primary { background: #167A67; color: #fff; }
+.sb-btn.primary:hover { background: #0f5d4e; }
 .sb-btn:disabled { opacity: .5; cursor: not-allowed; }
 
 /* 右側主內容 */
@@ -492,7 +492,7 @@ const formatDate = (date, endDate, time) => {
 
 .p-tag {
   display: inline-block;
-  background: #6366f1; color: #fff;
+  background: #167A67; color: #fff;
   padding: 5px 14px; border-radius: 4px;
   font-size: 0.68rem; font-weight: 800;
   letter-spacing: 0.1em; text-transform: uppercase;
@@ -517,9 +517,9 @@ const formatDate = (date, endDate, time) => {
 .p-main-body-render :deep(h1),
 .p-main-body-render :deep(h2),
 .p-main-body-render :deep(h3) { color: #0f172a; font-weight: 800; margin-top: 1.4em; }
-.p-main-body-render :deep(h3) { border-left: 3px solid #6366f1; padding-left: 10px; }
+.p-main-body-render :deep(h3) { border-left: 3px solid #167A67; padding-left: 10px; }
 .p-main-body-render :deep(img) { max-width: 100%; border-radius: 8px; }
-.p-main-body-render :deep(a) { color: #6366f1; font-weight: 600; }
+.p-main-body-render :deep(a) { color: #167A67; font-weight: 600; }
 .p-main-body-render :deep(ul),
 .p-main-body-render :deep(ol) { padding-left: 20px; }
 .p-main-body-render :deep(li) { margin-bottom: 6px; }
@@ -726,7 +726,7 @@ const formatDate = (date, endDate, time) => {
 }
 .radio-item.checked .radio-mark {
   border-color: var(--accent);
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  background: linear-gradient(135deg, #167A67, #0f5d4e);
   box-shadow: 0 0 0 3px rgba(102,126,234,0.2);
 }
 .radio-item.checked .radio-mark::after {
@@ -744,7 +744,7 @@ const formatDate = (date, endDate, time) => {
   margin-top: 4px;
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
   color: #fff;
   border: none;
   border-radius: 14px;

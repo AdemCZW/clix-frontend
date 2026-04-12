@@ -223,7 +223,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 <style lang="scss" scoped>
 .fields-config {
   padding: 12px;
-  --primary: #6366f1;
+  --primary: #167A67;
   --deep-dark: var(--text-main);
   --text-gray: var(--text-secondary);
   --bg-soft: var(--bg-hover);
@@ -264,13 +264,13 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
     font-weight: 600;
     color: white;
     padding: 7px 18px;
-    background: #6366f1;
+    background: #167A67;
     border: none;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.15s;
 
-    &:hover:not(:disabled) { background: #4f46e5; }
+    &:hover:not(:disabled) { background: #0f5d4e; }
     &:disabled { opacity: 0.5; cursor: not-allowed; }
   }
 }
@@ -343,7 +343,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 }
 
 .chosen-card {
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 8px 24px rgba(22, 122, 103, 0.2);
   border-color: var(--accent);
 }
 
@@ -380,12 +380,12 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   }
 
   &:hover {
-    color: #6366f1;
+    color: #167A67;
   }
 
   &:active {
     cursor: grabbing;
-    color: #6366f1;
+    color: #167A67;
   }
 }
 
@@ -402,7 +402,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
   &:focus {
     outline: none;
-    border-bottom-color: #6366f1;
+    border-bottom-color: #167A67;
     background: var(--bg-soft);
   }
 
@@ -414,11 +414,11 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
 .type-badge {
   font-size: 0.68rem;
-  color: #6366f1;
-  background: rgba(99,102,241,.1);
+  color: #167A67;
+  background: rgba(22,122,103,.1);
   padding: 3px 8px;
   border-radius: 5px;
-  border: 1px solid rgba(99,102,241,.2);
+  border: 1px solid rgba(22,122,103,.2);
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -460,9 +460,9 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   }
 
   &.is-active {
-    background: #6366f1;
+    background: #167A67;
     color: white;
-    border-color: #6366f1;
+    border-color: #167A67;
   }
 }
 
@@ -480,7 +480,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
     width: 18px;
     height: 18px;
     cursor: pointer;
-    accent-color: #6366f1;
+    accent-color: #167A67;
   }
 
   &:hover {
@@ -569,7 +569,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   }
 
   &:hover {
-    color: #6366f1;
+    color: #167A67;
   }
 
   &:active {
@@ -587,7 +587,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   font-weight: 500;
 
   &:focus {
-    color: #6366f1;
+    color: #167A67;
   }
 }
 
@@ -625,7 +625,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
   &:hover {
     border-color: var(--accent);
-    color: #6366f1;
+    color: #167A67;
     background: #eef2ff;
   }
 }
@@ -653,7 +653,7 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
     outline: none;
     border-color: var(--accent);
     background: var(--bg-card);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 0 0 3px rgba(22, 122, 103, 0.1);
   }
 
   &::placeholder {
@@ -676,12 +676,12 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
     outline: none;
     border-color: var(--accent);
     background: var(--bg-card);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 0 0 3px rgba(22, 122, 103, 0.1);
   }
 }
 
 .btn-add-field {
-  background: #6366f1;
+  background: #167A67;
   color: white;
   width: 38px;
   height: 38px;
@@ -692,12 +692,12 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   font-weight: 700;
   flex-shrink: 0;
   transition: all 0.3s;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 4px 12px rgba(22, 122, 103, 0.25);
 
   &:hover {
-    background: #4f46e5;
+    background: #0f5d4e;
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35);
+    box-shadow: 0 6px 16px rgba(22, 122, 103, 0.35);
   }
 
   &:active {
@@ -767,14 +767,14 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 .dummy-submit {
   width: 100%;
   padding: 14px;
-  background: #6366f1;
+  background: #167A67;
   color: white;
   border: none;
   border-radius: 12px;
   font-weight: 700;
   margin-top: 12px;
   font-size: 0.95rem;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 4px 12px rgba(22, 122, 103, 0.25);
 }
 
 .loading-placeholder {

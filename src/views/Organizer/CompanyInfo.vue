@@ -183,11 +183,11 @@ const saveCompanyInfo = async () => {
 }
 .save-hint { font-size: .82rem; color: var(--text-muted); }
 .btn-save {
-  padding: 7px 20px; background: #6366f1; color: #fff;
+  padding: 7px 20px; background: #167A67; color: #fff;
   border: none; border-radius: 8px; font-size: .84rem; font-weight: 600;
   cursor: pointer; transition: .15s;
 }
-.btn-save:hover:not(:disabled) { background: #4f46e5; }
+.btn-save:hover:not(:disabled) { background: #0f5d4e; }
 .btn-save:disabled { opacity: .5; cursor: not-allowed; }
 
 /* 兩欄 */
@@ -221,7 +221,7 @@ const saveCompanyInfo = async () => {
   font-size: .88rem; background: var(--bg-card); color: var(--text-main);
   transition: .15s; outline: none; font-family: inherit;
 }
-.fi:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,.1); }
+.fi:focus { border-color: #167A67; box-shadow: 0 0 0 2px rgba(22,122,103,.1); }
 .fi::placeholder { color: var(--text-muted); }
 .fi-error { border-color: #ef4444 !important; }
 .fi-error:focus { box-shadow: 0 0 0 2px rgba(239,68,68,.1) !important; }

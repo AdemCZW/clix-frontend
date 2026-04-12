@@ -64,8 +64,8 @@ const handleLogin = async () => {
               />
               <defs>
                 <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
-                  <stop offset="0%" stop-color="#6366f1" />
-                  <stop offset="100%" stop-color="#4f46e5" />
+                  <stop offset="0%" stop-color="#167A67" />
+                  <stop offset="100%" stop-color="#0f5d4e" />
                 </linearGradient>
               </defs>
             </svg>
@@ -123,7 +123,7 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
   position: relative;
   overflow: hidden;
   padding: 20px;
@@ -314,7 +314,7 @@ const handleLogin = async () => {
   padding: 16px;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
   color: white;
   font-size: 1rem;
   font-weight: 700;

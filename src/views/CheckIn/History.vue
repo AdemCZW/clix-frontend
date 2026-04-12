@@ -382,7 +382,7 @@ const hasActiveFilters = computed(() =>
     line-height: 1;
 
     &.primary {
-      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -400,7 +400,7 @@ const hasActiveFilters = computed(() =>
 
 .btn-manual {
   padding: 10px 20px;
-  background: #6366f1;
+  background: #167A67;
   color: white;
   border: none;
   border-radius: 10px;
@@ -720,7 +720,7 @@ const hasActiveFilters = computed(() =>
 
 .btn-check-action {
   padding: 7px 16px;
-  background: #6366f1;
+  background: #167A67;
   color: white;
   border: none;
   border-radius: 8px;
