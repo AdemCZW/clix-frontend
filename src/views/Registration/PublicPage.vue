@@ -120,13 +120,20 @@ const statusText = computed(() => {
 const openForm = () => { showForm.value = true }
 const backToInfo = () => { showForm.value = false }
 
-const formatDate = (date, endDate, time) => {
+const formatDate = (date: string, endDate: string, time: string) => {
   if (!date) return ''
   let str = date
   if (endDate && endDate !== date) str += ` ～ ${endDate}`
   if (time) str += ` ${time}`
   return str
 }
+
+// 貴賓列表
+const guests = computed(() => (pageData.value as Record<string, unknown>)?.guests as Array<{id:number;name:string;title:string;company:string;avatar:string}> || [])
+
+// FAQ 手風琴（暫時用靜態資料，之後可從後端取）
+const faqOpen = ref<number | null>(null)
+const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : i }
 </script>
 
 <template>
@@ -199,7 +206,10 @@ const formatDate = (date, endDate, time) => {
               </div>
               <div class="meta-row" v-if="pageData.eventLocation">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <span>{{ pageData.eventLocation }}</span>
+                <div>
+                  <span>{{ pageData.eventLocation }}</span>
+                  <p v-if="pageData.eventAddress" class="meta-sub">{{ pageData.eventAddress }}</p>
+                </div>
               </div>
             </div>
 
@@ -211,25 +221,43 @@ const formatDate = (date, endDate, time) => {
           </div>
         </aside>
 
-        <!-- 右側：活動內容 -->
+        <!-- ===== 右側主內容 ===== -->
         <main class="info-main">
           <span class="p-tag">UPCOMING EVENT</span>
           <h1 class="p-title">{{ pageData.eventName }}</h1>
 
-          <!-- 報名截止提示 -->
           <div v-if="isFull" class="full-alert">報名已截止，名額已滿</div>
 
           <!-- 活動內文 -->
           <div v-if="pageData.mainContent" class="p-main-body-render" v-html="pageData.mainContent"></div>
 
-          <!-- 活動地點區塊 -->
+          <!-- 貴賓列表 -->
+          <div v-if="guests.length" class="guests-section">
+            <div class="guests-grid">
+              <div v-for="g in guests" :key="g.id" class="guest-card">
+                <div class="guest-avatar">
+                  <img v-if="g.avatar" :src="g.avatar" :alt="g.name" />
+                  <span v-else>{{ g.name?.charAt(0) }}</span>
+                </div>
+                <div class="guest-name">{{ g.name }}</div>
+                <div class="guest-role">{{ g.company }}<template v-if="g.title"><br/>{{ g.title }}</template></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 立即預約按鈕 -->
+          <button class="btn-book-full" @click="openForm" :disabled="isFull">
+            {{ isFull ? '已額滿' : '立即預約' }}
+          </button>
+
+          <!-- 活動地點 -->
           <div v-if="pageData.eventAddress || pageData.eventLocation" class="venue-section">
             <h2 class="section-heading">活動地點</h2>
             <div class="venue-info">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#167A67" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
               <div>
                 <strong>{{ pageData.eventLocation }}</strong>
-                <p v-if="pageData.eventAddress" style="margin:4px 0 0; font-size:.88rem; color:#64748b;">{{ pageData.eventAddress }}</p>
+                <p v-if="pageData.eventAddress" class="venue-addr">{{ pageData.eventAddress }}</p>
               </div>
             </div>
           </div>
@@ -238,7 +266,7 @@ const formatDate = (date, endDate, time) => {
 
       <!-- 底部版權 -->
       <footer class="page-footer">
-        <span>&copy; Clix 活動報到系統</span>
+        <span>&copy; CLIX 活動報到系統</span>
         <span>WEBSITE DESIGNED BY CLIX</span>
       </footer>
 
@@ -470,6 +498,7 @@ const formatDate = (date, endDate, time) => {
   font-size: .86rem; color: #334155; line-height: 1.4;
 }
 .meta-row svg { flex-shrink: 0; margin-top: 2px; color: #167A67; }
+.meta-sub { margin: 2px 0 0; font-size: .78rem; color: #94a3b8; line-height: 1.3; }
 .sidebar-actions {
   margin-top: 14px; display: flex; flex-direction: column; gap: 8px;
 }
@@ -539,6 +568,35 @@ const formatDate = (date, endDate, time) => {
   font-size: .75rem; color: #94a3b8;
   border-top: 1px solid #e2e8f0;
 }
+
+/* 貴賓列表 */
+.guests-section { margin: 32px 0; }
+.guests-grid {
+  display: flex; flex-wrap: wrap; gap: 20px;
+}
+.guest-card { text-align: center; width: 90px; }
+.guest-avatar {
+  width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 8px;
+  background: #2A3A39; display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.guest-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.guest-avatar span { color: #fff; font-size: 1.2rem; font-weight: 700; }
+.guest-name { font-size: .82rem; font-weight: 700; color: #0f172a; }
+.guest-role { font-size: .72rem; color: #64748b; line-height: 1.3; }
+
+/* 立即預約全寬按鈕 */
+.btn-book-full {
+  display: block; width: 100%; padding: 16px;
+  background: #167A67; color: #fff; border: none;
+  border-radius: 10px; font-size: 1rem; font-weight: 700;
+  cursor: pointer; transition: .15s; margin: 32px 0;
+}
+.btn-book-full:hover:not(:disabled) { background: #0f5d4e; }
+.btn-book-full:disabled { opacity: .5; cursor: not-allowed; }
+
+/* 活動地點 */
+.venue-addr { margin: 4px 0 0; font-size: .88rem; color: #64748b; }
 
 /* 報名截止 */
 .full-alert {
