@@ -131,7 +131,17 @@ const formatDate = (date: string, endDate: string, time: string) => {
 // 貴賓列表
 const guests = computed(() => (pageData.value as Record<string, unknown>)?.guests as Array<{id:number;name:string;title:string;company:string;avatar:string}> || [])
 
-// FAQ 手風琴（暫時用靜態資料，之後可從後端取）
+// 票券（之後從後端取，目前先用 pageData 中的資料或空陣列）
+const tickets = computed(() => (pageData.value as Record<string, unknown>)?.tickets as Array<{id:number;name:string;description:string;price:number}> || [])
+const ticketQty = reactive<Record<number, number>>({})
+const changeQty = (id: number, delta: number) => {
+  const cur = ticketQty[id] || 1
+  ticketQty[id] = Math.max(0, cur + delta)
+}
+const getQty = (id: number) => ticketQty[id] ?? 1
+
+// FAQ（之後從後端取）
+const faqs = computed(() => (pageData.value as Record<string, unknown>)?.faqs as Array<{question:string;answer:string}> || [])
 const faqOpen = ref<number | null>(null)
 const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : i }
 </script>
@@ -245,10 +255,39 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
             </div>
           </div>
 
+          <!-- 票券選擇 -->
+          <div v-if="tickets.length" class="tickets-section">
+            <div v-for="t in tickets" :key="t.id" class="ticket-row" :class="{ 'ticket-highlight': t.name === '永續票' }">
+              <div class="ticket-info">
+                <div class="ticket-name">{{ t.name }}</div>
+                <div class="ticket-desc">{{ t.description }}</div>
+              </div>
+              <div class="ticket-price">${{ t.price }}</div>
+              <div class="ticket-qty">
+                <button @click="changeQty(t.id, -1)">-</button>
+                <span>{{ getQty(t.id) }}</span>
+                <button @click="changeQty(t.id, 1)">+</button>
+              </div>
+            </div>
+          </div>
+
           <!-- 立即預約按鈕 -->
           <button class="btn-book-full" @click="openForm" :disabled="isFull">
             {{ isFull ? '已額滿' : '立即預約' }}
           </button>
+
+          <!-- 常見問答 FAQ -->
+          <div v-if="faqs.length" class="faq-section">
+            <h2 class="section-heading">常見問答 (FAQ)</h2>
+            <div v-for="(f, i) in faqs" :key="i" class="faq-item" :class="{ open: faqOpen === i }">
+              <button class="faq-q" @click="toggleFaq(i)">
+                <span class="faq-bar"></span>
+                <span class="faq-text">{{ f.question }}</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="faq-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div v-if="faqOpen === i" class="faq-a">{{ f.answer }}</div>
+            </div>
+          </div>
 
           <!-- 活動地點 -->
           <div v-if="pageData.eventAddress || pageData.eventLocation" class="venue-section">
@@ -584,6 +623,50 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .guest-avatar span { color: #fff; font-size: 1.2rem; font-weight: 700; }
 .guest-name { font-size: .82rem; font-weight: 700; color: #0f172a; }
 .guest-role { font-size: .72rem; color: #64748b; line-height: 1.3; }
+
+/* 票券選擇 */
+.tickets-section { margin: 32px 0 0; }
+.ticket-row {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 20px; border: 1px solid #e2e8f0; border-radius: 10px;
+  margin-bottom: 10px; background: #fff; transition: .15s;
+}
+.ticket-row:hover { border-color: #167A67; }
+.ticket-highlight { border-left: 3px solid #167A67; }
+.ticket-info { flex: 1; min-width: 0; }
+.ticket-name { font-size: .95rem; font-weight: 700; color: #0f172a; }
+.ticket-desc { font-size: .78rem; color: #94a3b8; margin-top: 2px; }
+.ticket-price { font-size: 1.2rem; font-weight: 800; color: #167A67; white-space: nowrap; }
+.ticket-qty {
+  display: flex; align-items: center; gap: 8px;
+}
+.ticket-qty button {
+  width: 28px; height: 28px; border: 1px solid #d1d5db; border-radius: 6px;
+  background: #fff; font-size: 1rem; cursor: pointer; color: #334155;
+  display: flex; align-items: center; justify-content: center; transition: .1s;
+}
+.ticket-qty button:hover { background: #f1f5f9; }
+.ticket-qty span { font-size: .92rem; font-weight: 600; min-width: 16px; text-align: center; }
+
+/* FAQ */
+.faq-section { margin: 48px 0 0; }
+.faq-item {
+  border: 1px solid #e2e8f0; border-radius: 10px;
+  margin-bottom: 8px; overflow: hidden; background: #fff;
+}
+.faq-q {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; border: none; background: transparent;
+  cursor: pointer; text-align: left; font-size: .9rem; font-weight: 600; color: #0f172a;
+}
+.faq-bar { width: 3px; height: 18px; background: #167A67; border-radius: 2px; flex-shrink: 0; }
+.faq-text { flex: 1; }
+.faq-arrow { flex-shrink: 0; transition: transform .2s; color: #94a3b8; }
+.faq-item.open .faq-arrow { transform: rotate(180deg); }
+.faq-a {
+  padding: 0 16px 16px 29px;
+  font-size: .88rem; color: #475569; line-height: 1.7;
+}
 
 /* 立即預約全寬按鈕 */
 .btn-book-full {
