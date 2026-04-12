@@ -110,13 +110,25 @@ const selectEvent = (event: any) => {
     <!-- ===== SIDEBAR ===== -->
     <aside class="sidebar" :class="{ open: sidebarOpen }">
       <div class="sidebar-header">
-        <div class="logo-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-            <rect width="24" height="24" rx="6" fill="#167A67"/>
-            <path d="M7 12l3 3 7-7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <span class="brand-name">Dabang</span>
+        <svg class="brand-logo-svg" width="36" height="36" viewBox="0 0 100 100" fill="none">
+          <!-- 剪貼板外框 -->
+          <rect x="15" y="20" width="70" height="70" rx="10" stroke="#2A3A39" stroke-width="7" fill="none"/>
+          <rect x="30" y="12" width="40" height="12" rx="6" fill="#2A3A39"/>
+          <!-- c -->
+          <path d="M22 62 Q22 42 38 42 L38 50 Q30 50 30 62 Q30 74 38 74 L38 82 Q22 82 22 62Z" fill="#167A67"/>
+          <!-- l -->
+          <rect x="42" y="36" width="8" height="46" rx="1" fill="#167A67"/>
+          <!-- i -->
+          <rect x="54" y="50" width="8" height="32" rx="1" fill="#167A67"/>
+          <rect x="54" y="42" width="8" height="6" rx="1" fill="#167A67"/>
+          <!-- x（綠色部分） -->
+          <polygon points="66,50 74,50 82,66 78,74 70,58" fill="#167A67"/>
+          <polygon points="66,82 74,82 82,66 78,58 70,74" fill="#167A67"/>
+          <!-- x 金色勾勾筆畫 -->
+          <polygon points="74,50 82,50 90,38 82,38" fill="#FFC010"/>
+          <polygon points="78,58 82,50 90,38 86,42" fill="#FFC010"/>
+        </svg>
+        <span class="brand-name">clix</span>
       </div>
 
       <nav class="menu">
@@ -252,20 +264,19 @@ const selectEvent = (event: any) => {
 }
 
 .sidebar-header {
-  padding: 24px 20px;
+  padding: 20px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 
-  .logo-icon {
-    display: flex;
-    align-items: center;
+  .brand-logo-svg {
+    flex-shrink: 0;
   }
 
   .brand-name {
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: var(--text-main);
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: #167A67;
     letter-spacing: -0.5px;
   }
 }
