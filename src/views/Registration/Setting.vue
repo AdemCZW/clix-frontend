@@ -10,6 +10,7 @@ import { useEventsStore } from "@/stores/events";
 import { useRegistrationPagesStore } from "@/stores/registrationPages";
 import { useUserStore } from "@/stores/user";
 import { useToast } from "@/composables/useToast";
+import { apiRequest } from "@/utils/api";
 import { setupQuillImageUpload } from "@/composables/useQuillImageUpload";
 import { useRouter } from "vue-router";
 import PageLoader from "@/components/shared/PageLoader.vue";
@@ -58,6 +59,60 @@ const form = reactive<{
   emailContent: "",
   enableAutoSend: true,
 });
+
+// ── 票券 ──
+interface TicketItem { id: number | null; name: string; description: string; price: number; quantity: number; is_active: boolean; order: number; }
+const tickets = ref<TicketItem[]>([]);
+const addTicket = () => {
+  tickets.value.push({ id: null, name: '', description: '', price: 0, quantity: 100, is_active: true, order: tickets.value.length });
+};
+const removeTicket = (i: number) => tickets.value.splice(i, 1);
+
+const saveTickets = async () => {
+  if (!pageId.value) return;
+  try {
+    const res = await apiRequest('/api/tickets/bulk_save/', {
+      method: 'POST', body: JSON.stringify({ registration_page: pageId.value, tickets: tickets.value }),
+    });
+    if (!res.ok) throw new Error('儲存票券失敗');
+    tickets.value = await res.json();
+    toastSuccess('票券已儲存');
+  } catch { toastError('儲存票券失敗'); }
+};
+
+const loadTickets = async (pid: number) => {
+  try {
+    const res = await apiRequest(`/api/tickets/by_page/${pid}/`);
+    if (res.ok) tickets.value = await res.json();
+  } catch { /* silent */ }
+};
+
+// ── FAQ ──
+interface FAQItem { id: number | null; question: string; answer: string; order: number; }
+const faqs = ref<FAQItem[]>([]);
+const addFaq = () => {
+  faqs.value.push({ id: null, question: '', answer: '', order: faqs.value.length });
+};
+const removeFaq = (i: number) => faqs.value.splice(i, 1);
+
+const saveFaqs = async () => {
+  if (!pageId.value) return;
+  try {
+    const res = await apiRequest('/api/faqs/bulk_save/', {
+      method: 'POST', body: JSON.stringify({ registration_page: pageId.value, faqs: faqs.value }),
+    });
+    if (!res.ok) throw new Error('儲存 FAQ 失敗');
+    faqs.value = await res.json();
+    toastSuccess('FAQ 已儲存');
+  } catch { toastError('儲存 FAQ 失敗'); }
+};
+
+const loadFaqs = async (pid: number) => {
+  try {
+    const res = await apiRequest(`/api/faqs/by_page/${pid}/`);
+    if (res.ok) faqs.value = await res.json();
+  } catch { /* silent */ }
+};
 
 // 活動基本資訊（唯讀顯示，來自 eventsStore.currentEvent）
 const currentEvent = computed(() => eventsStore.currentEvent);
@@ -165,6 +220,9 @@ const loadPageData = async (eventId: number) => {
     form.emailContent     = page.emailContent;
     form.enableAutoSend   = page.enableAutoSend;
     form.bannerPreview    = page.banner || null;
+
+    // 載入票券和 FAQ
+    await Promise.all([loadTickets(page.id), loadFaqs(page.id)]);
   } catch (err: unknown) {
     const msg = (err as Error).message || "";
     if (msg.includes("401") || msg.includes("Authentication")) {
@@ -461,6 +519,40 @@ const closeGuestDetail = () => {
               <span class="switch-slider"></span>
             </label>
           </div>
+        </div>
+
+        <!-- 票券設定 -->
+        <div class="tech-card">
+          <div class="card-header-flex">
+            <h3 class="card-subtitle">票券設定</h3>
+            <button class="card-btn primary" @click="saveTickets" style="font-size:.76rem;padding:4px 12px;">儲存票券</button>
+          </div>
+          <div v-for="(t, i) in tickets" :key="i" class="edit-row">
+            <div class="edit-row-fields">
+              <input v-model="t.name" placeholder="票種名稱" class="input-sm" />
+              <input v-model="t.description" placeholder="描述" class="input-sm" />
+              <input v-model.number="t.price" type="number" placeholder="價格" class="input-sm w80" />
+              <input v-model.number="t.quantity" type="number" placeholder="數量" class="input-sm w60" />
+            </div>
+            <button class="btn-del-row" @click="removeTicket(i)">×</button>
+          </div>
+          <button class="btn-add-row" @click="addTicket">+ 新增票種</button>
+        </div>
+
+        <!-- FAQ 設定 -->
+        <div class="tech-card">
+          <div class="card-header-flex">
+            <h3 class="card-subtitle">常見問答 (FAQ)</h3>
+            <button class="card-btn primary" @click="saveFaqs" style="font-size:.76rem;padding:4px 12px;">儲存 FAQ</button>
+          </div>
+          <div v-for="(f, i) in faqs" :key="i" class="edit-row">
+            <div class="edit-row-fields">
+              <input v-model="f.question" placeholder="問題" class="input-sm" />
+              <textarea v-model="f.answer" placeholder="回答" class="input-sm ta-sm" rows="2"></textarea>
+            </div>
+            <button class="btn-del-row" @click="removeFaq(i)">×</button>
+          </div>
+          <button class="btn-add-row" @click="addFaq">+ 新增問答</button>
         </div>
       </div>
     </div>
@@ -867,6 +959,36 @@ const closeGuestDetail = () => {
 }
 .link-actions { display:flex; gap:8px; }
 .link-actions .card-btn { flex:1; text-align:center; }
+
+/* 票券/FAQ 編輯列 */
+.edit-row {
+  display:flex; align-items:flex-start; gap:6px;
+  margin-bottom:8px; padding:8px; background:var(--bg-hover);
+  border-radius:8px; border:1px solid var(--border-color);
+}
+.edit-row-fields { flex:1; display:flex; flex-direction:column; gap:4px; }
+.input-sm {
+  width:100%; padding:6px 8px; border:1px solid var(--border-color);
+  border-radius:6px; font-size:.82rem; background:var(--bg-card);
+  color:var(--text-main); outline:none;
+}
+.input-sm:focus { border-color:#167A67; }
+.input-sm.w80 { max-width:80px; }
+.input-sm.w60 { max-width:60px; }
+.ta-sm { resize:vertical; min-height:40px; font-family:inherit; }
+.edit-row-fields > :first-child { font-weight:600; }
+.btn-del-row {
+  width:24px; height:24px; border:none; background:transparent;
+  color:#ef4444; font-size:1rem; cursor:pointer; border-radius:4px;
+  flex-shrink:0; margin-top:4px;
+}
+.btn-del-row:hover { background:#fef2f2; }
+.btn-add-row {
+  width:100%; padding:8px; border:1px dashed var(--border-color);
+  background:transparent; border-radius:8px; font-size:.82rem;
+  font-weight:600; color:var(--text-muted); cursor:pointer; transition:.15s;
+}
+.btn-add-row:hover { border-color:#167A67; color:#167A67; }
 
 .editor-autosave-hint {
   font-size:.75rem; color:var(--text-gray-light); padding:8px 0 0; text-align:left;
