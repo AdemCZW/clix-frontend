@@ -661,56 +661,74 @@ const closeGuestDetail = () => {
             <div :class="['preview-viewport', previewMode]">
               <div class="preview-content-box">
                 <div class="scroll-area">
-                  <div
-                    class="preview-banner"
-                    :style="{
-                      backgroundImage: `url(${form.bannerPreview || 'https://via.placeholder.com/1200x600?text=Banner'})`,
-                    }"
-                  ></div>
-                  <div class="preview-text-content">
-                    <span class="p-tag">UPCOMING EVENT</span>
-                    <h1 class="p-title">您的活動名稱顯示區</h1>
-                    <div class="p-badges">
-                      <span>{{ currentEvent?.date }}</span>
-                      <span>{{ currentEvent?.location }}</span>
-                    </div>
+                  <!-- Banner -->
+                  <div v-if="form.bannerPreview" class="pv-banner">
+                    <img :src="form.bannerPreview" alt="Banner" />
+                  </div>
 
-                    <div class="p-main-body-render" v-html="form.mainContent"></div>
-
-                    <!-- 特邀貴賓區塊 -->
-                    <div v-if="allSelectedGuests.length > 0" class="p-guests-section">
-                      <h3 class="p-section-title">特邀貴賓</h3>
-                      <div class="p-guests-grid">
-                        <div
-                          v-for="guest in allSelectedGuests"
-                          :key="guest.id"
-                          class="p-guest-card"
-                          @click="openGuestDetail(guest)"
-                        >
-                          <div class="p-guest-avatar">
-                            <span class="p-avatar-initial">{{ guest.name.charAt(0) }}</span>
-                          </div>
-                          <div class="p-guest-info">
-                            <div class="p-guest-name">{{ guest.name }}</div>
-                            <div class="p-guest-title">{{ guest.title }}</div>
-                            <div class="p-guest-company">{{ guest.company }}</div>
-                          </div>
+                  <div class="pv-layout">
+                    <!-- 左側欄 -->
+                    <aside class="pv-sidebar">
+                      <div class="pv-meta">
+                        <div class="pv-meta-row" v-if="currentEvent?.date">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                          <span>{{ currentEvent.date }}{{ currentEvent.endDate && currentEvent.endDate !== currentEvent.date ? ' ~ ' + currentEvent.endDate : '' }}<br/>{{ currentEvent.time }}</span>
+                        </div>
+                        <div class="pv-meta-row" v-if="currentEvent?.location">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                          <span>{{ currentEvent.location }}<br v-if="currentEvent.address"/>{{ currentEvent.address }}</span>
                         </div>
                       </div>
-                    </div>
+                      <div class="pv-actions">
+                        <button class="pv-btn outline">聯絡主辦單位</button>
+                        <button class="pv-btn primary">立即預約</button>
+                      </div>
+                    </aside>
 
-                    <div class="p-placeholder-block"></div>
-                  </div>
-                </div>
+                    <!-- 右側內容 -->
+                    <main class="pv-main">
+                      <span class="pv-tag">UPCOMING EVENT</span>
+                      <h1 class="pv-title">{{ currentEvent?.name || '活動名稱' }}</h1>
+                      <div class="pv-body" v-html="form.mainContent"></div>
 
-                <div class="preview-sticky-footer">
-                  <div class="footer-flex">
-                    <div class="footer-info">
-                      <span class="f-title">立即報名參加</span>
-                      <span class="f-date">{{ currentEvent?.date }}｜{{ currentEvent?.location }}</span>
-                    </div>
-                    <button class="btn-apply-blue"><span>立即報名</span></button>
+                      <!-- 來賓 -->
+                      <div v-if="selectedGuestIds.size > 0" class="pv-guests">
+                        <div v-for="p in vipParticipants.filter(v => selectedGuestIds.has(v.id))" :key="p.id" class="pv-guest">
+                          <div class="pv-guest-avatar">{{ p.name?.charAt(0) }}</div>
+                          <div class="pv-guest-name">{{ p.name }}</div>
+                          <div class="pv-guest-role">{{ p.company }}</div>
+                        </div>
+                      </div>
+
+                      <!-- 票券 -->
+                      <div v-if="tickets.length" class="pv-tickets">
+                        <div v-for="t in tickets" :key="t.name" class="pv-ticket">
+                          <div><strong>{{ t.name }}</strong><br/><small>{{ t.description }}</small></div>
+                          <span class="pv-price">${{ t.price }}</span>
+                        </div>
+                      </div>
+
+                      <button class="pv-book">立即預約</button>
+
+                      <!-- FAQ -->
+                      <div v-if="faqs.length" class="pv-faq-section">
+                        <h3>常見問答 (FAQ)</h3>
+                        <div v-for="f in faqs" :key="f.question" class="pv-faq">
+                          <span class="pv-faq-bar"></span>
+                          <span>{{ f.question }}</span>
+                        </div>
+                      </div>
+
+                      <!-- 地點 -->
+                      <div v-if="currentEvent?.location" class="pv-venue">
+                        <h3>活動地點</h3>
+                        <p><strong>{{ currentEvent.location }}</strong></p>
+                        <p v-if="currentEvent.address" style="font-size:.8rem;color:#64748b;">{{ currentEvent.address }}</p>
+                      </div>
+                    </main>
                   </div>
+
+                  <div class="pv-footer">© CLIX 活動報到系統</div>
                 </div>
               </div>
             </div>
@@ -2710,4 +2728,52 @@ label {
     transform: translateX(0);
   }
 }
+
+/* ══ 新版預覽樣式 ══ */
+.pv-banner { width:100%; }
+.pv-banner img { width:100%; height:auto; display:block; max-height:200px; object-fit:cover; }
+.pv-layout { display:grid; grid-template-columns:180px 1fr; gap:16px; padding:16px; }
+.pv-sidebar { font-size:.75rem; }
+.pv-meta { background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0; padding:10px; margin-bottom:10px; }
+.pv-meta-row { display:flex; gap:6px; align-items:flex-start; margin-bottom:6px; font-size:.72rem; color:#334155; line-height:1.3; }
+.pv-meta-row svg { flex-shrink:0; margin-top:1px; color:#167A67; }
+.pv-actions { display:flex; gap:6px; }
+.pv-btn { flex:1; padding:6px 0; border-radius:6px; font-size:.7rem; font-weight:600; cursor:default; text-align:center; border:none; }
+.pv-btn.outline { background:#fff; color:#334155; border:1px solid #d1d5db; }
+.pv-btn.primary { background:#167A67; color:#fff; }
+.pv-main { min-width:0; }
+.pv-tag { display:inline-block; background:#167A67; color:#fff; padding:3px 10px; border-radius:3px; font-size:.6rem; font-weight:800; letter-spacing:.08em; margin-bottom:8px; }
+.pv-title { font-size:1.1rem; font-weight:900; color:#0f172a; margin:0 0 12px; line-height:1.3; word-break:break-word; }
+.pv-body { font-size:.78rem; line-height:1.7; color:#334155; margin-bottom:16px; }
+.pv-body :deep(h1),.pv-body :deep(h2),.pv-body :deep(h3) { font-size:.9rem; margin-top:1em; }
+.pv-body :deep(img) { max-width:100%; border-radius:6px; }
+
+.pv-guests { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+.pv-guest { text-align:center; width:60px; }
+.pv-guest-avatar { width:40px; height:40px; border-radius:50%; background:#2A3A39; color:#fff; display:flex; align-items:center; justify-content:center; margin:0 auto 4px; font-size:.8rem; font-weight:700; }
+.pv-guest-name { font-size:.68rem; font-weight:600; color:#0f172a; }
+.pv-guest-role { font-size:.58rem; color:#94a3b8; }
+
+.pv-tickets { margin-bottom:12px; }
+.pv-ticket { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid #e2e8f0; border-radius:6px; margin-bottom:6px; font-size:.75rem; }
+.pv-ticket strong { font-size:.78rem; }
+.pv-ticket small { color:#94a3b8; font-size:.65rem; }
+.pv-price { font-size:.9rem; font-weight:800; color:#167A67; }
+
+.pv-book { display:block; width:100%; padding:10px; background:#167A67; color:#fff; border:none; border-radius:8px; font-size:.82rem; font-weight:700; cursor:default; margin-bottom:16px; }
+
+.pv-faq-section { margin-bottom:16px; }
+.pv-faq-section h3 { font-size:.88rem; font-weight:800; margin:0 0 8px; }
+.pv-faq { display:flex; align-items:center; gap:6px; padding:8px 10px; border:1px solid #e2e8f0; border-radius:6px; margin-bottom:4px; font-size:.75rem; color:#0f172a; }
+.pv-faq-bar { width:3px; height:14px; background:#167A67; border-radius:1px; flex-shrink:0; }
+
+.pv-venue { margin-bottom:16px; }
+.pv-venue h3 { font-size:.88rem; font-weight:800; margin:0 0 6px; }
+.pv-venue p { margin:0; font-size:.78rem; }
+
+.pv-footer { text-align:center; padding:12px; font-size:.65rem; color:#94a3b8; border-top:1px solid #e2e8f0; }
+
+/* 手機預覽 */
+.preview-viewport.mobile .pv-layout { grid-template-columns:1fr; }
+.preview-viewport.mobile .pv-banner img { max-height:140px; }
 </style>
