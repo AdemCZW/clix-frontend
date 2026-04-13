@@ -205,12 +205,6 @@ const isPreviewOpen = ref(false);
 const previewMode = ref("desktop");
 const windowRef = window;  // expose for template
 const bannerOrientation = ref<'landscape' | 'portrait'>('portrait');
-const detectBannerOrientation = (url: string) => {
-  if (!url) { bannerOrientation.value = 'portrait'; return; }
-  const img = new Image();
-  img.onload = () => { bannerOrientation.value = img.width > img.height ? 'landscape' : 'portrait'; };
-  img.src = url;
-};
 const showToast = ref(false);
 const viewingGuest = ref<(Guest | Participant) | null>(null);
 const myQuill = ref<InstanceType<typeof QuillEditor> | null>(null);
@@ -286,7 +280,7 @@ const loadPageData = async (eventId: number) => {
     form.emailContent     = page.emailContent;
     form.enableAutoSend   = page.enableAutoSend;
     form.bannerPreview    = page.banner || null;
-    if (page.banner) detectBannerOrientation(page.banner);
+    bannerOrientation.value = (page as Record<string, unknown>).banner_orientation as string === 'landscape' ? 'landscape' : 'portrait';
 
     // 載入參與者、票券、FAQ、來賓
     await Promise.all([
@@ -333,7 +327,7 @@ const onFileChange = (e: Event, type: string) => {
   reader.onload = (ev) => {
     if (type === "banner") {
       form.bannerPreview = (ev.target as FileReader).result as string | null;
-      if (form.bannerPreview) detectBannerOrientation(form.bannerPreview);
+      // 方向會在後端上傳後自動偵測，儲存後重新載入即更新
     }
   };
   reader.readAsDataURL(file);

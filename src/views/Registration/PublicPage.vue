@@ -43,29 +43,12 @@ watch(customFields, (fields) => {
   })
 }, { immediate: true })
 
-// Banner 方向偵測
-const bannerOrientation = ref<'landscape' | 'portrait'>('portrait')
-const detectBannerOrientation = (url: string) => {
-  if (!url) return
-  const img = new Image()
-  img.crossOrigin = 'anonymous'
-  img.onload = () => {
-    bannerOrientation.value = img.naturalWidth > img.naturalHeight ? 'landscape' : 'portrait'
-  }
-  img.onerror = () => {
-    // CORS 失敗時用 fetch + blob 重試
-    fetch(url).then(r => r.blob()).then(blob => {
-      const objUrl = URL.createObjectURL(blob)
-      const img2 = new Image()
-      img2.onload = () => {
-        bannerOrientation.value = img2.naturalWidth > img2.naturalHeight ? 'landscape' : 'portrait'
-        URL.revokeObjectURL(objUrl)
-      }
-      img2.src = objUrl
-    }).catch(() => { /* 預設 portrait */ })
-  }
-  img.src = url
-}
+// Banner 方向（從後端 API 取得，不再前端偵測）
+const bannerOrientation = computed(() =>
+  (pageData.value as Record<string, unknown>)?.banner_orientation as string
+  || (pageData.value as Record<string, unknown>)?.bannerOrientation as string
+  || 'portrait'
+)
 
 onMounted(() => {
   store.reset()
@@ -77,8 +60,6 @@ onMounted(() => {
       const ogTitle = document.querySelector('meta[property="og:title"]')
       if (ogTitle) ogTitle.setAttribute('content', store.page.eventName)
     }
-    // 偵測 banner 方向
-    if (store.page?.banner) detectBannerOrientation(store.page.banner as string)
   }).catch(() => {})
 })
 
