@@ -114,6 +114,55 @@ const loadFaqs = async (pid: number) => {
   } catch { /* silent */ }
 };
 
+// ── 活動來賓 ──
+interface GuestItem { id: number | null; name: string; title: string; company: string; }
+const eventGuests = ref<GuestItem[]>([]);
+const addGuest = () => {
+  eventGuests.value.push({ id: null, name: '', title: '', company: '' });
+};
+const removeGuest = async (i: number) => {
+  const g = eventGuests.value[i];
+  if (g.id) {
+    try {
+      await apiRequest(`/api/guests/${g.id}/`, { method: 'DELETE' });
+    } catch { /* silent */ }
+  }
+  eventGuests.value.splice(i, 1);
+};
+
+const saveGuests = async () => {
+  const eventId = eventsStore.currentEvent?.id;
+  if (!eventId) return;
+  try {
+    for (const g of eventGuests.value) {
+      if (g.id) {
+        await apiRequest(`/api/guests/${g.id}/`, {
+          method: 'PATCH', body: JSON.stringify({ name: g.name, title: g.title, company: g.company }),
+        });
+      } else {
+        const res = await apiRequest('/api/guests/', {
+          method: 'POST', body: JSON.stringify({ name: g.name, title: g.title, company: g.company, event: eventId }),
+        });
+        if (res.ok) { const created = await res.json(); g.id = created.id; }
+      }
+    }
+    toastSuccess('來賓已儲存');
+  } catch { toastError('儲存來賓失敗'); }
+};
+
+const loadGuests = async (eventId: number) => {
+  try {
+    const res = await apiRequest(`/api/guests/?event=${eventId}`);
+    if (res.ok) {
+      const data = await res.json();
+      const list = data.results || data;
+      eventGuests.value = list.map((g: Record<string, unknown>) => ({
+        id: g.id, name: g.name || '', title: g.title || '', company: g.company || '',
+      }));
+    }
+  } catch { /* silent */ }
+};
+
 // 活動基本資訊（唯讀顯示，來自 eventsStore.currentEvent）
 const currentEvent = computed(() => eventsStore.currentEvent);
 
@@ -221,8 +270,8 @@ const loadPageData = async (eventId: number) => {
     form.enableAutoSend   = page.enableAutoSend;
     form.bannerPreview    = page.banner || null;
 
-    // 載入票券和 FAQ
-    await Promise.all([loadTickets(page.id), loadFaqs(page.id)]);
+    // 載入票券、FAQ、來賓
+    await Promise.all([loadTickets(page.id), loadFaqs(page.id), loadGuests(eventId)]);
   } catch (err: unknown) {
     const msg = (err as Error).message || "";
     if (msg.includes("401") || msg.includes("Authentication")) {
@@ -519,6 +568,23 @@ const closeGuestDetail = () => {
               <span class="switch-slider"></span>
             </label>
           </div>
+        </div>
+
+        <!-- 活動來賓 -->
+        <div class="tech-card">
+          <div class="card-header-flex">
+            <h3 class="card-subtitle">活動來賓</h3>
+            <button class="card-btn primary" @click="saveGuests" style="font-size:.76rem;padding:4px 12px;">儲存來賓</button>
+          </div>
+          <div v-for="(g, i) in eventGuests" :key="i" class="edit-row">
+            <div class="edit-row-fields">
+              <input v-model="g.name" placeholder="姓名" class="input-sm" />
+              <input v-model="g.company" placeholder="公司" class="input-sm" />
+              <input v-model="g.title" placeholder="職稱" class="input-sm" />
+            </div>
+            <button class="btn-del-row" @click="removeGuest(i)">×</button>
+          </div>
+          <button class="btn-add-row" @click="addGuest">+ 新增來賓</button>
         </div>
 
         <!-- 票券設定 -->
