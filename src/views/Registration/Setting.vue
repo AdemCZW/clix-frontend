@@ -203,7 +203,10 @@ const urlBase = computed(() => {
 
 const isPreviewOpen = ref(false);
 const previewMode = ref("desktop");
-const windowRef = window;  // expose for template
+const windowRef = window;
+const showGuestSection = ref(false);
+const showTicketSection = ref(false);
+const showFaqSection = ref(false);
 const bannerOrientation = ref<'landscape' | 'portrait'>('portrait');
 const showToast = ref(false);
 const viewingGuest = ref<(Guest | Participant) | null>(null);
@@ -592,51 +595,66 @@ const closeGuestDetail = () => {
           </div>
         </div>
 
-        <!-- 活動來賓（從 VIP 選取） -->
+        <!-- 活動來賓（可收合） -->
         <div class="tech-card">
-          <h3 class="card-subtitle">活動來賓</h3>
-          <p class="card-hint">從 VIP 參與者中選取要顯示在報名頁的來賓</p>
-          <div v-if="vipParticipants.length === 0" class="card-empty">尚無 VIP 參與者</div>
-          <div v-else class="guest-pick-list">
-            <label v-for="p in vipParticipants" :key="p.id" class="guest-pick-item" :class="{ checked: isGuestSelected(p.id) }">
-              <input type="checkbox" :checked="isGuestSelected(p.id)" @change="toggleGuestSelect(p.id)" hidden />
-              <span class="pick-check">
-                <svg v-if="isGuestSelected(p.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              </span>
-              <div class="pick-info">
-                <span class="pick-name">{{ p.name }}</span>
-                <span class="pick-role">{{ p.company }}<template v-if="p.title"> · {{ p.title }}</template></span>
+          <button class="collapse-header" @click="showGuestSection = !showGuestSection">
+            <h3 class="card-subtitle">活動來賓 <span class="collapse-count" v-if="selectedGuestIds.size">{{ selectedGuestIds.size }}</span></h3>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'arrow-open': showGuestSection }"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div v-if="showGuestSection" class="collapse-body">
+            <p class="card-hint">從 VIP 參與者中選取</p>
+            <div v-if="vipParticipants.length === 0" class="card-empty">尚無 VIP 參與者</div>
+            <div v-else class="guest-pick-list">
+              <label v-for="p in vipParticipants" :key="p.id" class="guest-pick-item" :class="{ checked: isGuestSelected(p.id) }">
+                <input type="checkbox" :checked="isGuestSelected(p.id)" @change="toggleGuestSelect(p.id)" hidden />
+                <span class="pick-check">
+                  <svg v-if="isGuestSelected(p.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                </span>
+                <div class="pick-info">
+                  <span class="pick-name">{{ p.name }}</span>
+                  <span class="pick-role">{{ p.company }}<template v-if="p.title"> · {{ p.title }}</template></span>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 票券設定（可收合） -->
+        <div class="tech-card">
+          <button class="collapse-header" @click="showTicketSection = !showTicketSection">
+            <h3 class="card-subtitle">票券設定 <span class="collapse-count" v-if="tickets.length">{{ tickets.length }}</span></h3>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'arrow-open': showTicketSection }"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div v-if="showTicketSection" class="collapse-body">
+            <div v-for="(t, i) in tickets" :key="i" class="edit-row">
+              <div class="edit-row-fields">
+                <input v-model="t.name" placeholder="票種名稱" class="input-sm" />
+                <input v-model="t.description" placeholder="描述" class="input-sm" />
+                <input v-model.number="t.price" type="number" placeholder="價格" class="input-sm w80" />
+                <input v-model.number="t.quantity" type="number" placeholder="數量" class="input-sm w60" />
               </div>
-            </label>
+              <button class="btn-del-row" @click="removeTicket(i)">×</button>
+            </div>
+            <button class="btn-add-row" @click="addTicket">+ 新增票種</button>
           </div>
         </div>
 
-        <!-- 票券設定 -->
+        <!-- FAQ 設定（可收合） -->
         <div class="tech-card">
-          <h3 class="card-subtitle">票券設定</h3>
-          <div v-for="(t, i) in tickets" :key="i" class="edit-row">
-            <div class="edit-row-fields">
-              <input v-model="t.name" placeholder="票種名稱" class="input-sm" />
-              <input v-model="t.description" placeholder="描述" class="input-sm" />
-              <input v-model.number="t.price" type="number" placeholder="價格" class="input-sm w80" />
-              <input v-model.number="t.quantity" type="number" placeholder="數量" class="input-sm w60" />
+          <button class="collapse-header" @click="showFaqSection = !showFaqSection">
+            <h3 class="card-subtitle">常見問答 (FAQ) <span class="collapse-count" v-if="faqs.length">{{ faqs.length }}</span></h3>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'arrow-open': showFaqSection }"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div v-if="showFaqSection" class="collapse-body">
+            <div v-for="(f, i) in faqs" :key="i" class="edit-row">
+              <div class="edit-row-fields">
+                <input v-model="f.question" placeholder="問題" class="input-sm" />
+                <textarea v-model="f.answer" placeholder="回答" class="input-sm ta-sm" rows="2"></textarea>
+              </div>
+              <button class="btn-del-row" @click="removeFaq(i)">×</button>
             </div>
-            <button class="btn-del-row" @click="removeTicket(i)">×</button>
+            <button class="btn-add-row" @click="addFaq">+ 新增問答</button>
           </div>
-          <button class="btn-add-row" @click="addTicket">+ 新增票種</button>
-        </div>
-
-        <!-- FAQ 設定 -->
-        <div class="tech-card">
-          <h3 class="card-subtitle">常見問答 (FAQ)</h3>
-          <div v-for="(f, i) in faqs" :key="i" class="edit-row">
-            <div class="edit-row-fields">
-              <input v-model="f.question" placeholder="問題" class="input-sm" />
-              <textarea v-model="f.answer" placeholder="回答" class="input-sm ta-sm" rows="2"></textarea>
-            </div>
-            <button class="btn-del-row" @click="removeFaq(i)">×</button>
-          </div>
-          <button class="btn-add-row" @click="addFaq">+ 新增問答</button>
         </div>
       </div>
     </div>
@@ -1047,6 +1065,23 @@ const closeGuestDetail = () => {
 .pick-info { flex:1; min-width:0; }
 .pick-name { font-size:.84rem; font-weight:600; color:var(--text-main); display:block; }
 .pick-role { font-size:.72rem; color:var(--text-muted); }
+
+/* 可收合區塊 */
+.collapse-header {
+  display:flex; align-items:center; justify-content:space-between;
+  width:100%; border:none; background:transparent; cursor:pointer;
+  padding:0; margin:0;
+}
+.collapse-header .card-subtitle { margin-bottom:0; border-bottom:none; padding-bottom:0; }
+.collapse-header svg { color:var(--text-muted); transition:transform .2s; flex-shrink:0; }
+.collapse-header .arrow-open { transform:rotate(180deg); }
+.collapse-count {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:18px; height:18px; padding:0 5px;
+  background:#167A67; color:#fff; border-radius:9px;
+  font-size:.65rem; font-weight:700; margin-left:6px;
+}
+.collapse-body { margin-top:12px; }
 
 .editor-autosave-hint {
   font-size:.75rem; color:var(--text-gray-light); padding:8px 0 0; text-align:left;
