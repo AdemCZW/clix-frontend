@@ -203,6 +203,13 @@ const urlBase = computed(() => {
 
 const isPreviewOpen = ref(false);
 const previewMode = ref("desktop");
+const bannerOrientation = ref<'landscape' | 'portrait'>('portrait');
+const detectBannerOrientation = (url: string) => {
+  if (!url) { bannerOrientation.value = 'portrait'; return; }
+  const img = new Image();
+  img.onload = () => { bannerOrientation.value = img.width > img.height ? 'landscape' : 'portrait'; };
+  img.src = url;
+};
 const showToast = ref(false);
 const viewingGuest = ref<(Guest | Participant) | null>(null);
 const myQuill = ref<InstanceType<typeof QuillEditor> | null>(null);
@@ -278,6 +285,7 @@ const loadPageData = async (eventId: number) => {
     form.emailContent     = page.emailContent;
     form.enableAutoSend   = page.enableAutoSend;
     form.bannerPreview    = page.banner || null;
+    if (page.banner) detectBannerOrientation(page.banner);
 
     // 載入參與者、票券、FAQ、來賓
     await Promise.all([
@@ -322,7 +330,10 @@ const onFileChange = (e: Event, type: string) => {
   if (type === "banner") form.bannerFile = file;
   const reader = new FileReader();
   reader.onload = (ev) => {
-    if (type === "banner") form.bannerPreview = (ev.target as FileReader).result as string | null;
+    if (type === "banner") {
+      form.bannerPreview = (ev.target as FileReader).result as string | null;
+      if (form.bannerPreview) detectBannerOrientation(form.bannerPreview);
+    }
   };
   reader.readAsDataURL(file);
 };
@@ -661,14 +672,18 @@ const closeGuestDetail = () => {
             <div :class="['preview-viewport', previewMode]">
               <div class="preview-content-box">
                 <div class="scroll-area">
-                  <!-- Banner -->
-                  <div v-if="form.bannerPreview" class="pv-banner">
+                  <!-- 橫式 Banner 全寬 -->
+                  <div v-if="form.bannerPreview && bannerOrientation === 'landscape'" class="pv-banner">
                     <img :src="form.bannerPreview" alt="Banner" />
                   </div>
 
-                  <div class="pv-layout">
+                  <div class="pv-layout" :class="{ 'pv-landscape': bannerOrientation === 'landscape' }">
                     <!-- 左側欄 -->
                     <aside class="pv-sidebar">
+                      <!-- 直式 Banner -->
+                      <div v-if="form.bannerPreview && bannerOrientation === 'portrait'" class="pv-sidebar-banner">
+                        <img :src="form.bannerPreview" alt="Banner" />
+                      </div>
                       <div class="pv-meta">
                         <div class="pv-meta-row" v-if="currentEvent?.date">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -2732,6 +2747,9 @@ label {
 /* ══ 新版預覽樣式 ══ */
 .pv-banner { width:100%; }
 .pv-banner img { width:100%; height:auto; display:block; max-height:200px; object-fit:cover; }
+.pv-sidebar-banner { margin-bottom:10px; }
+.pv-sidebar-banner img { width:100%; height:auto; border-radius:8px; }
+.pv-landscape { grid-template-columns:160px 1fr; }
 .pv-layout { display:grid; grid-template-columns:180px 1fr; gap:16px; padding:16px; }
 .pv-sidebar { font-size:.75rem; }
 .pv-meta { background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0; padding:10px; margin-bottom:10px; }
