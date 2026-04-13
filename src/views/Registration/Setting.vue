@@ -127,44 +127,49 @@ const toggleGuestSelect = (id: number) => {
 const saveGuests = async () => {
   const eventId = eventsStore.currentEvent?.id;
   if (!eventId) return;
-  try {
-    // 先刪除該活動所有舊來賓
-    const existing = await apiRequest(`/api/guests/?event=${eventId}`);
-    if (existing.ok) {
-      const data = await existing.json();
-      const list = data.results || data;
-      for (const g of list) {
-        await apiRequest(`/api/guests/${g.id}/`, { method: 'DELETE' });
+  // 先刪除該活動所有舊來賓
+  const existing = await apiRequest(`/api/guests/?event=${eventId}`);
+  if (existing.ok) {
+    const data = await existing.json();
+    const list = data.results || data;
+    for (const g of list) {
+      await apiRequest(`/api/guests/${g.id}/`, { method: 'DELETE' });
+    }
+  }
+  // 從選中的 VIP 參與者建立來賓
+  for (const id of selectedGuestIds.value) {
+    const p = participantsStore.participants.find(x => x.id === id);
+    if (p) {
+      const res = await apiRequest('/api/guests/', {
+        method: 'POST',
+        body: JSON.stringify({ name: p.name, title: p.title, company: p.company, email: p.email, phone: p.phone, event: eventId }),
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        console.error('[saveGuests] POST failed:', res.status, err);
       }
     }
-    // 從選中的 VIP 參與者建立來賓
-    for (const id of selectedGuestIds.value) {
-      const p = participantsStore.participants.find(x => x.id === id);
-      if (p) {
-        await apiRequest('/api/guests/', {
-          method: 'POST',
-          body: JSON.stringify({ name: p.name, title: p.title, company: p.company, email: p.email, phone: p.phone, event: eventId }),
-        });
-      }
-    }
-  } catch { /* handled by saveDraft */ }
+  }
 };
 
 const loadGuests = async (eventId: number) => {
-  try {
-    const res = await apiRequest(`/api/guests/?event=${eventId}`);
-    if (res.ok) {
-      const data = await res.json();
-      const list = data.results || data;
-      // 比對 VIP 參與者名單，自動勾選已存在的
-      const names = new Set(list.map((g: Record<string, unknown>) => g.name));
-      const ids = new Set<number>();
-      participantsStore.participants.forEach(p => {
-        if (p.type === 'VIP' && names.has(p.name)) ids.add(p.id);
-      });
-      selectedGuestIds.value = ids;
+  const res = await apiRequest(`/api/guests/?event=${eventId}`);
+  if (!res.ok) return;
+  const data = await res.json();
+  const list: Array<Record<string, unknown>> = data.results || data;
+  if (list.length === 0) {
+    selectedGuestIds.value = new Set();
+    return;
+  }
+  // 用 email 和 name 雙重比對 VIP 參與者
+  const guestKeys = new Set(list.map(g => `${g.name}|${g.email}`));
+  const ids = new Set<number>();
+  participantsStore.participants.forEach(p => {
+    if (p.type === 'VIP' && (guestKeys.has(`${p.name}|${p.email}`) || guestKeys.has(`${p.name}|`))) {
+      ids.add(p.id);
     }
-  } catch { /* silent */ }
+  });
+  selectedGuestIds.value = ids;
 };
 
 // 活動基本資訊（唯讀顯示，來自 eventsStore.currentEvent）
