@@ -213,7 +213,8 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
       <div class="info-layout" :class="{ 'layout-landscape': bannerOrientation === 'landscape' }">
 
-        <!-- 左側欄（直式：有 Banner，橫式：只有活動資訊） -->
+        <!-- 直式：左側欄有 Banner + 資訊 -->
+        <!-- 橫式：右側欄只有資訊（用 CSS order 調到右邊） -->
         <aside class="info-sidebar">
           <div class="sidebar-sticky">
             <!-- 直式 Banner -->
@@ -238,24 +239,41 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
             <!-- 按鈕 -->
             <div class="sidebar-actions">
-              <button class="sb-btn outline">聯絡主辦單位</button>
               <button class="sb-btn primary" @click="openForm" :disabled="isFull">立即預約</button>
+              <button class="sb-btn outline">聯絡主辦單位</button>
+            </div>
+
+            <!-- 橫式：來賓頭像放在右側欄底部 -->
+            <div v-if="bannerOrientation === 'landscape' && guests.length" class="sidebar-guests">
+              <div v-for="g in guests" :key="g.id" class="sg-item">
+                <div class="sg-avatar">
+                  <img v-if="g.avatar" :src="g.avatar" :alt="g.name" />
+                  <span v-else>{{ g.name?.charAt(0) }}</span>
+                </div>
+                <div class="sg-name">{{ g.name }}</div>
+                <div class="sg-role">{{ g.company }}</div>
+              </div>
             </div>
           </div>
         </aside>
 
-        <!-- ===== 右側主內容 ===== -->
+        <!-- ===== 主內容 ===== -->
         <main class="info-main">
-          <span class="p-tag">UPCOMING EVENT</span>
+          <span v-if="bannerOrientation === 'portrait'" class="p-tag">UPCOMING EVENT</span>
           <h1 class="p-title">{{ pageData.eventName }}</h1>
+          <!-- 橫式：標題下方小字標籤 -->
+          <div v-if="bannerOrientation === 'landscape'" class="p-sub-tags">
+            <span v-if="pageData.eventDate">{{ formatDate(pageData.eventDate || '', pageData.eventEndDate || '', '') }}</span>
+            <span v-if="pageData.eventLocation">{{ pageData.eventLocation }}</span>
+          </div>
 
           <div v-if="isFull" class="full-alert">報名已截止，名額已滿</div>
 
           <!-- 活動內文 -->
           <div v-if="pageData.mainContent" class="p-main-body-render" v-html="pageData.mainContent"></div>
 
-          <!-- 貴賓列表 -->
-          <div v-if="guests.length" class="guests-section">
+          <!-- 貴賓列表（直式才顯示在內文區，橫式在右側欄） -->
+          <div v-if="guests.length && bannerOrientation === 'portrait'" class="guests-section">
             <div class="guests-grid">
               <div v-for="g in guests" :key="g.id" class="guest-card">
                 <div class="guest-avatar">
@@ -710,13 +728,43 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   margin-bottom: 20px; border: 1px solid #fecaca;
 }
 
-/* 橫式佈局：左側欄更窄（沒有圖片） */
+/* 橫式佈局：左邊內文（寬）+ 右邊資訊卡片（窄） */
 .layout-landscape {
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 1fr 280px;
 }
-.layout-landscape .sidebar-meta {
-  margin-top: 0;
+.layout-landscape .info-main { order: -1; }  /* 內文排左邊 */
+.layout-landscape .info-sidebar { order: 1; }  /* 資訊排右邊 */
+.layout-landscape .sidebar-meta { margin-top: 0; }
+.layout-landscape .sidebar-sticky { top: 24px; }
+
+/* 橫式右欄來賓 */
+.sidebar-guests {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px;
+  justify-content: center;
 }
+.sg-item { text-align: center; width: 56px; }
+.sg-avatar {
+  width: 44px; height: 44px; border-radius: 50%; margin: 0 auto 4px;
+  background: #2A3A39; display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.sg-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sg-avatar span { color: #fff; font-size: .9rem; font-weight: 700; }
+.sg-name { font-size: .68rem; font-weight: 600; color: #0f172a; }
+.sg-role { font-size: .58rem; color: #94a3b8; }
+
+/* 橫式標題下方標籤列 */
+.p-sub-tags {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;
+  font-size: .82rem; color: #64748b;
+}
+.p-sub-tags span {
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.p-sub-tags span::before {
+  content: '·'; margin-right: 2px; color: #94a3b8;
+}
+.p-sub-tags span:first-child::before { display: none; }
 
 /* RWD */
 @media (max-width: 768px) {
