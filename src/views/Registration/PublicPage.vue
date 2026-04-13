@@ -539,10 +539,10 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .meta-row svg { flex-shrink: 0; margin-top: 2px; color: #167A67; }
 .meta-sub { margin: 2px 0 0; font-size: .78rem; color: #94a3b8; line-height: 1.3; }
 .sidebar-actions {
-  margin-top: 14px; display: flex; flex-direction: column; gap: 8px;
+  margin-top: 14px; display: flex; flex-direction: row; gap: 8px;
 }
 .sb-btn {
-  width: 100%; padding: 10px 0; border-radius: 8px;
+  flex: 1; padding: 10px 0; border-radius: 8px;
   font-size: .88rem; font-weight: 600; cursor: pointer;
   transition: .15s; text-align: center; border: none;
 }
