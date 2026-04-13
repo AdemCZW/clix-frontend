@@ -203,6 +203,7 @@ const urlBase = computed(() => {
 
 const isPreviewOpen = ref(false);
 const previewMode = ref("desktop");
+const windowRef = window;  // expose for template
 const bannerOrientation = ref<'landscape' | 'portrait'>('portrait');
 const detectBannerOrientation = (url: string) => {
   if (!url) { bannerOrientation.value = 'portrait'; return; }
@@ -670,82 +671,13 @@ const closeGuestDetail = () => {
             </div>
 
             <div :class="['preview-viewport', previewMode]">
-              <div class="preview-content-box">
-                <div class="scroll-area">
-                  <!-- 橫式 Banner 全寬 -->
-                  <div v-if="form.bannerPreview && bannerOrientation === 'landscape'" class="pv-banner">
-                    <img :src="form.bannerPreview" alt="Banner" />
-                  </div>
-
-                  <div class="pv-layout" :class="{ 'pv-landscape': bannerOrientation === 'landscape' }">
-                    <!-- 左側欄 -->
-                    <aside class="pv-sidebar">
-                      <!-- 直式 Banner -->
-                      <div v-if="form.bannerPreview && bannerOrientation === 'portrait'" class="pv-sidebar-banner">
-                        <img :src="form.bannerPreview" alt="Banner" />
-                      </div>
-                      <div class="pv-meta">
-                        <div class="pv-meta-row" v-if="currentEvent?.date">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                          <span>{{ currentEvent.date }}{{ currentEvent.endDate && currentEvent.endDate !== currentEvent.date ? ' ~ ' + currentEvent.endDate : '' }}<br/>{{ currentEvent.time }}</span>
-                        </div>
-                        <div class="pv-meta-row" v-if="currentEvent?.location">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                          <span>{{ currentEvent.location }}<br v-if="currentEvent.address"/>{{ currentEvent.address }}</span>
-                        </div>
-                      </div>
-                      <div class="pv-actions">
-                        <button class="pv-btn outline">聯絡主辦單位</button>
-                        <button class="pv-btn primary">立即預約</button>
-                      </div>
-                    </aside>
-
-                    <!-- 右側內容 -->
-                    <main class="pv-main">
-                      <span class="pv-tag">UPCOMING EVENT</span>
-                      <h1 class="pv-title">{{ currentEvent?.name || '活動名稱' }}</h1>
-                      <div class="pv-body" v-html="form.mainContent"></div>
-
-                      <!-- 來賓 -->
-                      <div v-if="selectedGuestIds.size > 0" class="pv-guests">
-                        <div v-for="p in vipParticipants.filter(v => selectedGuestIds.has(v.id))" :key="p.id" class="pv-guest">
-                          <div class="pv-guest-avatar">{{ p.name?.charAt(0) }}</div>
-                          <div class="pv-guest-name">{{ p.name }}</div>
-                          <div class="pv-guest-role">{{ p.company }}</div>
-                        </div>
-                      </div>
-
-                      <!-- 票券 -->
-                      <div v-if="tickets.length" class="pv-tickets">
-                        <div v-for="t in tickets" :key="t.name" class="pv-ticket">
-                          <div><strong>{{ t.name }}</strong><br/><small>{{ t.description }}</small></div>
-                          <span class="pv-price">${{ t.price }}</span>
-                        </div>
-                      </div>
-
-                      <button class="pv-book">立即預約</button>
-
-                      <!-- FAQ -->
-                      <div v-if="faqs.length" class="pv-faq-section">
-                        <h3>常見問答 (FAQ)</h3>
-                        <div v-for="f in faqs" :key="f.question" class="pv-faq">
-                          <span class="pv-faq-bar"></span>
-                          <span>{{ f.question }}</span>
-                        </div>
-                      </div>
-
-                      <!-- 地點 -->
-                      <div v-if="currentEvent?.location" class="pv-venue">
-                        <h3>活動地點</h3>
-                        <p><strong>{{ currentEvent.location }}</strong></p>
-                        <p v-if="currentEvent.address" style="font-size:.8rem;color:#64748b;">{{ currentEvent.address }}</p>
-                      </div>
-                    </main>
-                  </div>
-
-                  <div class="pv-footer">© CLIX 活動報到系統</div>
-                </div>
-              </div>
+              <iframe
+                v-if="customSlug"
+                :src="`${windowRef.location.origin}/#/r/${customSlug}`"
+                class="preview-iframe"
+                frameborder="0"
+              ></iframe>
+              <div v-else class="preview-empty">請先設定報名連結後綴</div>
             </div>
           </div>
         </div>
@@ -1702,12 +1634,12 @@ label {
 }
 .preview-viewport {
   flex: 1;
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #f8fafc 100%);
-  padding: 5px;
+  background: var(--bg-hover);
+  padding: 0;
   display: flex;
   justify-content: center;
   overflow: hidden;
-  transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 500px;
   &.mobile {
     .preview-content-box {
       width: 375px;
@@ -2791,7 +2723,20 @@ label {
 
 .pv-footer { text-align:center; padding:12px; font-size:.65rem; color:#94a3b8; border-top:1px solid #e2e8f0; }
 
-/* 手機預覽 */
-.preview-viewport.mobile .pv-layout { grid-template-columns:1fr; }
-.preview-viewport.mobile .pv-banner img { max-height:140px; }
+/* iframe 預覽 */
+.preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #fff;
+}
+.preview-empty {
+  display: flex; align-items: center; justify-content: center;
+  height: 100%; color: var(--text-muted); font-size: .9rem;
+}
+.preview-viewport.mobile .preview-iframe {
+  max-width: 375px;
+  margin: 0 auto;
+  display: block;
+}
 </style>
