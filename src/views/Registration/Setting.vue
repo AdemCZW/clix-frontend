@@ -112,36 +112,39 @@ const loadFaqs = async (pid: number) => {
   } catch { /* silent */ }
 };
 
-// ── 活動來賓 ──
-interface GuestItem { id: number | null; name: string; title: string; company: string; }
-const eventGuests = ref<GuestItem[]>([]);
-const addGuest = () => {
-  eventGuests.value.push({ id: null, name: '', title: '', company: '' });
-};
-const removeGuest = async (i: number) => {
-  const g = eventGuests.value[i];
-  if (g.id) {
-    try {
-      await apiRequest(`/api/guests/${g.id}/`, { method: 'DELETE' });
-    } catch { /* silent */ }
-  }
-  eventGuests.value.splice(i, 1);
+// ── 活動來賓（從 VIP 參與者勾選）──
+const selectedGuestIds = ref<Set<number>>(new Set());
+const vipParticipants = computed(() =>
+  participantsStore.participants.filter(p => p.type === 'VIP')
+);
+const isGuestSelected = (id: number) => selectedGuestIds.value.has(id);
+const toggleGuestSelect = (id: number) => {
+  const s = new Set(selectedGuestIds.value);
+  if (s.has(id)) s.delete(id); else s.add(id);
+  selectedGuestIds.value = s;
 };
 
 const saveGuests = async () => {
   const eventId = eventsStore.currentEvent?.id;
   if (!eventId) return;
   try {
-    for (const g of eventGuests.value) {
-      if (g.id) {
-        await apiRequest(`/api/guests/${g.id}/`, {
-          method: 'PATCH', body: JSON.stringify({ name: g.name, title: g.title, company: g.company }),
+    // 先刪除該活動所有舊來賓
+    const existing = await apiRequest(`/api/guests/?event=${eventId}`);
+    if (existing.ok) {
+      const data = await existing.json();
+      const list = data.results || data;
+      for (const g of list) {
+        await apiRequest(`/api/guests/${g.id}/`, { method: 'DELETE' });
+      }
+    }
+    // 從選中的 VIP 參與者建立來賓
+    for (const id of selectedGuestIds.value) {
+      const p = participantsStore.participants.find(x => x.id === id);
+      if (p) {
+        await apiRequest('/api/guests/', {
+          method: 'POST',
+          body: JSON.stringify({ name: p.name, title: p.title, company: p.company, email: p.email, phone: p.phone, event: eventId }),
         });
-      } else {
-        const res = await apiRequest('/api/guests/', {
-          method: 'POST', body: JSON.stringify({ name: g.name, title: g.title, company: g.company, event: eventId }),
-        });
-        if (res.ok) { const created = await res.json(); g.id = created.id; }
       }
     }
   } catch { /* handled by saveDraft */ }
@@ -153,9 +156,13 @@ const loadGuests = async (eventId: number) => {
     if (res.ok) {
       const data = await res.json();
       const list = data.results || data;
-      eventGuests.value = list.map((g: Record<string, unknown>) => ({
-        id: g.id, name: g.name || '', title: g.title || '', company: g.company || '',
-      }));
+      // 比對 VIP 參與者名單，自動勾選已存在的
+      const names = new Set(list.map((g: Record<string, unknown>) => g.name));
+      const ids = new Set<number>();
+      participantsStore.participants.forEach(p => {
+        if (p.type === 'VIP' && names.has(p.name)) ids.add(p.id);
+      });
+      selectedGuestIds.value = ids;
     }
   } catch { /* silent */ }
 };
@@ -267,8 +274,13 @@ const loadPageData = async (eventId: number) => {
     form.enableAutoSend   = page.enableAutoSend;
     form.bannerPreview    = page.banner || null;
 
-    // 載入票券、FAQ、來賓
-    await Promise.all([loadTickets(page.id), loadFaqs(page.id), loadGuests(eventId)]);
+    // 載入參與者、票券、FAQ、來賓
+    await Promise.all([
+      participantsStore.fetchParticipants({ event: String(eventId) }),
+      loadTickets(page.id),
+      loadFaqs(page.id),
+    ]);
+    await loadGuests(eventId);  // 需要參與者載入後才能比對
   } catch (err: unknown) {
     const msg = (err as Error).message || "";
     if (msg.includes("401") || msg.includes("Authentication")) {
@@ -569,18 +581,23 @@ const closeGuestDetail = () => {
           </div>
         </div>
 
-        <!-- 活動來賓 -->
+        <!-- 活動來賓（從 VIP 選取） -->
         <div class="tech-card">
           <h3 class="card-subtitle">活動來賓</h3>
-          <div v-for="(g, i) in eventGuests" :key="i" class="edit-row">
-            <div class="edit-row-fields">
-              <input v-model="g.name" placeholder="姓名" class="input-sm" />
-              <input v-model="g.company" placeholder="公司" class="input-sm" />
-              <input v-model="g.title" placeholder="職稱" class="input-sm" />
-            </div>
-            <button class="btn-del-row" @click="removeGuest(i)">×</button>
+          <p class="card-hint">從 VIP 參與者中選取要顯示在報名頁的來賓</p>
+          <div v-if="vipParticipants.length === 0" class="card-empty">尚無 VIP 參與者</div>
+          <div v-else class="guest-pick-list">
+            <label v-for="p in vipParticipants" :key="p.id" class="guest-pick-item" :class="{ checked: isGuestSelected(p.id) }">
+              <input type="checkbox" :checked="isGuestSelected(p.id)" @change="toggleGuestSelect(p.id)" hidden />
+              <span class="pick-check">
+                <svg v-if="isGuestSelected(p.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              <div class="pick-info">
+                <span class="pick-name">{{ p.name }}</span>
+                <span class="pick-role">{{ p.company }}<template v-if="p.title"> · {{ p.title }}</template></span>
+              </div>
+            </label>
           </div>
-          <button class="btn-add-row" @click="addGuest">+ 新增來賓</button>
         </div>
 
         <!-- 票券設定 -->
@@ -1045,6 +1062,27 @@ const closeGuestDetail = () => {
   font-weight:600; color:var(--text-muted); cursor:pointer; transition:.15s;
 }
 .btn-add-row:hover { border-color:#167A67; color:#167A67; }
+
+/* 來賓選取 */
+.card-hint { font-size:.76rem; color:var(--text-muted); margin:0 0 10px; }
+.card-empty { font-size:.84rem; color:var(--text-muted); text-align:center; padding:16px 0; }
+.guest-pick-list { display:flex; flex-direction:column; gap:6px; }
+.guest-pick-item {
+  display:flex; align-items:center; gap:10px; padding:8px 10px;
+  border:1px solid var(--border-color); border-radius:8px;
+  cursor:pointer; transition:.15s; background:var(--bg-card);
+}
+.guest-pick-item:hover { border-color:#167A67; }
+.guest-pick-item.checked { border-color:#167A67; background:rgba(22,122,103,.06); }
+.pick-check {
+  width:20px; height:20px; border-radius:5px; flex-shrink:0;
+  border:2px solid var(--border-color); display:flex;
+  align-items:center; justify-content:center; transition:.15s;
+}
+.guest-pick-item.checked .pick-check { background:#167A67; border-color:#167A67; }
+.pick-info { flex:1; min-width:0; }
+.pick-name { font-size:.84rem; font-weight:600; color:var(--text-main); display:block; }
+.pick-role { font-size:.72rem; color:var(--text-muted); }
 
 .editor-autosave-hint {
   font-size:.75rem; color:var(--text-gray-light); padding:8px 0 0; text-align:left;
