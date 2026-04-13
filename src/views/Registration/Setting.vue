@@ -76,8 +76,7 @@ const saveTickets = async () => {
     });
     if (!res.ok) throw new Error('儲存票券失敗');
     tickets.value = await res.json();
-    toastSuccess('票券已儲存');
-  } catch { toastError('儲存票券失敗'); }
+  } catch { /* handled by saveDraft */ }
 };
 
 const loadTickets = async (pid: number) => {
@@ -103,8 +102,7 @@ const saveFaqs = async () => {
     });
     if (!res.ok) throw new Error('儲存 FAQ 失敗');
     faqs.value = await res.json();
-    toastSuccess('FAQ 已儲存');
-  } catch { toastError('儲存 FAQ 失敗'); }
+  } catch { /* handled by saveDraft */ }
 };
 
 const loadFaqs = async (pid: number) => {
@@ -146,8 +144,7 @@ const saveGuests = async () => {
         if (res.ok) { const created = await res.json(); g.id = created.id; }
       }
     }
-    toastSuccess('來賓已儲存');
-  } catch { toastError('儲存來賓失敗'); }
+  } catch { /* handled by saveDraft */ }
 };
 
 const loadGuests = async (eventId: number) => {
@@ -334,6 +331,8 @@ const saveDraft = async () => {
     if (saved && saved.banner) {
       form.bannerPreview = saved.banner as string;
     }
+    // 同時儲存來賓、票券、FAQ
+    await Promise.all([saveGuests(), saveTickets(), saveFaqs()]);
     toastSuccess("活動設定已儲存");
   } catch (err: unknown) {
     toastError((err as Error).message || "儲存失敗");
@@ -572,10 +571,7 @@ const closeGuestDetail = () => {
 
         <!-- 活動來賓 -->
         <div class="tech-card">
-          <div class="card-header-flex">
-            <h3 class="card-subtitle">活動來賓</h3>
-            <button class="card-btn primary" @click="saveGuests" style="font-size:.76rem;padding:4px 12px;">儲存來賓</button>
-          </div>
+          <h3 class="card-subtitle">活動來賓</h3>
           <div v-for="(g, i) in eventGuests" :key="i" class="edit-row">
             <div class="edit-row-fields">
               <input v-model="g.name" placeholder="姓名" class="input-sm" />
@@ -589,10 +585,7 @@ const closeGuestDetail = () => {
 
         <!-- 票券設定 -->
         <div class="tech-card">
-          <div class="card-header-flex">
-            <h3 class="card-subtitle">票券設定</h3>
-            <button class="card-btn primary" @click="saveTickets" style="font-size:.76rem;padding:4px 12px;">儲存票券</button>
-          </div>
+          <h3 class="card-subtitle">票券設定</h3>
           <div v-for="(t, i) in tickets" :key="i" class="edit-row">
             <div class="edit-row-fields">
               <input v-model="t.name" placeholder="票種名稱" class="input-sm" />
@@ -607,10 +600,7 @@ const closeGuestDetail = () => {
 
         <!-- FAQ 設定 -->
         <div class="tech-card">
-          <div class="card-header-flex">
-            <h3 class="card-subtitle">常見問答 (FAQ)</h3>
-            <button class="card-btn primary" @click="saveFaqs" style="font-size:.76rem;padding:4px 12px;">儲存 FAQ</button>
-          </div>
+          <h3 class="card-subtitle">常見問答 (FAQ)</h3>
           <div v-for="(f, i) in faqs" :key="i" class="edit-row">
             <div class="edit-row-fields">
               <input v-model="f.question" placeholder="問題" class="input-sm" />
