@@ -46,9 +46,23 @@ watch(customFields, (fields) => {
 // Banner 方向偵測
 const bannerOrientation = ref<'landscape' | 'portrait'>('portrait')
 const detectBannerOrientation = (url: string) => {
+  if (!url) return
   const img = new Image()
+  img.crossOrigin = 'anonymous'
   img.onload = () => {
-    bannerOrientation.value = img.width > img.height ? 'landscape' : 'portrait'
+    bannerOrientation.value = img.naturalWidth > img.naturalHeight ? 'landscape' : 'portrait'
+  }
+  img.onerror = () => {
+    // CORS 失敗時用 fetch + blob 重試
+    fetch(url).then(r => r.blob()).then(blob => {
+      const objUrl = URL.createObjectURL(blob)
+      const img2 = new Image()
+      img2.onload = () => {
+        bannerOrientation.value = img2.naturalWidth > img2.naturalHeight ? 'landscape' : 'portrait'
+        URL.revokeObjectURL(objUrl)
+      }
+      img2.src = objUrl
+    }).catch(() => { /* 預設 portrait */ })
   }
   img.src = url
 }
