@@ -43,10 +43,19 @@ watch(customFields, (fields) => {
   })
 }, { immediate: true })
 
+// Banner 方向偵測
+const bannerOrientation = ref<'landscape' | 'portrait'>('portrait')
+const detectBannerOrientation = (url: string) => {
+  const img = new Image()
+  img.onload = () => {
+    bannerOrientation.value = img.width > img.height ? 'landscape' : 'portrait'
+  }
+  img.src = url
+}
+
 onMounted(() => {
   store.reset()
   store.fetchPage(shortLink).then(() => {
-    // 動態設定頁面標題和 SEO meta
     if (store.page?.eventName) {
       document.title = `${store.page.eventName} — 活動報名`
       const metaDesc = document.querySelector('meta[name="description"]')
@@ -54,6 +63,8 @@ onMounted(() => {
       const ogTitle = document.querySelector('meta[property="og:title"]')
       if (ogTitle) ogTitle.setAttribute('content', store.page.eventName)
     }
+    // 偵測 banner 方向
+    if (store.page?.banner) detectBannerOrientation(store.page.banner as string)
   }).catch(() => {})
 })
 
@@ -192,15 +203,21 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
       </div>
     </div>
 
-    <!-- Info Page（設計稿版面：左側欄 + 右側內容） -->
+    <!-- Info Page -->
     <template v-else-if="pageData && !showForm">
-      <div class="info-layout">
 
-        <!-- 左側欄：Banner + 活動資訊 + 按鈕 -->
+      <!-- 橫式 Banner：全寬頂部 -->
+      <div v-if="bannerOrientation === 'landscape' && pageData.banner" class="hero-banner">
+        <img :src="pageData.banner" :alt="pageData.eventName" />
+      </div>
+
+      <div class="info-layout" :class="{ 'layout-landscape': bannerOrientation === 'landscape' }">
+
+        <!-- 左側欄（直式：有 Banner，橫式：只有活動資訊） -->
         <aside class="info-sidebar">
           <div class="sidebar-sticky">
-            <!-- Banner 圖片 -->
-            <div class="sidebar-banner" v-if="pageData.banner">
+            <!-- 直式 Banner -->
+            <div class="sidebar-banner" v-if="bannerOrientation === 'portrait' && pageData.banner">
               <img :src="pageData.banner" :alt="pageData.eventName" />
             </div>
 
@@ -208,11 +225,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
             <div class="sidebar-meta">
               <div class="meta-row" v-if="pageData.eventDate">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                <span>{{ formatDate(pageData.eventDate, pageData.eventEndDate, null) }}</span>
-              </div>
-              <div class="meta-row" v-if="pageData.eventTime">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span>{{ pageData.eventTime }}</span>
+                <span>{{ formatDate(pageData.eventDate || '', pageData.eventEndDate || '', '') }}<br v-if="pageData.eventTime"/><template v-if="pageData.eventTime">{{ pageData.eventTime }}</template></span>
               </div>
               <div class="meta-row" v-if="pageData.eventLocation">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -225,7 +238,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
             <!-- 按鈕 -->
             <div class="sidebar-actions">
-              <button class="sb-btn outline" @click="openForm" :disabled="isFull">聯絡主辦單位</button>
+              <button class="sb-btn outline">聯絡主辦單位</button>
               <button class="sb-btn primary" @click="openForm" :disabled="isFull">立即預約</button>
             </div>
           </div>
@@ -509,6 +522,14 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .r-icon { font-size: 1.1rem; flex-shrink: 0; }
 
 /* ─── Banner ─── */
+/* ─── 橫式 Banner 全寬 ─── */
+.hero-banner {
+  width: 100%; max-height: 420px; overflow: hidden;
+}
+.hero-banner img {
+  width: 100%; height: auto; display: block; object-fit: cover; max-height: 420px;
+}
+
 /* ─── Info Layout（左右兩欄） ─── */
 .info-layout {
   max-width: 1100px;
@@ -689,8 +710,18 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   margin-bottom: 20px; border: 1px solid #fecaca;
 }
 
+/* 橫式佈局：左側欄更窄（沒有圖片） */
+.layout-landscape {
+  grid-template-columns: 240px 1fr;
+}
+.layout-landscape .sidebar-meta {
+  margin-top: 0;
+}
+
 /* RWD */
 @media (max-width: 768px) {
+  .hero-banner { max-height: 240px; }
+  .hero-banner img { max-height: 240px; }
   .info-layout {
     grid-template-columns: 1fr;
     padding: 16px 16px 60px;
