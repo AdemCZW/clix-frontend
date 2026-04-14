@@ -1,4 +1,5 @@
 import { apiRequest } from '@/utils/api'
+import { compressImage } from '@/utils/imageCompress'
 
 /**
  * Quill 編輯器圖片上傳 handler
@@ -33,8 +34,9 @@ export function setupQuillImageUpload(quillEditor: any) {
       }
 
       try {
+        const compressed = await compressImage(file)
         const formData = new FormData()
-        formData.append('file', file)
+        formData.append('file', compressed)
 
         const res = await apiRequest('/api/upload/image/', {
           method: 'POST',

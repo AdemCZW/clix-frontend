@@ -321,16 +321,18 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
   if (id) loadPageData(id);
 });
 
-// ── Banner 選擇 ────────────────────────────────────────────────────────────
-const onFileChange = (e: Event, type: string) => {
-  const file = (e.target as HTMLInputElement).files?.[0];
-  if (!file) return;
+// ── Banner 選擇（含壓縮）────────────────────────────────────────────────────
+import { compressImage } from "@/utils/imageCompress";
+
+const onFileChange = async (e: Event, type: string) => {
+  const rawFile = (e.target as HTMLInputElement).files?.[0];
+  if (!rawFile) return;
+  const file = await compressImage(rawFile);
   if (type === "banner") form.bannerFile = file;
   const reader = new FileReader();
   reader.onload = (ev) => {
     if (type === "banner") {
       form.bannerPreview = (ev.target as FileReader).result as string | null;
-      // 方向會在後端上傳後自動偵測，儲存後重新載入即更新
     }
   };
   reader.readAsDataURL(file);
