@@ -1,20 +1,30 @@
 <template>
   <div class="page-loader">
-    <div class="loader-ring">
-      <div class="ring-outer"></div>
-      <div class="ring-inner"></div>
-      <div class="ring-dot"></div>
-    </div>
-    <div class="loader-brand">
-      <span v-for="(ch, i) in brandChars" :key="i" class="brand-char" :style="{ animationDelay: `${i * 0.08}s` }">{{ ch }}</span>
+    <div class="logo-loader">
+      <svg width="80" height="58" viewBox="636 180 167 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- 上框線（旋轉動畫） -->
+        <g class="frame-top">
+          <path d="M667.166 195.01C667.166 189.444 671.706 184.918 677.289 184.918H751.521C757.104 184.918 761.644 189.444 761.644 195.01V200.906H766.577V195.01C766.577 186.721 759.835 180 751.521 180H677.289C668.975 180 662.233 186.721 662.233 195.01V200.906H667.166V195.01Z" fill="#2A3A39"/>
+        </g>
+        <!-- clix 文字 -->
+        <path d="M658.952 274.486C650.133 274.486 636 270.702 636 248.485C636 226.267 650.133 222.484 658.952 222.484C666.066 222.484 671.566 224.848 675.738 229.007L665.209 239.503C663.219 237.518 661.51 236.479 658.952 236.479C656.866 236.479 655.443 237.139 654.114 238.463C652.31 240.357 651.552 243.666 651.552 248.485C651.552 253.304 652.31 256.617 654.114 258.506C655.443 259.831 656.862 260.491 658.952 260.491C661.514 260.491 663.219 259.451 665.209 257.467L675.738 267.963C671.566 272.122 666.066 274.486 658.952 274.486Z" fill="#167A67"/>
+        <path d="M699.377 273.916C688.091 273.916 683.539 265.879 683.539 258.882V206.595H699.091V257.747C699.091 259.732 700.134 260.866 702.22 260.866H707.625V273.912H699.373L699.377 273.916Z" fill="#167A67"/>
+        <path d="M717.723 217.85V206.03H733.275V217.85H717.723ZM717.723 273.916V225.034H733.275V273.916H717.723Z" fill="#167A67"/>
+        <path d="M773.749 273.916L765.973 261.056L758.387 273.916H739.702L757.436 247.915L742.947 224.831L758.499 225.817L765.973 235.344L774.424 224.831L787.878 224.464L774.701 247.92L792.435 273.921H773.749V273.916Z" fill="#167A67"/>
+        <path d="M740.368 223.049L765.973 261.056L803 206.133H783.098L765.973 235.34L759.049 223.049H740.368Z" fill="#E0A800"/>
+        <path d="M765.973 261.056L774.697 247.915L778.04 252.817L765.973 261.056Z" fill="#167A67"/>
+        <!-- 下框線（旋轉動畫） -->
+        <g class="frame-bottom">
+          <path d="M761.644 284.99C761.644 290.556 757.104 295.082 751.521 295.082H677.289C671.706 295.082 667.166 290.556 667.166 284.99V279.094H662.233V284.99C662.233 293.279 668.975 300 677.289 300H751.521C759.835 300 766.577 293.279 766.577 284.99V279.094H761.644V284.99Z" fill="#2A3A39"/>
+        </g>
+      </svg>
     </div>
     <p v-if="text" class="loader-text">{{ text }}</p>
   </div>
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ text?: string }>();
-const brandChars = 'Clix'.split('');
+defineProps<{ text?: string }>();
 </script>
 
 <style scoped>
@@ -24,81 +34,38 @@ const brandChars = 'Clix'.split('');
   align-items: center;
   justify-content: center;
   padding: 100px 20px;
-  gap: 20px;
+  gap: 16px;
 }
 
-/* 三層環形動畫 */
-.loader-ring {
-  position: relative;
-  width: 56px;
-  height: 56px;
+.logo-loader {
+  animation: logo-fade-in 0.4s ease;
 }
 
-.ring-outer {
-  position: absolute;
-  inset: 0;
-  border: 3px solid var(--border-color);
-  border-top-color: #167A67;
-  border-radius: 50%;
-  animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+/* 上框線動畫 */
+.frame-top {
+  transform-origin: 714px 190px;
+  animation: frame-bounce-top 1.4s ease-in-out infinite;
 }
 
-.ring-inner {
-  position: absolute;
-  inset: 8px;
-  border: 3px solid var(--border-color);
-  border-bottom-color: #a5b4fc;
-  border-radius: 50%;
-  animation: spin-reverse 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+/* 下框線動畫 */
+.frame-bottom {
+  transform-origin: 714px 290px;
+  animation: frame-bounce-bottom 1.4s ease-in-out infinite;
 }
 
-.ring-dot {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 8px;
-  height: 8px;
-  margin: -4px 0 0 -4px;
-  background: #167A67;
-  border-radius: 50%;
-  animation: pulse 1.2s ease-in-out infinite;
+@keyframes frame-bounce-top {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@keyframes frame-bounce-bottom {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
 }
 
-@keyframes spin-reverse {
-  to { transform: rotate(-360deg); }
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.6); opacity: 0.4; }
-}
-
-/* 品牌文字逐字淡入 */
-.loader-brand {
-  display: flex;
-  gap: 2px;
-}
-
-.brand-char {
-  font-size: 1.2rem;
-  font-weight: 800;
-  color: #167A67;
-  opacity: 0;
-  animation: char-in 0.4s ease forwards, char-pulse 2s ease-in-out 0.6s infinite;
-}
-
-@keyframes char-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes char-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+@keyframes logo-fade-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .loader-text {
