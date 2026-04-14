@@ -680,7 +680,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   display: flex; align-items: center; justify-content: center; transition: .1s;
 }
 .ticket-qty button:hover { background: #f1f5f9; }
-.ticket-qty span { font-size: .92rem; font-weight: 600; min-width: 16px; text-align: center; }
+.ticket-qty span { font-size: .92rem; font-weight: 600; min-width: 16px; text-align: center; color: #0f172a; }
 
 /* FAQ */
 .faq-section { margin: 48px 0 0; }
