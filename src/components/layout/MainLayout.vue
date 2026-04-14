@@ -110,25 +110,7 @@ const selectEvent = (event: any) => {
     <!-- ===== SIDEBAR ===== -->
     <aside class="sidebar" :class="{ open: sidebarOpen }">
       <div class="sidebar-header">
-        <svg class="brand-logo-svg" width="36" height="36" viewBox="0 0 100 100" fill="none">
-          <!-- 剪貼板外框 -->
-          <rect x="15" y="20" width="70" height="70" rx="10" stroke="#2A3A39" stroke-width="7" fill="none"/>
-          <rect x="30" y="12" width="40" height="12" rx="6" fill="#2A3A39"/>
-          <!-- c -->
-          <path d="M22 62 Q22 42 38 42 L38 50 Q30 50 30 62 Q30 74 38 74 L38 82 Q22 82 22 62Z" fill="#167A67"/>
-          <!-- l -->
-          <rect x="42" y="36" width="8" height="46" rx="1" fill="#167A67"/>
-          <!-- i -->
-          <rect x="54" y="50" width="8" height="32" rx="1" fill="#167A67"/>
-          <rect x="54" y="42" width="8" height="6" rx="1" fill="#167A67"/>
-          <!-- x（綠色部分） -->
-          <polygon points="66,50 74,50 82,66 78,74 70,58" fill="#167A67"/>
-          <polygon points="66,82 74,82 82,66 78,58 70,74" fill="#167A67"/>
-          <!-- x 金色勾勾筆畫 -->
-          <polygon points="74,50 82,50 90,38 82,38" fill="#FFC010"/>
-          <polygon points="78,58 82,50 90,38 86,42" fill="#FFC010"/>
-        </svg>
-        <span class="brand-name">clix</span>
+        <img src="/clix-logo.svg" alt="clix" class="brand-logo-img" />
       </div>
 
       <nav class="menu">
@@ -264,20 +246,13 @@ const selectEvent = (event: any) => {
 }
 
 .sidebar-header {
-  padding: 20px;
+  padding: 16px 20px;
   display: flex;
   align-items: center;
-  gap: 8px;
 
-  .brand-logo-svg {
-    flex-shrink: 0;
-  }
-
-  .brand-name {
-    font-size: 1.3rem;
-    font-weight: 900;
-    color: #167A67;
-    letter-spacing: -0.5px;
+  .brand-logo-img {
+    height: 32px;
+    width: auto;
   }
 }
 
