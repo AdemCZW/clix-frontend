@@ -318,6 +318,12 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
           <!-- 活動地點 -->
           <div v-if="pageData.eventAddress || pageData.eventLocation" class="venue-section">
             <h2 class="section-heading">活動地點</h2>
+            <div class="venue-map">
+              <iframe
+                :src="`https://maps.google.com/maps?q=${encodeURIComponent((pageData.eventAddress || '') + ' ' + (pageData.eventLocation || ''))}&output=embed&z=16`"
+                width="100%" height="220" style="border:0; border-radius:10px;" allowfullscreen loading="lazy"
+              ></iframe>
+            </div>
             <div class="venue-info">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#167A67" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
               <div>
@@ -713,6 +719,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .btn-book-full:disabled { opacity: .5; cursor: not-allowed; }
 
 /* 活動地點 */
+.venue-map { margin-bottom: 12px; border-radius: 10px; overflow: hidden; }
 .venue-addr { margin: 4px 0 0; font-size: .88rem; color: #64748b; }
 
 /* 報名截止 */
