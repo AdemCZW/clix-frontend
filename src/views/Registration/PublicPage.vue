@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePublicRegisterStore } from '@/stores/participants'
+import LogoSpinner from '@/components/shared/LogoSpinner.vue'
 
 const route = useRoute()
 const store = usePublicRegisterStore()
@@ -157,7 +158,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
     <!-- Loading -->
     <div v-if="store.loading && !pageData" class="state-screen">
-      <div class="spinner"></div>
+      <LogoSpinner :size="48" />
       <p>載入頁面中...</p>
     </div>
 

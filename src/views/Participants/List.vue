@@ -7,6 +7,7 @@ import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import PageLoader from "@/components/shared/PageLoader.vue";
+import LogoSpinner from '@/components/shared/LogoSpinner.vue';
 import type { Participant } from "@/types";
 
 const { success, warning, error: showError } = useToast();
@@ -351,7 +352,7 @@ const formatDate = (isoString: string) => {
     <template v-else>
     <!-- 加載遮罩 -->
     <div v-if="participantsStore.loading" class="loading-overlay">
-      <div class="loading-spinner"></div>
+      <LogoSpinner :size="40" />
       <p>載入中...</p>
     </div>
 

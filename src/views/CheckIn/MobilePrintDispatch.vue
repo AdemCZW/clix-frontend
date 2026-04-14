@@ -4,6 +4,7 @@ import { useRoute } from "vue-router";
 import jsQR from "jsqr";
 import { apiRequest } from "@/utils/api";
 import type { Participant } from "@/types";
+import LogoSpinner from '@/components/shared/LogoSpinner.vue';
 
 const route = useRoute();
 const eventId = computed(() => String(route.query.event || ""));
@@ -227,7 +228,7 @@ onUnmounted(() => stopScanning());
 
     <!-- ===== 載入中 ===== -->
     <div class="phase-loading" v-else-if="phase === 'loading'">
-      <div class="spinner"></div>
+      <LogoSpinner :size="36" />
       <p>驗證中...</p>
     </div>
 
@@ -273,7 +274,7 @@ onUnmounted(() => stopScanning());
 
     <!-- ===== 傳送中 ===== -->
     <div class="phase-sending" v-else-if="phase === 'sending'">
-      <div class="spinner"></div>
+      <LogoSpinner :size="36" />
       <p>傳送到站台 {{ sendingStation }}...</p>
     </div>
 

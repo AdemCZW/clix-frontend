@@ -5,7 +5,7 @@
     <template v-else>
     <!-- 載入中遮罩 -->
     <div v-if="loading" class="loading-overlay">
-      <div class="loading-spinner">載入中...</div>
+      <LogoSpinner :size="40" /><p>載入中...</p>
     </div>
 
     <div class="two-panel-layout">
@@ -246,6 +246,7 @@ import { storeToRefs } from "pinia";
 import { useToast } from "@/composables/useToast";
 import BaseModal from "@/components/shared/BaseModal.vue";
 import PageLoader from "@/components/shared/PageLoader.vue";
+import LogoSpinner from '@/components/shared/LogoSpinner.vue';
 import type { Manager } from "@/types";
 
 const { success, error, warning } = useToast();
