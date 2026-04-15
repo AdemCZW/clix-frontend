@@ -33,6 +33,7 @@ export const useEventsStore = defineStore('events', () => {
         endDate: e.end_date || e.date || '',
         // 後端回傳 HH:MM:SS，前端只用 HH:MM
         time: e.time ? e.time.slice(0, 5) : '',
+        endTime: e.end_time ? e.end_time.slice(0, 5) : '',
         location: e.location || '',
         address: e.address || '',
         isPublished: e.is_published || false,

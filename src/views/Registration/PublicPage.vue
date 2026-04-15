@@ -235,7 +235,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
             <!-- 按鈕 -->
             <div class="sidebar-actions">
-              <button class="sb-btn primary" @click="openForm" :disabled="isFull">立即預約</button>
+              <button class="sb-btn primary" @click="openForm" :disabled="isFull">立即報名</button>
               <button class="sb-btn outline">聯絡主辦單位</button>
             </div>
 
@@ -298,9 +298,9 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
             </div>
           </div>
 
-          <!-- 立即預約按鈕 -->
+          <!-- 立即報名按鈕 -->
           <button class="btn-book-full" @click="openForm" :disabled="isFull">
-            {{ isFull ? '已額滿' : '立即預約' }}
+            {{ isFull ? '已額滿' : '立即報名' }}
           </button>
 
           <!-- 常見問答 FAQ -->
@@ -709,7 +709,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   font-size: .88rem; color: #475569; line-height: 1.7;
 }
 
-/* 立即預約全寬按鈕 */
+/* 立即報名全寬按鈕 */
 .btn-book-full {
   display: block; width: 100%; padding: 16px;
   background: #167A67; color: #fff; border: none;
