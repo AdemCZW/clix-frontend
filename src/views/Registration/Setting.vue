@@ -61,10 +61,10 @@ const form = reactive<{
 });
 
 // ── 票券 ──
-interface TicketItem { id: number | null; name: string; description: string; price: number; quantity: number; is_active: boolean; order: number; }
+interface TicketItem { id: number | null; name: string; description: string; price: number; quantity: number; start_date: string; start_time: string; end_date: string; end_time: string; is_active: boolean; order: number; }
 const tickets = ref<TicketItem[]>([]);
 const addTicket = () => {
-  tickets.value.push({ id: null, name: '', description: '', price: 0, quantity: 100, is_active: true, order: tickets.value.length });
+  tickets.value.push({ id: null, name: '', description: '', price: 0, quantity: 100, start_date: '', start_time: '', end_date: '', end_time: '', is_active: true, order: tickets.value.length });
 };
 const removeTicket = (i: number) => tickets.value.splice(i, 1);
 
@@ -632,8 +632,18 @@ const closeGuestDetail = () => {
               <div class="edit-row-fields">
                 <input v-model="t.name" placeholder="票種名稱" class="input-sm" />
                 <input v-model="t.description" placeholder="描述" class="input-sm" />
-                <input v-model.number="t.price" type="number" placeholder="價格" class="input-sm w80" />
-                <input v-model.number="t.quantity" type="number" placeholder="數量" class="input-sm w60" />
+                <div class="edit-inline">
+                  <input v-model.number="t.price" type="number" placeholder="價格" class="input-sm" />
+                  <input v-model.number="t.quantity" type="number" placeholder="數量" class="input-sm" />
+                </div>
+                <div class="edit-inline">
+                  <div class="edit-field"><label class="fl">開始日期</label><input v-model="t.start_date" type="date" class="input-sm" /></div>
+                  <div class="edit-field"><label class="fl">開始時間</label><input v-model="t.start_time" type="time" class="input-sm" /></div>
+                </div>
+                <div class="edit-inline">
+                  <div class="edit-field"><label class="fl">結束日期</label><input v-model="t.end_date" type="date" class="input-sm" /></div>
+                  <div class="edit-field"><label class="fl">結束時間</label><input v-model="t.end_time" type="time" class="input-sm" /></div>
+                </div>
               </div>
               <button class="btn-del-row" @click="removeTicket(i)">×</button>
             </div>
@@ -1084,6 +1094,11 @@ const closeGuestDetail = () => {
   font-size:.65rem; font-weight:700; margin-left:6px;
 }
 .collapse-body { margin-top:12px; }
+
+.edit-inline { display:flex; gap:6px; }
+.edit-inline > * { flex:1; min-width:0; }
+.edit-field { display:flex; flex-direction:column; gap:2px; }
+.fl { font-size:.68rem; color:var(--text-muted); font-weight:600; }
 
 .editor-autosave-hint {
   font-size:.75rem; color:var(--text-gray-light); padding:8px 0 0; text-align:left;
