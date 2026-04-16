@@ -417,16 +417,20 @@ const handleUnpublish = async () => {
 // ── 短連結 ────────────────────────────────────────────────────────────────
 const saveCustomSlug = async () => {
   if (!pageId.value) return;
-  if (!customSlug.value.trim()) { toastError("連結後綴不能為空"); return; }
+  const slug = customSlug.value.trim();
+  if (!slug) { toastError("連結後綴不能為空"); return; }
+  if (slug === extractSlug(shortLink.value)) { toastSuccess("連結未變更"); return; }
+  const ok = confirm(`確定要將報名連結更新為「${slug}」嗎？\n\n⚠️ 原網址將會失效，已分享出去的連結將無法使用。`);
+  if (!ok) return;
   try {
     const updated = await pagesStore.saveDraft(pageId.value, {
-      shortLink: customSlug.value.trim(),
+      shortLink: slug,
     });
     shortLink.value = updated.shortLink;
     customSlug.value = extractSlug(updated.shortLink);
     toastSuccess("報名連結已更新");
   } catch (err: unknown) {
-    toastError((err as Error).message || "更新連結失敗");
+    toastError((err as Error).message || "更新連結失敗（可能後綴已被使用）");
   }
 };
 
@@ -501,10 +505,33 @@ const closeGuestDetail = () => {
           <div class="editor-autosave-hint">每 30 秒自動緩存草稿</div>
         </div>
 
-        <!-- 郵件內文編輯 -->
+        <!-- 郵件設定（發送參數 + 內文編輯） -->
         <div class="tech-card content-card" style="margin-top:20px;">
-          <div class="card-header-flex">
-            <h3 class="card-subtitle">郵件內文編輯</h3>
+          <h3 class="card-subtitle">郵件設定</h3>
+
+          <!-- 發送參數 -->
+          <div class="field mt-16">
+            <label>郵件主旨</label>
+            <input v-model="form.emailSubject" type="text" placeholder="輸入郵件主旨" class="input-styled" />
+          </div>
+          <div class="field mt-16">
+            <label>寄件者名稱</label>
+            <input v-model="form.emailSenderName" type="text" placeholder="輸入寄件者名稱" class="input-styled" />
+          </div>
+          <div class="auto-send-toggle mt-20">
+            <div class="toggle-info">
+              <span class="toggle-label">報名完成即刻發送</span>
+              <span class="toggle-desc">啟用後將在報名成功時自動發送通知信</span>
+            </div>
+            <label class="switch-container">
+              <input type="checkbox" v-model="form.enableAutoSend" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+
+          <!-- 郵件內文編輯 -->
+          <div class="card-header-flex" style="margin-top:20px;">
+            <span class="card-sublabel">郵件內文</span>
             <div class="tag-helper">
               <button class="btn-mini-tag" @click="insertEmailTag('{name}')">+{name}</button>
               <button class="btn-mini-tag" @click="insertEmailTag('{event_name}')">+{event_name}</button>
@@ -565,29 +592,6 @@ const closeGuestDetail = () => {
           <div class="link-actions">
             <button class="card-btn outline" @click="copyLink">複製連結</button>
             <button class="card-btn primary" @click="saveCustomSlug">更新</button>
-          </div>
-        </div>
-
-        <!-- 發送參數設定 -->
-        <div class="tech-card">
-          <h3 class="card-subtitle">發送參數設定</h3>
-          <div class="field mt-16">
-            <label>郵件主旨</label>
-            <input v-model="form.emailSubject" type="text" placeholder="輸入郵件主旨" class="input-styled" />
-          </div>
-          <div class="field mt-16">
-            <label>寄件者名稱</label>
-            <input v-model="form.emailSenderName" type="text" placeholder="輸入寄件者名稱" class="input-styled" />
-          </div>
-          <div class="auto-send-toggle mt-20">
-            <div class="toggle-info">
-              <span class="toggle-label">報名完成即刻發送</span>
-              <span class="toggle-desc">啟用後將在報名成功時自動發送通知信</span>
-            </div>
-            <label class="switch-container">
-              <input type="checkbox" v-model="form.enableAutoSend" />
-              <span class="switch-slider"></span>
-            </label>
           </div>
         </div>
 
@@ -1286,6 +1290,12 @@ const closeGuestDetail = () => {
   h3 {
     margin: 0 !important;
   }
+}
+.card-sublabel {
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text-muted, #888);
+  margin: 0;
 }
 .btn-mini-tag {
   background: #eef2ff;
