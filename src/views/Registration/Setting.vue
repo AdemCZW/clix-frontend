@@ -489,13 +489,7 @@ const closeGuestDetail = () => {
       <div class="setting-left">
         <!-- 活動詳細內容編輯 -->
         <div class="tech-card content-card">
-          <div class="card-header-flex">
-            <h3 class="card-subtitle">活動詳細內容編輯器</h3>
-            <div class="tag-helper">
-              <button class="btn-mini-tag" @click="insertTag('{name}')">+{name}</button>
-              <button class="btn-mini-tag" @click="insertTag('{date}')">+{date}</button>
-            </div>
-          </div>
+          <h3 class="card-subtitle">活動詳細內容編輯器</h3>
           <div class="quill-editor-wrapper">
             <QuillEditor
               ref="myQuill"
@@ -550,8 +544,8 @@ const closeGuestDetail = () => {
           <h3 class="card-subtitle">活動基本資訊</h3>
           <div class="event-info-display">
             <div class="info-row"><span class="info-label">活動名稱：</span><span class="info-value">{{ currentEvent?.name || '—' }}</span></div>
-            <div class="info-row"><span class="info-label">日期：</span><span class="info-value">{{ currentEvent?.date || '—' }} {{ currentEvent?.endDate && currentEvent.endDate !== currentEvent.date ? '→ ' + currentEvent.endDate : '' }}</span></div>
-            <div class="info-row"><span class="info-label">時間：</span><span class="info-value">{{ currentEvent?.time || '—' }}</span></div>
+            <div class="info-row"><span class="info-label">開始：</span><span class="info-value">{{ currentEvent?.date || '—' }} {{ currentEvent?.time || '' }}</span></div>
+            <div class="info-row"><span class="info-label">結束：</span><span class="info-value">{{ currentEvent?.endDate || currentEvent?.date || '—' }} {{ (currentEvent as any)?.endTime || '' }}</span></div>
             <div class="info-row"><span class="info-label">地點：</span><span class="info-value">{{ currentEvent?.location || '—' }}</span></div>
             <div class="info-row"><span class="info-label">地址：</span><span class="info-value">{{ currentEvent?.address || '—' }}</span></div>
           </div>
@@ -1246,24 +1240,24 @@ const closeGuestDetail = () => {
   justify-content: center;
   background: var(--bg-soft);
   border: 2px dashed var(--border-color);
-  border-radius: 16px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: 0.3s;
-  background-size: cover;
+  transition: 0.2s;
+  background-size: contain;
+  background-repeat: no-repeat;
   background-position: center;
   &.banner-zone {
-    height: 160px;
+    min-height: 80px;
+    padding: 8px;
   }
   &:hover {
     border-color: var(--accent);
-    background: #eef2ff;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(22, 122, 103, 0.15);
   }
   .placeholder {
     color: var(--text-gray);
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 600;
+    text-align: center;
   }
 }
 .input-styled {
