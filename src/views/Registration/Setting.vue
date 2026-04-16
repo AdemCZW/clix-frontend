@@ -571,8 +571,8 @@ const closeGuestDetail = () => {
           <h3 class="card-subtitle">活動基本資訊</h3>
           <div class="event-info-display">
             <div class="info-row"><span class="info-label">活動名稱：</span><span class="info-value">{{ currentEvent?.name || '—' }}</span></div>
-            <div class="info-row"><span class="info-label">開始：</span><span class="info-value">{{ currentEvent?.date || '—' }} {{ currentEvent?.time || '' }}</span></div>
-            <div class="info-row"><span class="info-label">結束：</span><span class="info-value">{{ currentEvent?.endDate || currentEvent?.date || '—' }} {{ (currentEvent as any)?.endTime || '' }}</span></div>
+            <div class="info-row"><span class="info-label">開始：</span><span class="info-value">{{ currentEvent?.date || '—' }}{{ currentEvent?.time ? ' ' + currentEvent.time : '' }}</span></div>
+            <div class="info-row"><span class="info-label">結束：</span><span class="info-value">{{ currentEvent?.endDate || currentEvent?.date || '—' }}{{ currentEvent?.endTime ? ' ' + currentEvent.endTime : '' }}</span></div>
             <div class="info-row"><span class="info-label">地點：</span><span class="info-value">{{ currentEvent?.location || '—' }}</span></div>
             <div class="info-row"><span class="info-label">地址：</span><span class="info-value">{{ currentEvent?.address || '—' }}</span></div>
           </div>

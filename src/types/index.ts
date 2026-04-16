@@ -22,6 +22,7 @@ export interface Event {
   date: string
   endDate: string
   time: string
+  endTime: string
   location: string
   address: string
   isPublished: boolean
@@ -42,6 +43,7 @@ export interface RawEvent {
   date?: string
   end_date?: string
   time?: string
+  end_time?: string
   location?: string
   address?: string
   is_published?: boolean
