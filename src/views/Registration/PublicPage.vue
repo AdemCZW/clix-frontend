@@ -553,15 +553,20 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   width: 100%; height: auto; display: block; object-fit: cover; max-height: 420px;
 }
 
-/* ─── Info Layout（左右兩欄） ─── */
+/* ─── Info Layout（左右兩欄，合併成一個白色卡片） ─── */
 .info-layout {
   max-width: 1100px;
   margin: 0 auto;
   padding: 32px 24px 60px;
   display: grid;
   grid-template-columns: 1fr 320px;
-  gap: 28px;
+  gap: 0;
   align-items: start;
+  background: #fff;
+  border-radius: 14px 14px 0 0;
+  border: 1px solid #e8e8e4;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  overflow: hidden;
 }
 /* 橫式佈局：內文在左，資訊卡在右 */
 .layout-landscape { grid-template-columns: 1fr 320px; }
@@ -573,17 +578,17 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .info-layout:not(.layout-landscape) .info-sidebar { order: 1; }
 .info-layout:not(.layout-landscape) .info-main { order: 2; }
 
-/* 右側欄（活動資訊卡） */
-.info-sidebar { min-width: 0; }
-.sidebar-sticky { position: sticky; top: 24px; }
+/* 側欄（活動資訊卡） */
+.info-sidebar { min-width: 0; border-left: 1px solid #e8e8e4; }
+.info-layout:not(.layout-landscape) .info-sidebar { border-left: none; border-right: 1px solid #e8e8e4; }
+.sidebar-sticky { position: sticky; top: 24px; padding: 24px; }
 .sidebar-banner img {
-  width: 100%; border-radius: 12px;
+  width: 100%; border-radius: 10px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
 }
 .sidebar-meta {
   margin-top: 16px; display: flex; flex-direction: column; gap: 10px;
-  padding: 16px; background: #fff; border-radius: 12px;
-  border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 14px; background: #f8f8f6; border-radius: 10px;
 }
 .meta-row {
   display: flex; align-items: flex-start; gap: 8px;
@@ -608,11 +613,9 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .sb-btn.outline:hover { background: #f9fafb; }
 .sb-btn:disabled { opacity: .5; cursor: not-allowed; }
 
-/* 主內容區域（白色卡片） */
+/* 主內容區域 */
 .info-main {
-  min-width: 0; background: #fff; border-radius: 14px;
-  padding: 28px 32px; border: 1px solid #e8e8e4;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  min-width: 0; padding: 28px 32px;
 }
 
 .p-tag {
@@ -658,11 +661,12 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
 /* 底部版權 */
 .page-footer {
-  max-width: 100%; margin: 0;
-  padding: 20px 24px;
+  max-width: 1100px; margin: 0 auto;
+  padding: 16px 24px;
   display: flex; justify-content: space-between;
-  font-size: .75rem; color: #a0a0a0;
+  font-size: .75rem;
   background: #3D3B3B; color: #ccc;
+  border-radius: 0 0 14px 14px;
 }
 
 /* 貴賓列表 */
