@@ -564,7 +564,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   grid-template-columns: 1fr 320px;
   gap: 0;
   align-items: start;
-  background: #fff;
+  background: #f5f5f0;
   border-radius: 14px 14px 0 0;
   border: 1px solid #e8e8e4;
   box-shadow: 0 2px 8px rgba(0,0,0,0.03);
@@ -590,7 +590,8 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 }
 .sidebar-meta {
   margin-top: 16px; display: flex; flex-direction: column; gap: 10px;
-  padding: 14px; background: #f8f8f6; border-radius: 10px;
+  padding: 14px; background: #fff; border-radius: 10px;
+  border: 1px solid #e8e8e4;
 }
 .meta-row {
   display: flex; align-items: flex-start; gap: 8px;
