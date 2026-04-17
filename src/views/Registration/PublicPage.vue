@@ -545,9 +545,10 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .public-page { background: #f5f5f0; min-height: 100vh; }
 
 /* ─── Banner ─── */
-/* ─── 橫式 Banner 全寬 ─── */
+/* ─── 橫式 Banner 全寬（sticky 視差效果） ─── */
 .hero-banner {
   width: 100%; max-height: 420px; overflow: hidden;
+  position: sticky; top: 0; z-index: 1;
 }
 .hero-banner img {
   width: 100%; height: auto; display: block; object-fit: cover; max-height: 420px;
