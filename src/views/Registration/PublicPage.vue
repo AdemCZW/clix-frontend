@@ -556,7 +556,8 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 /* ─── Info Layout（左右兩欄，合併成一個白色卡片） ─── */
 .info-layout {
   max-width: 1100px;
-  margin: 0 auto;
+  margin: -28px auto 0;
+  position: relative; z-index: 2;
   padding: 32px 24px 60px;
   display: grid;
   grid-template-columns: 1fr 320px;
