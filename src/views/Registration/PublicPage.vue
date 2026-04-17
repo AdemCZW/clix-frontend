@@ -326,7 +326,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
               ></iframe>
             </div>
             <div class="venue-info">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#167A67" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#337168" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
               <div>
                 <strong>{{ pageData.eventLocation }}</strong>
                 <p v-if="pageData.eventAddress" class="venue-addr">{{ pageData.eventAddress }}</p>
@@ -476,7 +476,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   width: 44px;
   height: 44px;
   border: 3px solid var(--border-color);
-  border-top-color: #167A67;
+  border-top-color: #337168;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -495,7 +495,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .success-title {
   font-size: 2rem;
   font-weight: 900;
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, #337168 0%, #2a5c54 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -589,7 +589,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   display: flex; align-items: flex-start; gap: 8px;
   font-size: .86rem; color: #334155; line-height: 1.4;
 }
-.meta-row svg { flex-shrink: 0; margin-top: 2px; color: #167A67; }
+.meta-row svg { flex-shrink: 0; margin-top: 2px; color: #337168; }
 .meta-sub { margin: 2px 0 0; font-size: .78rem; color: #94a3b8; line-height: 1.3; }
 .sidebar-actions {
   margin-top: 14px; display: flex; flex-direction: column; gap: 8px;
@@ -599,8 +599,8 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   font-size: .9rem; font-weight: 600; cursor: pointer;
   transition: .15s; text-align: center; border: none;
 }
-.sb-btn.primary { background: #167A67; color: #fff; }
-.sb-btn.primary:hover { background: #0f5d4e; }
+.sb-btn.primary { background: #337168; color: #fff; }
+.sb-btn.primary:hover { background: #2a5c54; }
 .sb-btn.outline {
   background: #fff; color: #334155;
   border: 1.5px solid #d1d5db;
@@ -617,7 +617,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
 .p-tag {
   display: inline-block;
-  background: #167A67; color: #fff;
+  background: #337168; color: #fff;
   padding: 5px 14px; border-radius: 4px;
   font-size: 0.68rem; font-weight: 800;
   letter-spacing: 0.1em; text-transform: uppercase;
@@ -642,9 +642,9 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .p-main-body-render :deep(h1),
 .p-main-body-render :deep(h2),
 .p-main-body-render :deep(h3) { color: #0f172a; font-weight: 800; margin-top: 1.4em; }
-.p-main-body-render :deep(h3) { border-left: 3px solid #167A67; padding-left: 10px; }
+.p-main-body-render :deep(h3) { border-left: 3px solid #337168; padding-left: 10px; }
 .p-main-body-render :deep(img) { max-width: 100%; border-radius: 8px; }
-.p-main-body-render :deep(a) { color: #167A67; font-weight: 600; }
+.p-main-body-render :deep(a) { color: #337168; font-weight: 600; }
 .p-main-body-render :deep(ul),
 .p-main-body-render :deep(ol) { padding-left: 20px; }
 .p-main-body-render :deep(li) { margin-bottom: 6px; }
@@ -658,11 +658,11 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
 /* 底部版權 */
 .page-footer {
-  max-width: 1100px; margin: 0 auto;
+  max-width: 100%; margin: 0;
   padding: 20px 24px;
   display: flex; justify-content: space-between;
-  font-size: .75rem; color: #94a3b8;
-  border-top: 1px solid #e2e8f0;
+  font-size: .75rem; color: #a0a0a0;
+  background: #3D3B3B; color: #ccc;
 }
 
 /* 貴賓列表 */
@@ -688,12 +688,12 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   padding: 16px 20px; border: 1px solid #e2e8f0; border-radius: 12px;
   margin-bottom: 10px; background: #fafaf8; transition: .15s;
 }
-.ticket-row:hover { border-color: #167A67; }
-.ticket-highlight { border-left: 3px solid #167A67; }
+.ticket-row:hover { border-color: #337168; }
+.ticket-highlight { border-left: 3px solid #337168; }
 .ticket-info { flex: 1; min-width: 0; }
 .ticket-name { font-size: .95rem; font-weight: 700; color: #0f172a; }
 .ticket-desc { font-size: .78rem; color: #94a3b8; margin-top: 2px; }
-.ticket-price { font-size: 1.2rem; font-weight: 800; color: #167A67; white-space: nowrap; }
+.ticket-price { font-size: 1.2rem; font-weight: 800; color: #337168; white-space: nowrap; }
 .ticket-qty {
   display: flex; align-items: center; gap: 8px;
 }
@@ -716,7 +716,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   padding: 14px 16px; border: none; background: transparent;
   cursor: pointer; text-align: left; font-size: .9rem; font-weight: 600; color: #0f172a;
 }
-.faq-bar { width: 3px; height: 18px; background: #167A67; border-radius: 2px; flex-shrink: 0; }
+.faq-bar { width: 3px; height: 18px; background: #337168; border-radius: 2px; flex-shrink: 0; }
 .faq-text { flex: 1; }
 .faq-arrow { flex-shrink: 0; transition: transform .2s; color: #94a3b8; }
 .faq-item.open .faq-arrow { transform: rotate(180deg); }
@@ -728,11 +728,11 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 /* 立即報名全寬按鈕 */
 .btn-book-full {
   display: block; width: 100%; padding: 16px;
-  background: #167A67; color: #fff; border: none;
+  background: #337168; color: #fff; border: none;
   border-radius: 10px; font-size: 1rem; font-weight: 700;
   cursor: pointer; transition: .15s; margin: 32px 0;
 }
-.btn-book-full:hover:not(:disabled) { background: #0f5d4e; }
+.btn-book-full:hover:not(:disabled) { background: #2a5c54; }
 .btn-book-full:disabled { opacity: .5; cursor: not-allowed; }
 
 /* 活動地點 */
@@ -970,7 +970,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 }
 .radio-item.checked .radio-mark {
   border-color: var(--accent);
-  background: linear-gradient(135deg, #167A67, #0f5d4e);
+  background: linear-gradient(135deg, #337168, #2a5c54);
   box-shadow: 0 0 0 3px rgba(102,126,234,0.2);
 }
 .radio-item.checked .radio-mark::after {
@@ -988,7 +988,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   margin-top: 4px;
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, #337168 0%, #2a5c54 100%);
   color: #fff;
   border: none;
   border-radius: 14px;
