@@ -175,18 +175,18 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
       <h2 class="success-title">報名成功！</h2>
       <p class="success-sub">{{ store.submittedParticipant.name }}，感謝您的報名，期待與您相見！</p>
 
-      <div v-if="store.submittedParticipant.qr_code_url || store.submittedParticipant.qrCodeUrl" class="qr-card">
+      <div v-if="(store.submittedParticipant as any).qr_code_url || store.submittedParticipant.qrCodeUrl" class="qr-card">
         <p class="qr-hint">現場出示此 QR Code 掃描報到</p>
         <div class="qr-img-wrap">
-          <img :src="store.submittedParticipant.qr_code_url || store.submittedParticipant.qrCodeUrl" alt="QR Code" />
+          <img :src="(store.submittedParticipant as any).qr_code_url || store.submittedParticipant.qrCodeUrl" alt="QR Code" />
         </div>
-        <p class="qr-token">{{ store.submittedParticipant.check_in_token || store.submittedParticipant.checkInToken }}</p>
+        <p class="qr-token">{{ (store.submittedParticipant as any).check_in_token || store.submittedParticipant.checkInToken }}</p>
       </div>
 
       <div class="reminder-box" v-if="pageData">
         <div class="reminder-row" v-if="pageData.eventDate">
           <span class="r-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
-          <span>{{ formatDate(pageData.eventDate, pageData.eventEndDate, pageData.eventTime) }}</span>
+          <span>{{ formatDate(pageData.eventDate || '', pageData.eventEndDate || '', pageData.eventTime || '') }}</span>
         </div>
         <div class="reminder-row" v-if="pageData.eventLocation">
           <span class="r-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
@@ -541,6 +541,9 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .reminder-row { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; color: var(--text-secondary); }
 .r-icon { font-size: 1.1rem; flex-shrink: 0; }
 
+/* ─── 頁面底色 ─── */
+.public-page { background: #f5f5f0; min-height: 100vh; }
+
 /* ─── Banner ─── */
 /* ─── 橫式 Banner 全寬 ─── */
 .hero-banner {
@@ -556,22 +559,31 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   margin: 0 auto;
   padding: 32px 24px 60px;
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 40px;
+  grid-template-columns: 1fr 320px;
+  gap: 28px;
   align-items: start;
 }
+/* 橫式佈局：內文在左，資訊卡在右 */
+.layout-landscape { grid-template-columns: 1fr 320px; }
+.layout-landscape .info-sidebar { order: 2; }
+.layout-landscape .info-main { order: 1; }
 
-/* 左側欄 */
+/* 直式佈局：圖片+資訊在左，內文在右 */
+.info-layout:not(.layout-landscape) { grid-template-columns: 280px 1fr; }
+.info-layout:not(.layout-landscape) .info-sidebar { order: 1; }
+.info-layout:not(.layout-landscape) .info-main { order: 2; }
+
+/* 右側欄（活動資訊卡） */
 .info-sidebar { min-width: 0; }
 .sidebar-sticky { position: sticky; top: 24px; }
 .sidebar-banner img {
-  width: 100%; border-radius: 10px;
+  width: 100%; border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
 }
 .sidebar-meta {
   margin-top: 16px; display: flex; flex-direction: column; gap: 10px;
-  padding: 14px; background: #f8fafc; border-radius: 10px;
-  border: 1px solid #e2e8f0;
+  padding: 16px; background: #fff; border-radius: 12px;
+  border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 .meta-row {
   display: flex; align-items: flex-start; gap: 8px;
@@ -580,24 +592,28 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .meta-row svg { flex-shrink: 0; margin-top: 2px; color: #167A67; }
 .meta-sub { margin: 2px 0 0; font-size: .78rem; color: #94a3b8; line-height: 1.3; }
 .sidebar-actions {
-  margin-top: 14px; display: flex; flex-direction: row; gap: 8px;
+  margin-top: 14px; display: flex; flex-direction: column; gap: 8px;
 }
 .sb-btn {
-  flex: 1; padding: 10px 0; border-radius: 8px;
-  font-size: .88rem; font-weight: 600; cursor: pointer;
+  width: 100%; padding: 12px 0; border-radius: 10px;
+  font-size: .9rem; font-weight: 600; cursor: pointer;
   transition: .15s; text-align: center; border: none;
 }
-.sb-btn.outline {
-  background: #fff; color: #334155;
-  border: 1px solid #d1d5db;
-}
-.sb-btn.outline:hover { background: #f9fafb; }
 .sb-btn.primary { background: #167A67; color: #fff; }
 .sb-btn.primary:hover { background: #0f5d4e; }
+.sb-btn.outline {
+  background: #fff; color: #334155;
+  border: 1.5px solid #d1d5db;
+}
+.sb-btn.outline:hover { background: #f9fafb; }
 .sb-btn:disabled { opacity: .5; cursor: not-allowed; }
 
-/* 右側主內容 */
-.info-main { min-width: 0; }
+/* 主內容區域（白色卡片） */
+.info-main {
+  min-width: 0; background: #fff; border-radius: 14px;
+  padding: 28px 32px; border: 1px solid #e8e8e4;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
 
 .p-tag {
   display: inline-block;
@@ -608,11 +624,11 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   margin-bottom: 12px;
 }
 .p-title {
-  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
-  font-weight: 900;
-  margin: 0 0 24px;
+  font-size: clamp(1.3rem, 2.5vw, 1.6rem);
+  font-weight: 800;
+  margin: 0 0 16px;
   color: #0f172a;
-  line-height: 1.3;
+  line-height: 1.35;
   word-break: break-word;
 }
 
@@ -669,8 +685,8 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .tickets-section { margin: 32px 0 0; }
 .ticket-row {
   display: flex; align-items: center; gap: 16px;
-  padding: 16px 20px; border: 1px solid #e2e8f0; border-radius: 10px;
-  margin-bottom: 10px; background: #fff; transition: .15s;
+  padding: 16px 20px; border: 1px solid #e2e8f0; border-radius: 12px;
+  margin-bottom: 10px; background: #fafaf8; transition: .15s;
 }
 .ticket-row:hover { border-color: #167A67; }
 .ticket-highlight { border-left: 3px solid #167A67; }
@@ -692,8 +708,8 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 /* FAQ */
 .faq-section { margin: 48px 0 0; }
 .faq-item {
-  border: 1px solid #e2e8f0; border-radius: 10px;
-  margin-bottom: 8px; overflow: hidden; background: #fff;
+  border: 1px solid #e2e8f0; border-radius: 12px;
+  margin-bottom: 8px; overflow: hidden; background: #fafaf8;
 }
 .faq-q {
   width: 100%; display: flex; align-items: center; gap: 10px;
@@ -722,6 +738,11 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 /* 活動地點 */
 .venue-map { margin-bottom: 12px; border-radius: 10px; overflow: hidden; }
 .venue-addr { margin: 4px 0 0; font-size: .88rem; color: #64748b; }
+.venue-map {
+  margin-top: 12px; border-radius: 12px; overflow: hidden;
+  border: 1px solid #e2e8f0; height: 200px;
+}
+.venue-map iframe { width: 100%; height: 100%; border: none; }
 
 /* 報名截止 */
 .full-alert {
