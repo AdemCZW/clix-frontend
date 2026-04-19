@@ -8,6 +8,10 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  visible: {
+    type: Boolean,
+    default: true,
+  },
 })
 
 const emit = defineEmits(['open-form'])
@@ -16,7 +20,7 @@ const openForm = () => emit('open-form')
 </script>
 
 <template>
-  <div class="mobile-sticky-bar">
+  <div class="mobile-sticky-bar" :class="{ 'is-hidden': !visible }">
     <div class="msb-info">
       <div v-for="row in rows" :key="`mobile-${row.key}`" class="msb-row" :class="{ 'msb-addr': row.kind === 'address' }">
         <svg v-if="row.kind === 'date'" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -47,6 +51,17 @@ const openForm = () => emit('open-form')
     border-radius: 16px 16px 0 0;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
     padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity .28s ease, transform .28s ease, visibility .28s ease;
+    visibility: visible;
+  }
+
+  .mobile-sticky-bar.is-hidden {
+    opacity: 0;
+    transform: translateY(18px);
+    pointer-events: none;
+    visibility: hidden;
   }
 
   .msb-info {

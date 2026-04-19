@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePublicRegisterStore } from '@/stores/participants'
 import LogoSpinner from '@/components/shared/LogoSpinner.vue'
@@ -23,6 +23,9 @@ const dynamicValues = reactive<Record<string, string>>({})
 const formErrors = ref<Record<string, string>>({})
 const submitting = ref(false)
 const showForm = ref(false)
+const bookButtonRef = ref<HTMLElement | null>(null)
+const showMobileStickyBar = ref(true)
+let bookButtonObserver: IntersectionObserver | null = null
 
 // pageData 必須在 customFields 之前定義
 const pageData = computed(() => (store.page as {
@@ -102,7 +105,54 @@ onMounted(() => {
       const ogTitle = document.querySelector('meta[property="og:title"]')
       if (ogTitle) ogTitle.setAttribute('content', store.page.eventName)
     }
+    nextTick(() => {
+      observeBookButton()
+    })
   }).catch(() => {})
+})
+
+onBeforeUnmount(() => {
+  if (bookButtonObserver) {
+    bookButtonObserver.disconnect()
+    bookButtonObserver = null
+  }
+})
+
+const observeBookButton = () => {
+  if (bookButtonObserver) {
+    bookButtonObserver.disconnect()
+    bookButtonObserver = null
+  }
+
+  if (!bookButtonRef.value || typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+    showMobileStickyBar.value = true
+    return
+  }
+
+  bookButtonObserver = new IntersectionObserver(
+    ([entry]) => {
+      showMobileStickyBar.value = !entry.isIntersecting
+    },
+    {
+      root: null,
+      threshold: 0.15,
+      rootMargin: '0px 0px -120px 0px',
+    }
+  )
+
+  bookButtonObserver.observe(bookButtonRef.value)
+}
+
+watch([pageData, showForm], async ([page, formVisible]) => {
+  if (!page || formVisible) {
+    showMobileStickyBar.value = false
+    if (bookButtonObserver) bookButtonObserver.disconnect()
+    return
+  }
+
+  showMobileStickyBar.value = true
+  await nextTick()
+  observeBookButton()
 })
 
 const validate = () => {
@@ -381,6 +431,11 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
             </div>
           </div>
 
+          <!-- 手機版立即報名按鈕：放在貴賓區下方 -->
+          <button ref="bookButtonRef" class="btn-book-full mobile-only" @click="openForm" :disabled="isFull">
+            {{ isFull ? '已額滿' : '立即報名' }}
+          </button>
+
           <!-- 票券選擇 -->
           <div v-if="tickets.length" class="tickets-section">
             <div v-for="t in tickets" :key="t.id" class="ticket-row" :class="{ 'ticket-highlight': t.name === '永續票' }">
@@ -398,7 +453,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
           </div>
 
           <!-- 立即報名按鈕 -->
-          <button class="btn-book-full" @click="openForm" :disabled="isFull">
+          <button class="btn-book-full desktop-only" @click="openForm" :disabled="isFull">
             {{ isFull ? '已額滿' : '立即報名' }}
           </button>
 
@@ -441,7 +496,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
         <span>WEBSITE DESIGNED BY CLIX</span>
       </footer>
 
-      <MobileStickyBar :rows="eventReminderRows" :is-full="isFull" @open-form="openForm" />
+      <MobileStickyBar :rows="eventReminderRows" :is-full="isFull" :visible="showMobileStickyBar" @open-form="openForm" />
 
     </template>
 
@@ -843,6 +898,9 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .btn-book-full:hover:not(:disabled) { background: #2a5c54; }
 .btn-book-full:disabled { opacity: .5; cursor: not-allowed; }
 
+.mobile-only { display: none; }
+.desktop-only { display: block; }
+
 /* 活動地點 */
 .venue-map { margin-bottom: 12px; border-radius: 10px; overflow: hidden; }
 .venue-addr { margin: 4px 0 0; font-size: .88rem; color: #64748b; }
@@ -911,6 +969,8 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   .sidebar-sticky { position: static; }
   .sidebar-banner img { max-height: 240px; object-fit: cover; }
   .page-footer { flex-direction: column; gap: 4px; text-align: center; }
+  .mobile-only { display: block; }
+  .desktop-only { display: none; }
 }
 
 /* ─── Form View ─── */
