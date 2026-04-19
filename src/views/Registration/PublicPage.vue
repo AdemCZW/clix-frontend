@@ -27,6 +27,18 @@ const bookButtonRef = ref<HTMLElement | null>(null)
 const showMobileStickyBar = ref(true)
 let mobileStickyBarRafId: number | null = null
 
+const getElementPageTop = (element: HTMLElement) => {
+  let top = 0
+  let current: HTMLElement | null = element
+
+  while (current) {
+    top += current.offsetTop
+    current = current.offsetParent as HTMLElement | null
+  }
+
+  return top
+}
+
 // pageData 必須在 customFields 之前定義
 const pageData = computed(() => (store.page as {
   eventName?: string
@@ -139,11 +151,12 @@ const updateMobileStickyBarVisibility = () => {
     return
   }
 
-  const rect = bookButtonRef.value.getBoundingClientRect()
   const stickyBarReserve = 170
-  const fadeStartLine = window.innerHeight - stickyBarReserve
+  const buttonTop = getElementPageTop(bookButtonRef.value)
+  const viewportBottom = window.scrollY + window.innerHeight
+  const fadeStart = buttonTop - stickyBarReserve
 
-  showMobileStickyBar.value = !(rect.top <= fadeStartLine && rect.bottom >= 0)
+  showMobileStickyBar.value = viewportBottom < fadeStart
 }
 
 const queueMobileStickyBarVisibilityCheck = () => {
