@@ -28,15 +28,8 @@ const showMobileStickyBar = ref(true)
 let mobileStickyBarRafId: number | null = null
 
 const getElementPageTop = (element: HTMLElement) => {
-  let top = 0
-  let current: HTMLElement | null = element
-
-  while (current) {
-    top += current.offsetTop
-    current = current.offsetParent as HTMLElement | null
-  }
-
-  return top
+  const rect = element.getBoundingClientRect()
+  return rect.top + window.scrollY
 }
 
 // pageData 必須在 customFields 之前定義
@@ -151,12 +144,11 @@ const updateMobileStickyBarVisibility = () => {
     return
   }
 
-  const stickyBarReserve = 170
   const buttonTop = getElementPageTop(bookButtonRef.value)
-  const viewportBottom = window.scrollY + window.innerHeight
-  const fadeStart = buttonTop - stickyBarReserve
+  const fadeOffset = 260
+  const triggerScrollTop = Math.max(0, buttonTop - window.innerHeight + fadeOffset)
 
-  showMobileStickyBar.value = viewportBottom < fadeStart
+  showMobileStickyBar.value = window.scrollY < triggerScrollTop
 }
 
 const queueMobileStickyBarVisibilityCheck = () => {
