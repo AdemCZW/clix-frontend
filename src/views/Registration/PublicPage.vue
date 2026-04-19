@@ -25,12 +25,7 @@ const submitting = ref(false)
 const showForm = ref(false)
 const bookButtonRef = ref<HTMLElement | null>(null)
 const showMobileStickyBar = ref(true)
-let mobileStickyBarRafId: number | null = null
-
-const getElementPageTop = (element: HTMLElement) => {
-  const rect = element.getBoundingClientRect()
-  return rect.top + window.scrollY
-}
+let mobileStickyBarObserver: IntersectionObserver | null = null
 
 // pageData 必須在 customFields 之前定義
 const pageData = computed(() => (store.page as {
@@ -111,57 +106,44 @@ onMounted(() => {
       if (ogTitle) ogTitle.setAttribute('content', store.page.eventName)
     }
     nextTick(() => {
-      updateMobileStickyBarVisibility()
+      setupMobileStickyBarObserver()
     })
   }).catch(() => {})
-
-  if (typeof window !== 'undefined') {
-    window.addEventListener('scroll', queueMobileStickyBarVisibilityCheck, { passive: true })
-    window.addEventListener('resize', queueMobileStickyBarVisibilityCheck)
-  }
 })
 
 onBeforeUnmount(() => {
-  if (typeof window !== 'undefined') {
-    window.removeEventListener('scroll', queueMobileStickyBarVisibilityCheck)
-    window.removeEventListener('resize', queueMobileStickyBarVisibilityCheck)
-  }
-
-  if (mobileStickyBarRafId !== null && typeof window !== 'undefined') {
-    window.cancelAnimationFrame(mobileStickyBarRafId)
-    mobileStickyBarRafId = null
+  if (mobileStickyBarObserver) {
+    mobileStickyBarObserver.disconnect()
+    mobileStickyBarObserver = null
   }
 })
 
-const updateMobileStickyBarVisibility = () => {
-  if (typeof window === 'undefined') {
-    showMobileStickyBar.value = true
-    return
+const setupMobileStickyBarObserver = () => {
+  // 清除舊的 observer
+  if (mobileStickyBarObserver) {
+    mobileStickyBarObserver.disconnect()
+    mobileStickyBarObserver = null
   }
 
-  if (window.innerWidth > 768 || !bookButtonRef.value || showForm.value) {
+  if (typeof window === 'undefined' || window.innerWidth > 768) {
     showMobileStickyBar.value = false
     return
   }
 
-  const buttonTop = getElementPageTop(bookButtonRef.value)
-  const fadeOffset = 260
-  const triggerScrollTop = Math.max(0, buttonTop - window.innerHeight + fadeOffset)
-
-  showMobileStickyBar.value = window.scrollY < triggerScrollTop
-}
-
-const queueMobileStickyBarVisibilityCheck = () => {
-  if (typeof window === 'undefined') return
-
-  if (mobileStickyBarRafId !== null) {
-    window.cancelAnimationFrame(mobileStickyBarRafId)
+  if (!bookButtonRef.value || showForm.value) {
+    showMobileStickyBar.value = false
+    return
   }
 
-  mobileStickyBarRafId = window.requestAnimationFrame(() => {
-    updateMobileStickyBarVisibility()
-    mobileStickyBarRafId = null
-  })
+  // 當按鈕進入畫面 → 隱藏底部浮動列；離開畫面 → 顯示底部浮動列
+  mobileStickyBarObserver = new IntersectionObserver(
+    ([entry]) => {
+      showMobileStickyBar.value = !entry.isIntersecting
+    },
+    { threshold: 0 }
+  )
+
+  mobileStickyBarObserver.observe(bookButtonRef.value)
 }
 
 watch([pageData, showForm], async ([page, formVisible]) => {
@@ -170,9 +152,8 @@ watch([pageData, showForm], async ([page, formVisible]) => {
     return
   }
 
-  showMobileStickyBar.value = true
   await nextTick()
-  updateMobileStickyBarVisibility()
+  setupMobileStickyBarObserver()
 })
 
 const validate = () => {
@@ -732,10 +713,9 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
 /* ─── Info Layout（左右兩欄，合併成一個白色卡片） ─── */
 .info-layout {
-  max-width: 1100px;
   margin: -28px auto 0;
   position: relative; z-index: 2;
-  padding: 32px 24px 60px;
+  padding: 0 24px 60px;
   display: grid;
   grid-template-columns: 1fr 320px;
   gap: 0;
