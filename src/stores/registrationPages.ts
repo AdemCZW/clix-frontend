@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { apiRequest } from '@/utils/api'
 import { parseApiError } from '@/utils/parseApiError'
+import { compressImage } from '@/utils/imageCompress'
 import type { RegistrationPage, RawRegistrationPage, FormField } from '@/types'
 
 /**
@@ -42,10 +43,11 @@ interface PageFormData {
 /**
  * 將表單資料轉成 FormData 或純 JSON payload
  */
-function buildPatchPayload(formData: PageFormData): { body: FormData | string } {
+async function buildPatchPayload(formData: PageFormData): Promise<{ body: FormData | string }> {
     if (formData.bannerFile instanceof File) {
+        const compressedBannerFile = await compressImage(formData.bannerFile)
         const fd = new FormData()
-        fd.append('banner', formData.bannerFile)
+        fd.append('banner', compressedBannerFile)
         if (formData.mainContent !== undefined) fd.append('main_content', formData.mainContent)
         if (formData.emailSubject !== undefined) fd.append('email_subject', formData.emailSubject)
         if (formData.emailSenderName !== undefined) fd.append('email_sender_name', formData.emailSenderName)
@@ -142,7 +144,7 @@ export const useRegistrationPagesStore = defineStore('registrationPages', () => 
         loading.value = true
         error.value = null
         try {
-            const { body } = buildPatchPayload(formData)
+            const { body } = await buildPatchPayload(formData)
             const res = await apiRequest(`/api/registration-pages/${pageId}/`, {
                 method: 'PATCH',
                 body,

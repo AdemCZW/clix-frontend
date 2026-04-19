@@ -1,6 +1,6 @@
 /**
- * 圖片壓縮工具 — 壓縮但保持高畫質
- * 最大寬度 1920px，JPEG 品質 85%，PNG 保持原格式
+ * 圖片壓縮工具 — 壓縮並優先轉成 WebP
+ * 最大寬度 1920px，品質 85%
  */
 export async function compressImage(
   file: File,
@@ -13,7 +13,7 @@ export async function compressImage(
   // 非圖片不處理
   if (!file.type.startsWith('image/')) return file
 
-  // GIF 不壓縮（會失去動畫）
+  // GIF 不壓縮（避免失去動畫）
   if (file.type === 'image/gif') return file
 
   return new Promise((resolve) => {
@@ -39,9 +39,8 @@ export async function compressImage(
       const ctx = canvas.getContext('2d')!
       ctx.drawImage(img, 0, 0, width, height)
 
-      // PNG 保持 PNG，其他轉 JPEG
-      const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
-      const outputQuality = file.type === 'image/png' ? undefined : quality
+      const outputType = 'image/webp'
+      const outputQuality = quality
 
       canvas.toBlob(
         (blob) => {
@@ -50,7 +49,8 @@ export async function compressImage(
             resolve(file)
             return
           }
-          const compressed = new File([blob], file.name, {
+          const webpName = file.name.replace(/\.[^.]+$/, '') || `compressed-${Date.now()}`
+          const compressed = new File([blob], `${webpName}.webp`, {
             type: outputType,
             lastModified: Date.now(),
           })

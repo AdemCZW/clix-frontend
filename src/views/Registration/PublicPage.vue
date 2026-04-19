@@ -3,10 +3,11 @@ import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePublicRegisterStore } from '@/stores/participants'
 import LogoSpinner from '@/components/shared/LogoSpinner.vue'
+import MobileStickyBar from '@/components/registration/MobileStickyBar.vue'
 
 const route = useRoute()
 const store = usePublicRegisterStore()
-const shortLink = route.params.shortLink as string
+const shortLink = String(route.params.shortLink || '')
 
 const form = reactive({
   name: '',
@@ -24,7 +25,47 @@ const submitting = ref(false)
 const showForm = ref(false)
 
 // pageData 必須在 customFields 之前定義
-const pageData = computed(() => store.page)
+const pageData = computed(() => (store.page as {
+  eventName?: string
+  eventDate?: string
+  eventEndDate?: string
+  eventTime?: string
+  eventLocation?: string
+  eventAddress?: string
+  mainContent?: string
+  banner?: string
+  banner_orientation?: string
+  bannerOrientation?: string
+  formFields?: Array<{
+    id?: number | string
+    label: string
+    field_type?: string
+    is_required?: boolean
+    is_hidden?: boolean
+    is_fixed?: boolean
+    options?: Array<{ order: number; text: string }>
+  }>
+  guests?: Array<{
+    id: number
+    name: string
+    title: string
+    company: string
+    avatar: string
+  }>
+  tickets?: Array<{
+    id: number
+    name: string
+    description: string
+    price: number
+  }>
+  faqs?: Array<{
+    question: string
+    answer: string
+  }>
+  participants_count?: number
+  max_participants?: number
+  event_status_text?: string
+} | null) ?? null)
 
 // 取得非隱藏、非固定的自定義欄位（相容 snake_case 與 camelCase）
 const customFields = computed(() => {
@@ -46,8 +87,8 @@ watch(customFields, (fields) => {
 
 // Banner 方向（從後端 API 取得，不再前端偵測）
 const bannerOrientation = computed(() =>
-  (pageData.value as Record<string, unknown>)?.banner_orientation as string
-  || (pageData.value as Record<string, unknown>)?.bannerOrientation as string
+  pageData.value?.banner_orientation
+  || pageData.value?.bannerOrientation
   || 'portrait'
 )
 
@@ -111,17 +152,17 @@ const handleSubmit = async () => {
 }
 
 // 報名狀態（從後端公開頁面 API 取得）
-const participantsCount = computed(() => (pageData.value as Record<string, unknown>)?.participants_count ?? 0)
-const maxParticipants = computed(() => (pageData.value as Record<string, unknown>)?.max_participants ?? '∞')
+const participantsCount = computed(() => pageData.value?.participants_count ?? 0)
+const maxParticipants = computed(() => pageData.value?.max_participants ?? '∞')
 const isFull = computed(() => {
-  const max = (pageData.value as Record<string, unknown>)?.max_participants as number | undefined
-  const count = (pageData.value as Record<string, unknown>)?.participants_count as number | undefined
+  const max = pageData.value?.max_participants
+  const count = pageData.value?.participants_count
   if (max && count !== undefined) return count >= max
   return false
 })
 const statusText = computed(() => {
   if (isFull.value) return '已額滿'
-  return ((pageData.value as Record<string, unknown>)?.event_status_text as string) || '報名中'
+  return pageData.value?.event_status_text || '報名中'
 })
 
 const openForm = () => { showForm.value = true }
@@ -135,11 +176,74 @@ const formatDate = (date: string, endDate: string, time: string) => {
   return str
 }
 
+const eventDateText = computed(() => formatDate(
+  pageData.value?.eventDate || '',
+  pageData.value?.eventEndDate || '',
+  pageData.value?.eventTime || ''
+))
+
+const eventDateRangeText = computed(() => formatDate(
+  pageData.value?.eventDate || '',
+  pageData.value?.eventEndDate || '',
+  ''
+))
+
+const eventMetaRows = computed(() => {
+  const rows: Array<{ key: string; kind: string; text: string; subtext?: string }> = []
+
+  if (pageData.value?.eventDate) {
+    rows.push({
+      key: 'date',
+      kind: 'date',
+      text: eventDateRangeText.value,
+      subtext: pageData.value.eventTime || '',
+    })
+  }
+
+  if (pageData.value?.eventLocation) {
+    rows.push({
+      key: 'location',
+      kind: 'location',
+      text: pageData.value.eventLocation,
+      subtext: pageData.value.eventAddress || '',
+    })
+  }
+
+  return rows
+})
+
+const eventReminderRows = computed(() => {
+  const rows: Array<{ key: string; kind: string; text: string }> = []
+
+  if (pageData.value?.eventDate) {
+    rows.push({ key: 'date', kind: 'date', text: eventDateText.value })
+  }
+
+  if (pageData.value?.eventLocation) {
+    rows.push({ key: 'location', kind: 'location', text: pageData.value.eventLocation })
+  }
+
+  if (pageData.value?.eventAddress) {
+    rows.push({ key: 'address', kind: 'address', text: pageData.value.eventAddress })
+  }
+
+  return rows
+})
+
+const landscapeSummaryItems = computed(() => {
+  const items: string[] = []
+
+  if (eventDateRangeText.value) items.push(eventDateRangeText.value)
+  if (pageData.value?.eventLocation) items.push(pageData.value.eventLocation)
+
+  return items
+})
+
 // 貴賓列表
-const guests = computed(() => (pageData.value as Record<string, unknown>)?.guests as Array<{id:number;name:string;title:string;company:string;avatar:string}> || [])
+const guests = computed(() => pageData.value?.guests || [])
 
 // 票券（之後從後端取，目前先用 pageData 中的資料或空陣列）
-const tickets = computed(() => (pageData.value as Record<string, unknown>)?.tickets as Array<{id:number;name:string;description:string;price:number}> || [])
+const tickets = computed(() => pageData.value?.tickets || [])
 const ticketQty = reactive<Record<number, number>>({})
 const changeQty = (id: number, delta: number) => {
   const cur = ticketQty[id] || 1
@@ -148,7 +252,7 @@ const changeQty = (id: number, delta: number) => {
 const getQty = (id: number) => ticketQty[id] ?? 1
 
 // FAQ（之後從後端取）
-const faqs = computed(() => (pageData.value as Record<string, unknown>)?.faqs as Array<{question:string;answer:string}> || [])
+const faqs = computed(() => pageData.value?.faqs || [])
 const faqOpen = ref<number | null>(null)
 const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : i }
 </script>
@@ -183,18 +287,14 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
         <p class="qr-token">{{ (store.submittedParticipant as any).check_in_token || store.submittedParticipant.checkInToken }}</p>
       </div>
 
-      <div class="reminder-box" v-if="pageData">
-        <div class="reminder-row" v-if="pageData.eventDate">
-          <span class="r-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
-          <span>{{ formatDate(pageData.eventDate || '', pageData.eventEndDate || '', pageData.eventTime || '') }}</span>
-        </div>
-        <div class="reminder-row" v-if="pageData.eventLocation">
-          <span class="r-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
-          <span>{{ pageData.eventLocation }}</span>
-        </div>
-        <div class="reminder-row" v-if="pageData.eventAddress">
-          <span class="r-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></span>
-          <span>{{ pageData.eventAddress }}</span>
+      <div class="reminder-box" v-if="eventReminderRows.length">
+        <div v-for="row in eventReminderRows" :key="`success-${row.key}`" class="reminder-row">
+          <span class="r-icon">
+            <svg v-if="row.kind === 'date'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <svg v-else-if="row.kind === 'location'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+          </span>
+          <span>{{ row.text }}</span>
         </div>
       </div>
     </div>
@@ -220,16 +320,16 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
             <!-- 活動資訊 -->
             <div class="sidebar-meta">
-              <div class="meta-row" v-if="pageData.eventDate">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                <span>{{ formatDate(pageData.eventDate || '', pageData.eventEndDate || '', '') }}<br v-if="pageData.eventTime"/><template v-if="pageData.eventTime">{{ pageData.eventTime }}</template></span>
-              </div>
-              <div class="meta-row" v-if="pageData.eventLocation">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <div>
-                  <span>{{ pageData.eventLocation }}</span>
-                  <p v-if="pageData.eventAddress" class="meta-sub">{{ pageData.eventAddress }}</p>
+              <div v-for="row in eventMetaRows" :key="`sidebar-${row.key}`" class="meta-row">
+                <svg v-if="row.kind === 'date'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <div v-if="row.kind === 'location'">
+                  <span>{{ row.text }}</span>
+                  <p v-if="row.subtext" class="meta-sub">{{ row.subtext }}</p>
                 </div>
+                <span v-else>
+                  {{ row.text }}<br v-if="row.subtext"/><template v-if="row.subtext">{{ row.subtext }}</template>
+                </span>
               </div>
             </div>
 
@@ -258,9 +358,8 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
           <span v-if="bannerOrientation === 'portrait'" class="p-tag">UPCOMING EVENT</span>
           <h1 class="p-title">{{ pageData.eventName }}</h1>
           <!-- 橫式：標題下方小字標籤 -->
-          <div v-if="bannerOrientation === 'landscape'" class="p-sub-tags">
-            <span v-if="pageData.eventDate">{{ formatDate(pageData.eventDate || '', pageData.eventEndDate || '', '') }}</span>
-            <span v-if="pageData.eventLocation">{{ pageData.eventLocation }}</span>
+          <div v-if="bannerOrientation === 'landscape' && landscapeSummaryItems.length" class="p-sub-tags">
+            <span v-for="item in landscapeSummaryItems" :key="item">{{ item }}</span>
           </div>
 
           <div v-if="isFull" class="full-alert">報名已截止，名額已滿</div>
@@ -342,26 +441,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
         <span>WEBSITE DESIGNED BY CLIX</span>
       </footer>
 
-      <!-- 手機底部固定列 -->
-      <div class="mobile-sticky-bar">
-        <div class="msb-info">
-          <div class="msb-row" v-if="pageData.eventDate">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <span>{{ formatDate(pageData.eventDate || '', pageData.eventEndDate || '', pageData.eventTime || '') }}</span>
-          </div>
-          <div class="msb-row" v-if="pageData.eventLocation">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span>{{ pageData.eventLocation }}</span>
-          </div>
-          <div class="msb-row msb-addr" v-if="pageData.eventAddress">
-            <span>{{ pageData.eventAddress }}</span>
-          </div>
-        </div>
-        <div class="msb-btns">
-          <button class="msb-btn outline">聯絡主辦單位</button>
-          <button class="msb-btn primary" @click="openForm" :disabled="isFull">{{ isFull ? '已額滿' : '立即報名' }}</button>
-        </div>
-      </div>
+      <MobileStickyBar :rows="eventReminderRows" :is-full="isFull" @open-form="openForm" />
 
     </template>
 
@@ -818,9 +898,6 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 }
 .p-sub-tags span:first-child::before { display: none; }
 
-/* 手機底部固定列（桌機隱藏） */
-.mobile-sticky-bar { display: none; }
-
 /* RWD */
 @media (max-width: 768px) {
   .hero-banner { max-height: 240px; }
@@ -834,41 +911,6 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   .sidebar-sticky { position: static; }
   .sidebar-banner img { max-height: 240px; object-fit: cover; }
   .page-footer { flex-direction: column; gap: 4px; text-align: center; }
-
-  /* 手機底部固定列 */
-  .mobile-sticky-bar {
-    display: block;
-    position: fixed; bottom: 0; left: 0; right: 0;
-    z-index: 100;
-    background: #fff;
-    border-top: 1px solid #e2e8f0;
-    border-radius: 16px 16px 0 0;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
-    padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
-  }
-  .msb-info {
-    display: flex; flex-direction: column; gap: 4px;
-    margin-bottom: 12px;
-  }
-  .msb-row {
-    display: flex; align-items: center; gap: 6px;
-    font-size: .8rem; color: #334155; line-height: 1.3;
-  }
-  .msb-row svg { flex-shrink: 0; color: #337168; }
-  .msb-addr { padding-left: 19px; font-size: .75rem; color: #94a3b8; }
-  .msb-btns { display: flex; gap: 8px; }
-  .msb-btn {
-    flex: 1; padding: 12px 0; border-radius: 10px;
-    font-size: .9rem; font-weight: 600; cursor: pointer;
-    text-align: center; transition: .15s; border: none;
-  }
-  .msb-btn.outline {
-    background: #fff; color: #334155;
-    border: 1.5px solid #d1d5db;
-  }
-  .msb-btn.primary { background: #337168; color: #fff; }
-  .msb-btn.primary:hover { background: #2a5c54; }
-  .msb-btn:disabled { opacity: .5; cursor: not-allowed; }
 }
 
 /* ─── Form View ─── */
