@@ -25,7 +25,7 @@ const submitting = ref(false)
 const showForm = ref(false)
 const bookButtonRef = ref<HTMLElement | null>(null)
 const showMobileStickyBar = ref(true)
-let bookButtonObserver: IntersectionObserver | null = null
+let mobileStickyBarRafId: number | null = null
 
 // pageData 必須在 customFields 之前定義
 const pageData = computed(() => (store.page as {
@@ -106,53 +106,68 @@ onMounted(() => {
       if (ogTitle) ogTitle.setAttribute('content', store.page.eventName)
     }
     nextTick(() => {
-      observeBookButton()
+      updateMobileStickyBarVisibility()
     })
   }).catch(() => {})
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('scroll', queueMobileStickyBarVisibilityCheck, { passive: true })
+    window.addEventListener('resize', queueMobileStickyBarVisibilityCheck)
+  }
 })
 
 onBeforeUnmount(() => {
-  if (bookButtonObserver) {
-    bookButtonObserver.disconnect()
-    bookButtonObserver = null
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('scroll', queueMobileStickyBarVisibilityCheck)
+    window.removeEventListener('resize', queueMobileStickyBarVisibilityCheck)
+  }
+
+  if (mobileStickyBarRafId !== null && typeof window !== 'undefined') {
+    window.cancelAnimationFrame(mobileStickyBarRafId)
+    mobileStickyBarRafId = null
   }
 })
 
-const observeBookButton = () => {
-  if (bookButtonObserver) {
-    bookButtonObserver.disconnect()
-    bookButtonObserver = null
-  }
-
-  if (!bookButtonRef.value || typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+const updateMobileStickyBarVisibility = () => {
+  if (typeof window === 'undefined') {
     showMobileStickyBar.value = true
     return
   }
 
-  bookButtonObserver = new IntersectionObserver(
-    ([entry]) => {
-      showMobileStickyBar.value = !entry.isIntersecting
-    },
-    {
-      root: null,
-      threshold: 0.15,
-      rootMargin: '0px 0px -120px 0px',
-    }
-  )
+  if (window.innerWidth > 768 || !bookButtonRef.value || showForm.value) {
+    showMobileStickyBar.value = false
+    return
+  }
 
-  bookButtonObserver.observe(bookButtonRef.value)
+  const rect = bookButtonRef.value.getBoundingClientRect()
+  const stickyBarReserve = 170
+  const fadeStartLine = window.innerHeight - stickyBarReserve
+
+  showMobileStickyBar.value = !(rect.top <= fadeStartLine && rect.bottom >= 0)
+}
+
+const queueMobileStickyBarVisibilityCheck = () => {
+  if (typeof window === 'undefined') return
+
+  if (mobileStickyBarRafId !== null) {
+    window.cancelAnimationFrame(mobileStickyBarRafId)
+  }
+
+  mobileStickyBarRafId = window.requestAnimationFrame(() => {
+    updateMobileStickyBarVisibility()
+    mobileStickyBarRafId = null
+  })
 }
 
 watch([pageData, showForm], async ([page, formVisible]) => {
   if (!page || formVisible) {
     showMobileStickyBar.value = false
-    if (bookButtonObserver) bookButtonObserver.disconnect()
     return
   }
 
   showMobileStickyBar.value = true
   await nextTick()
-  observeBookButton()
+  updateMobileStickyBarVisibility()
 })
 
 const validate = () => {
