@@ -197,6 +197,10 @@ const pageData = computed(() => (store.page as {
     name: string
     description: string
     price: number
+    start_date?: string
+    start_time?: string
+    end_date?: string
+    end_time?: string
   }>
   faqs?: Array<{
     question: string
@@ -474,6 +478,28 @@ const eventReminderRows = computed(() => {
   return rows
 })
 
+const ticketTimeInfo = computed(() => {
+  const t = tickets.value?.[0]
+  if (!t) return ''
+  const sd = t.start_date || ''
+  const st = t.start_time ? String(t.start_time).slice(0, 5) : ''
+  const ed = t.end_date || ''
+  const et = t.end_time ? String(t.end_time).slice(0, 5) : ''
+  if (!sd && !ed) return ''
+  let text = '票券可使用時間：'
+  if (sd) {
+    text += sd
+    if (st) text += ` ${st}`
+  }
+  if (ed && ed !== sd) {
+    text += ` ～ ${ed}`
+    if (et) text += ` ${et}`
+  } else if (ed === sd && et) {
+    text += ` ～ ${et}`
+  }
+  return text
+})
+
 const landscapeSummaryItems = computed(() => {
   const items: string[] = []
 
@@ -534,6 +560,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
       :qr-code-url="submittedQrCodeUrl"
       :check-in-token="submittedCheckInToken"
       :rows="eventReminderRows"
+      :ticket-info="ticketTimeInfo"
     />
 
     <!-- Info Page -->

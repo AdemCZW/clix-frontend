@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import LogoSpinner from '@/components/shared/LogoSpinner.vue'
 
 const props = defineProps({
   participantName: {
@@ -18,6 +19,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  ticketInfo: {
+    type: String,
+    default: '',
+  },
 })
 
 const hasQrCode = computed(() => Boolean(props.qrCodeUrl))
@@ -25,7 +30,9 @@ const hasQrCode = computed(() => Boolean(props.qrCodeUrl))
 
 <template>
   <div class="success-screen">
-    <div class="state-icon success-burst"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+    <div class="logo-wrap success-burst">
+      <LogoSpinner :size="80" />
+    </div>
     <h2 class="success-title">報名成功！</h2>
     <p class="success-sub">{{ participantName }}，感謝您的報名，期待與您相見！</p>
 
@@ -35,6 +42,11 @@ const hasQrCode = computed(() => Boolean(props.qrCodeUrl))
         <img :src="qrCodeUrl" alt="QR Code" />
       </div>
       <p v-if="checkInToken" class="qr-token">{{ checkInToken }}</p>
+    </div>
+
+    <div v-if="ticketInfo" class="ticket-time-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>{{ ticketInfo }}</span>
     </div>
 
     <div v-if="rows.length" class="reminder-box">
@@ -63,9 +75,8 @@ const hasQrCode = computed(() => Boolean(props.qrCodeUrl))
   background: var(--bg-card);
 }
 
-.state-icon {
-  font-size: 4rem;
-  line-height: 1;
+.logo-wrap {
+  margin-bottom: 4px;
 }
 
 .success-burst { animation: burst 0.5s ease-out; }
@@ -157,5 +168,24 @@ const hasQrCode = computed(() => Boolean(props.qrCodeUrl))
 .r-icon {
   font-size: 1.1rem;
   flex-shrink: 0;
+}
+
+.ticket-time-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 0.9rem;
+  color: #92400e;
+  width: 100%;
+  max-width: 420px;
+}
+
+.ticket-time-box svg {
+  flex-shrink: 0;
+  stroke: #d97706;
 }
 </style>
