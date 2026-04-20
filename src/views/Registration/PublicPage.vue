@@ -235,6 +235,7 @@ const bannerOrientation = computed(() =>
 )
 
 onMounted(() => {
+  loadCookieConsent()
   store.reset()
   store.fetchPage(shortLink).then(() => {
     if (store.page?.eventName) {
@@ -388,6 +389,28 @@ const statusText = computed(() => {
 
 const openForm = () => { showForm.value = true }
 const backToInfo = () => { showForm.value = false }
+
+// Cookie Consent
+const cookieConsent = ref<'accepted' | 'declined' | null>(null)
+const showCookieBanner = computed(() => cookieConsent.value === null)
+
+const loadCookieConsent = () => {
+  if (typeof window === 'undefined') return
+  const saved = localStorage.getItem('cookie-consent')
+  if (saved === 'accepted' || saved === 'declined') {
+    cookieConsent.value = saved
+  }
+}
+
+const acceptCookies = () => {
+  cookieConsent.value = 'accepted'
+  localStorage.setItem('cookie-consent', 'accepted')
+}
+
+const declineCookies = () => {
+  cookieConsent.value = 'declined'
+  localStorage.setItem('cookie-consent', 'declined')
+}
 
 const formatDate = (date: string, endDate: string, time: string) => {
   if (!date) return ''
@@ -777,6 +800,21 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
         </form>
       </div>
     </div>
+
+    <!-- Cookie Consent Banner -->
+    <Transition name="cookie-banner">
+      <div v-if="showCookieBanner" class="cookie-banner">
+        <div class="cookie-content">
+          <p class="cookie-text">
+            本網站使用 Cookie 及相關技術來改善您的瀏覽體驗，並用於暫存您的報名資料。繼續使用本網站即表示您同意我們使用 Cookie。
+          </p>
+          <div class="cookie-actions">
+            <button class="cookie-btn decline" @click="declineCookies">拒絕</button>
+            <button class="cookie-btn accept" @click="acceptCookies">接受所有 Cookie</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
   </div>
 </template>
@@ -1370,5 +1408,93 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 @media (max-width: 480px) {
   .f-title { font-size: 0.95rem; }
   .btn-apply { padding: 12px 24px; font-size: 0.9rem; }
+}
+
+/* ─── Cookie Consent Banner ─── */
+.cookie-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: rgba(30, 41, 59, 0.97);
+  backdrop-filter: blur(8px);
+  padding: 20px 24px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.cookie-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.cookie-text {
+  flex: 1;
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: #cbd5e1;
+}
+
+.cookie-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cookie-btn {
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.cookie-btn.accept {
+  background: #337168;
+  color: #fff;
+}
+.cookie-btn.accept:hover {
+  background: #2a5c54;
+}
+
+.cookie-btn.decline {
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid #475569;
+}
+.cookie-btn.decline:hover {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.cookie-banner-enter-active,
+.cookie-banner-leave-active {
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+.cookie-banner-enter-from,
+.cookie-banner-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+@media (max-width: 768px) {
+  .cookie-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .cookie-actions {
+    width: 100%;
+  }
+  .cookie-btn {
+    flex: 1;
+    text-align: center;
+  }
 }
 </style>
