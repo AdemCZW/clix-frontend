@@ -745,7 +745,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .info-layout {
   margin: -28px auto 0;
   position: relative; z-index: 2;
-  padding: 0 24px 60px;
+  padding: 0 0 60px;
   display: grid;
   grid-template-columns: 1fr 320px;
   gap: 0;
