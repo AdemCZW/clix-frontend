@@ -140,20 +140,25 @@ const setupMobileStickyBarObserver = () => {
     ([entry]) => {
       showMobileStickyBar.value = !entry.isIntersecting
     },
-    { threshold: 0 }
+    { threshold: 0.1 }
   )
 
   mobileStickyBarObserver.observe(bookButtonRef.value)
 }
 
-watch([pageData, showForm], async ([page, formVisible]) => {
-  if (!page || formVisible) {
-    showMobileStickyBar.value = false
-    return
+// 當 ref 綁定到 DOM 元素時，設定 observer
+watch(bookButtonRef, (el) => {
+  if (el && !showForm.value) {
+    setupMobileStickyBarObserver()
   }
+})
 
-  await nextTick()
-  setupMobileStickyBarObserver()
+watch(showForm, (formVisible) => {
+  if (formVisible) {
+    showMobileStickyBar.value = false
+  } else {
+    nextTick(() => setupMobileStickyBarObserver())
+  }
 })
 
 const validate = () => {
@@ -724,7 +729,6 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   border-radius: 14px 14px 0 0;
   border: 1px solid #e8e8e4;
   box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-  overflow: hidden;
 }
 /* 橫式佈局：內文在左，資訊卡在右 */
 .layout-landscape { grid-template-columns: 1fr 320px; }
