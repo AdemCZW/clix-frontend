@@ -898,7 +898,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   position: relative; z-index: 2;
   padding: 0 0 60px;
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr 380px;
   gap: 0;
   align-items: start;
   background: #f5f5f0;
@@ -907,7 +907,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   box-shadow: 0 2px 8px rgba(0,0,0,0.03);
 }
 /* 橫式佈局：內文在左，資訊卡在右 */
-.layout-landscape { grid-template-columns: 1fr 320px; }
+.layout-landscape { grid-template-columns: 1fr 380px; }
 .layout-landscape .info-sidebar { order: 2; }
 .layout-landscape .info-main { order: 1; }
 
