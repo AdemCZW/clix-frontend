@@ -3,7 +3,10 @@ import { ref, reactive, onMounted, computed, watch, nextTick, onBeforeUnmount } 
 import { useRoute } from 'vue-router'
 import { usePublicRegisterStore } from '@/stores/participants'
 import LogoSpinner from '@/components/shared/LogoSpinner.vue'
+import FaqSection from '@/components/registration/FaqSection.vue'
 import MobileStickyBar from '@/components/registration/MobileStickyBar.vue'
+import SuccessState from '@/components/registration/SuccessState.vue'
+import TicketSection from '@/components/registration/TicketSection.vue'
 
 const route = useRoute()
 const store = usePublicRegisterStore()
@@ -25,11 +28,140 @@ const submitting = ref(false)
 const showForm = ref(false)
 const bookButtonRef = ref<HTMLElement | null>(null)
 const showMobileStickyBar = ref(true)
+const draftConsent = ref(false)
+const hasSavedDraft = ref(false)
+const draftRestored = ref(false)
+const draftUpdatedAt = ref('')
 let mobileStickyBarRafId: number | null = null
 
 const getElementPageTop = (element: HTMLElement) => {
   const rect = element.getBoundingClientRect()
   return rect.top + window.scrollY
+}
+
+const getDraftStorageKey = () => `public-registration-draft:${shortLink}`
+
+const formatDraftTime = (value: string) => {
+  if (!value) return ''
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  return date.toLocaleString('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+const hasDraftContent = () => {
+  const baseFields = [form.name, form.email, form.phone, form.company, form.title]
+  const hasBaseValue = baseFields.some((value) => String(value || '').trim())
+  const hasCustomValue = Object.values(dynamicValues).some((value) => String(value || '').trim())
+  const hasCustomType = form.type !== '一般民眾'
+
+  return hasBaseValue || hasCustomValue || hasCustomType
+}
+
+const removeSavedDraft = () => {
+  if (typeof window === 'undefined') return
+
+  window.sessionStorage.removeItem(getDraftStorageKey())
+  hasSavedDraft.value = false
+  draftRestored.value = false
+  draftUpdatedAt.value = ''
+}
+
+const applyDraft = (draft: any) => {
+  if (!draft || typeof draft !== 'object') return
+
+  const savedForm = draft.form || {}
+  form.name = typeof savedForm.name === 'string' ? savedForm.name : ''
+  form.email = typeof savedForm.email === 'string' ? savedForm.email : ''
+  form.phone = typeof savedForm.phone === 'string' ? savedForm.phone : ''
+  form.company = typeof savedForm.company === 'string' ? savedForm.company : ''
+  form.title = typeof savedForm.title === 'string' ? savedForm.title : ''
+  form.type = typeof savedForm.type === 'string' ? savedForm.type : '一般民眾'
+
+  const savedDynamicValues = draft.dynamicValues || {}
+  Object.keys(dynamicValues).forEach((key) => {
+    dynamicValues[key] = typeof savedDynamicValues[key] === 'string' ? savedDynamicValues[key] : ''
+  })
+
+  Object.keys(savedDynamicValues).forEach((key) => {
+    if (typeof savedDynamicValues[key] === 'string') {
+      dynamicValues[key] = savedDynamicValues[key]
+    }
+  })
+
+  draftConsent.value = true
+  draftRestored.value = true
+  hasSavedDraft.value = true
+  draftUpdatedAt.value = formatDraftTime(draft.updatedAt || '')
+}
+
+const loadSavedDraft = () => {
+  if (typeof window === 'undefined') return null
+
+  const rawDraft = window.sessionStorage.getItem(getDraftStorageKey())
+  if (!rawDraft) return null
+
+  try {
+    const parsedDraft = JSON.parse(rawDraft)
+    if (!parsedDraft || typeof parsedDraft !== 'object') return null
+    return parsedDraft
+  } catch {
+    window.sessionStorage.removeItem(getDraftStorageKey())
+    return null
+  }
+}
+
+const refreshDraftState = () => {
+  const draft = loadSavedDraft()
+
+  if (!draft) {
+    hasSavedDraft.value = false
+    draftUpdatedAt.value = ''
+    return
+  }
+
+  hasSavedDraft.value = true
+  draftUpdatedAt.value = formatDraftTime(draft.updatedAt || '')
+}
+
+const restoreSavedDraft = () => {
+  const draft = loadSavedDraft()
+  if (!draft) return
+  applyDraft(draft)
+}
+
+const saveDraftToSession = () => {
+  if (typeof window === 'undefined') return
+
+  if (!draftConsent.value || !hasDraftContent()) {
+    removeSavedDraft()
+    return
+  }
+
+  const updatedAt = new Date().toISOString()
+  const payload = {
+    form: {
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+      company: form.company,
+      title: form.title,
+      type: form.type,
+    },
+    dynamicValues: { ...dynamicValues },
+    updatedAt,
+  }
+
+  window.sessionStorage.setItem(getDraftStorageKey(), JSON.stringify(payload))
+  hasSavedDraft.value = true
+  draftUpdatedAt.value = formatDraftTime(updatedAt)
 }
 
 // pageData 必須在 customFields 之前定義
@@ -113,6 +245,7 @@ onMounted(() => {
       if (ogTitle) ogTitle.setAttribute('content', store.page.eventName)
     }
     nextTick(() => {
+      refreshDraftState()
       updateMobileStickyBarVisibility()
     })
   }).catch(() => {})
@@ -187,6 +320,11 @@ watch(showForm, (formVisible) => {
   }
 })
 
+watch([form, dynamicValues, draftConsent, showForm], () => {
+  if (!showForm.value) return
+  saveDraftToSession()
+}, { deep: true })
+
 const validate = () => {
   const errs: Record<string, string> = {}
   if (!form.name.trim()) errs.name = '請填寫姓名'
@@ -226,6 +364,7 @@ const handleSubmit = async () => {
       type: form.type,
       ...Object.keys(customData).length > 0 ? { custom_fields: customData } : {},
     })
+    removeSavedDraft()
   } catch {
     // error displayed via store.error
   } finally {
@@ -321,6 +460,16 @@ const landscapeSummaryItems = computed(() => {
   return items
 })
 
+const submittedQrCodeUrl = computed(() => {
+  const participant = store.submittedParticipant as any
+  return participant?.qr_code_url || participant?.qrCodeUrl || ''
+})
+
+const submittedCheckInToken = computed(() => {
+  const participant = store.submittedParticipant as any
+  return participant?.check_in_token || participant?.checkInToken || ''
+})
+
 // 貴賓列表
 const guests = computed(() => pageData.value?.guests || [])
 
@@ -356,30 +505,13 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
     </div>
 
     <!-- Success -->
-    <div v-else-if="store.submitted && store.submittedParticipant" class="state-screen success-screen">
-      <div class="state-icon success-burst"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
-      <h2 class="success-title">報名成功！</h2>
-      <p class="success-sub">{{ store.submittedParticipant.name }}，感謝您的報名，期待與您相見！</p>
-
-      <div v-if="(store.submittedParticipant as any).qr_code_url || store.submittedParticipant.qrCodeUrl" class="qr-card">
-        <p class="qr-hint">現場出示此 QR Code 掃描報到</p>
-        <div class="qr-img-wrap">
-          <img :src="(store.submittedParticipant as any).qr_code_url || store.submittedParticipant.qrCodeUrl" alt="QR Code" />
-        </div>
-        <p class="qr-token">{{ (store.submittedParticipant as any).check_in_token || store.submittedParticipant.checkInToken }}</p>
-      </div>
-
-      <div class="reminder-box" v-if="eventReminderRows.length">
-        <div v-for="row in eventReminderRows" :key="`success-${row.key}`" class="reminder-row">
-          <span class="r-icon">
-            <svg v-if="row.kind === 'date'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <svg v-else-if="row.kind === 'location'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-          </span>
-          <span>{{ row.text }}</span>
-        </div>
-      </div>
-    </div>
+    <SuccessState
+      v-else-if="store.submitted && store.submittedParticipant"
+      :participant-name="store.submittedParticipant.name"
+      :qr-code-url="submittedQrCodeUrl"
+      :check-in-token="submittedCheckInToken"
+      :rows="eventReminderRows"
+    />
 
     <!-- Info Page -->
     <template v-else-if="pageData && !showForm">
@@ -469,20 +601,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
           </button>
 
           <!-- 票券選擇 -->
-          <div v-if="tickets.length" class="tickets-section">
-            <div v-for="t in tickets" :key="t.id" class="ticket-row" :class="{ 'ticket-highlight': t.name === '永續票' }">
-              <div class="ticket-info">
-                <div class="ticket-name">{{ t.name }}</div>
-                <div class="ticket-desc">{{ t.description }}</div>
-              </div>
-              <div class="ticket-price">${{ t.price }}</div>
-              <div class="ticket-qty">
-                <button @click="changeQty(t.id, -1)">-</button>
-                <span>{{ getQty(t.id) }}</span>
-                <button @click="changeQty(t.id, 1)">+</button>
-              </div>
-            </div>
-          </div>
+          <TicketSection :tickets="tickets" :get-qty="getQty" @change-qty="changeQty" />
 
           <!-- 立即報名按鈕 -->
           <button class="btn-book-full desktop-only" @click="openForm" :disabled="isFull">
@@ -490,17 +609,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
           </button>
 
           <!-- 常見問答 FAQ -->
-          <div v-if="faqs.length" class="faq-section">
-            <h2 class="section-heading">常見問答 (FAQ)</h2>
-            <div v-for="(f, i) in faqs" :key="i" class="faq-item" :class="{ open: faqOpen === i }">
-              <button class="faq-q" @click="toggleFaq(i)">
-                <span class="faq-bar"></span>
-                <span class="faq-text">{{ f.question }}</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="faq-arrow"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              <div v-if="faqOpen === i" class="faq-a">{{ f.answer }}</div>
-            </div>
-          </div>
+          <FaqSection :faqs="faqs" :open-index="faqOpen ?? undefined" @toggle="toggleFaq" />
 
           <!-- 活動地點 -->
           <div v-if="pageData.eventAddress || pageData.eventLocation" class="venue-section">
@@ -542,6 +651,25 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
         <div class="form-wrap-header">
           <h2 class="form-embed-title">線上報名</h2>
           <p class="form-embed-sub">填寫以下資料，完成後將自動產生您的專屬 QR Code</p>
+        </div>
+        <div v-if="hasSavedDraft && !draftRestored" class="draft-banner">
+          <div>
+            <strong>偵測到上次暫存資料</strong>
+            <p>{{ draftUpdatedAt ? `上次保存時間：${draftUpdatedAt}` : '可選擇恢復剛才尚未送出的資料。' }}</p>
+          </div>
+          <div class="draft-banner-actions">
+            <button type="button" class="draft-action primary" @click="restoreSavedDraft">恢復資料</button>
+            <button type="button" class="draft-action" @click="removeSavedDraft">清除草稿</button>
+          </div>
+        </div>
+        <div v-else-if="draftRestored" class="draft-banner restored">
+          <div>
+            <strong>已恢復暫存資料</strong>
+            <p>你可以繼續填寫，送出後系統會自動清除本次暫存。</p>
+          </div>
+          <div class="draft-banner-actions">
+            <button type="button" class="draft-action" @click="removeSavedDraft">清除草稿</button>
+          </div>
         </div>
         <div v-if="isFull" class="full-alert">
           <span>報名已截止，名額已滿</span>
@@ -628,6 +756,19 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
             </div>
           </div>
 
+          <div class="draft-consent" :class="{ checked: draftConsent }">
+            <label class="draft-consent-label">
+              <input v-model="draftConsent" type="checkbox" />
+              <span>
+                我同意系統於此瀏覽分頁中暫存已填寫的報名資料，方便稍後回來繼續填寫。
+              </span>
+            </label>
+            <p class="draft-consent-note">
+              僅暫存在目前瀏覽器分頁中，送出報名或手動清除後會移除。
+              <span v-if="draftConsent && draftUpdatedAt">最近保存：{{ draftUpdatedAt }}</span>
+            </p>
+          </div>
+
           <button type="submit" class="btn-submit" :disabled="submitting">
             <span v-if="submitting" class="btn-spinner"></span>
             <span>{{ submitting ? '送出中...' : '確認報名' }}</span>
@@ -672,62 +813,6 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .state-icon { font-size: 4rem; line-height: 1; }
 .error-screen h2 { color: #ef4444; margin: 0; font-size: 1.6rem; }
 .error-screen p  { color: var(--text-muted); margin: 0; }
-
-/* Success */
-.success-burst { animation: burst 0.5s ease-out; }
-@keyframes burst {
-  0%   { transform: scale(0.5); opacity: 0; }
-  70%  { transform: scale(1.2); }
-  100% { transform: scale(1);   opacity: 1; }
-}
-.success-title {
-  font-size: 2rem;
-  font-weight: 900;
-  background: linear-gradient(135deg, #337168 0%, #2a5c54 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin: 0;
-}
-.success-sub { font-size: 1rem; color: var(--text-secondary); margin: 0; max-width: 360px; }
-
-.qr-card {
-  background: var(--bg-card);
-  border: 1.5px solid var(--border-color);
-  border-radius: 20px;
-  padding: 28px 32px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  margin: 8px 0;
-}
-.qr-hint  { font-size: 0.88rem; color: var(--text-muted); margin: 0; }
-.qr-img-wrap {
-  width: 200px;
-  height: 200px;
-  padding: 12px;
-  border: 2px solid var(--border-color);
-  border-radius: 14px;
-  background: var(--bg-card);
-}
-.qr-img-wrap img { width: 100%; height: 100%; display: block; }
-.qr-token { font-size: 0.78rem; color: var(--text-muted); font-family: monospace; letter-spacing: 1.5px; }
-
-.reminder-box {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 14px;
-  padding: 16px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-  max-width: 420px;
-}
-.reminder-row { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; color: var(--text-secondary); }
-.r-icon { font-size: 1.1rem; flex-shrink: 0; }
 
 /* ─── 頁面底色 ─── */
 .public-page { background: #f5f5f0; min-height: 100vh; }
@@ -873,50 +958,6 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .guest-avatar span { color: #fff; font-size: 1.2rem; font-weight: 700; }
 .guest-name { font-size: .82rem; font-weight: 700; color: #0f172a; }
 .guest-role { font-size: .72rem; color: #64748b; line-height: 1.3; }
-
-/* 票券選擇 */
-.tickets-section { margin: 32px 0 0; }
-.ticket-row {
-  display: flex; align-items: center; gap: 16px;
-  padding: 16px 20px; border: 1px solid #e2e8f0; border-radius: 12px;
-  margin-bottom: 10px; background: #fafaf8; transition: .15s;
-}
-.ticket-row:hover { border-color: #337168; }
-.ticket-highlight { border-left: 3px solid #337168; }
-.ticket-info { flex: 1; min-width: 0; }
-.ticket-name { font-size: .95rem; font-weight: 700; color: #0f172a; }
-.ticket-desc { font-size: .78rem; color: #94a3b8; margin-top: 2px; }
-.ticket-price { font-size: 1.2rem; font-weight: 800; color: #337168; white-space: nowrap; }
-.ticket-qty {
-  display: flex; align-items: center; gap: 8px;
-}
-.ticket-qty button {
-  width: 28px; height: 28px; border: 1px solid #d1d5db; border-radius: 6px;
-  background: #fff; font-size: 1rem; cursor: pointer; color: #334155;
-  display: flex; align-items: center; justify-content: center; transition: .1s;
-}
-.ticket-qty button:hover { background: #f1f5f9; }
-.ticket-qty span { font-size: .92rem; font-weight: 600; min-width: 16px; text-align: center; color: #0f172a; }
-
-/* FAQ */
-.faq-section { margin: 48px 0 0; }
-.faq-item {
-  border: 1px solid #e2e8f0; border-radius: 12px;
-  margin-bottom: 8px; overflow: hidden; background: #fafaf8;
-}
-.faq-q {
-  width: 100%; display: flex; align-items: center; gap: 10px;
-  padding: 14px 16px; border: none; background: transparent;
-  cursor: pointer; text-align: left; font-size: .9rem; font-weight: 600; color: #0f172a;
-}
-.faq-bar { width: 3px; height: 18px; background: #337168; border-radius: 2px; flex-shrink: 0; }
-.faq-text { flex: 1; }
-.faq-arrow { flex-shrink: 0; transition: transform .2s; color: #94a3b8; }
-.faq-item.open .faq-arrow { transform: rotate(180deg); }
-.faq-a {
-  padding: 0 16px 16px 29px;
-  font-size: .88rem; color: #475569; line-height: 1.7;
-}
 
 /* 立即報名全寬按鈕 */
 .btn-book-full {
@@ -1069,9 +1110,115 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   margin-bottom: 20px;
 }
 
+.draft-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  border-radius: 12px;
+}
+
+.draft-banner strong {
+  display: block;
+  font-size: 0.92rem;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.draft-banner p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+.draft-banner.restored {
+  border-color: #d1fae5;
+  background: #ecfdf5;
+}
+
+.draft-banner-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.draft-action {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.draft-action.primary {
+  background: #337168;
+  border-color: #337168;
+  color: #fff;
+}
+
+.draft-consent {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #fafaf8;
+}
+
+.draft-consent.checked {
+  border-color: #bfded8;
+  background: #f4fbf9;
+}
+
+.draft-consent-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+}
+
+.draft-consent-label input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+
+.draft-consent-note {
+  margin: 8px 0 0 28px;
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.6;
+}
+
 .reg-form { display: flex; flex-direction: column; gap: 20px; }
 .form-row.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 520px) { .form-row.two-col { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .draft-banner {
+    flex-direction: column;
+  }
+
+  .draft-banner-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .draft-action {
+    flex: 1;
+  }
+
+  .draft-consent-note {
+    margin-left: 0;
+  }
+}
 
 .field-group { display: flex; flex-direction: column; gap: 6px; }
 .field-group label { font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); }
