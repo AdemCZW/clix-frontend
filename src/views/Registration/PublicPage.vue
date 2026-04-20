@@ -150,13 +150,10 @@ const updateMobileStickyBarVisibility = () => {
   }
 
   const buttonTop = getElementPageTop(bookButtonRef.value)
-  const buttonHeight = bookButtonRef.value.offsetHeight || 56
-  const stickyBarReserve = 190
   const viewportBottom = window.scrollY + window.innerHeight
-  const hideTriggerPoint = buttonTop - stickyBarReserve
-  const showAgainPoint = buttonTop + buttonHeight + 40
 
-  showMobileStickyBar.value = !(viewportBottom >= hideTriggerPoint && window.scrollY <= showAgainPoint)
+  // 畫面底部碰到按鈕位置 → 隱藏底部浮動列
+  showMobileStickyBar.value = viewportBottom < buttonTop
 }
 
 const queueMobileStickyBarVisibilityCheck = () => {
