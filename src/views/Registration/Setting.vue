@@ -1416,9 +1416,14 @@ const closeGuestDetail = () => {
   }
   :deep(.ql-container) {
     border: none;
-    min-height: 250px;
+    min-height: 120px;
     font-family: inherit;
     font-size: 0.95rem;
+  }
+  :deep(.ql-editor) {
+    min-height: 120px;
+    max-height: 500px;
+    overflow-y: auto;
   }
 }
 
