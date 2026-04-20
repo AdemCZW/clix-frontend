@@ -93,6 +93,8 @@ watch(customFields, (fields) => {
   })
 }, { immediate: true })
 
+const isMobile = ref(typeof window !== 'undefined' && window.innerWidth <= 768)
+
 // Banner 方向（從後端 API 取得，不再前端偵測）
 const bannerOrientation = computed(() =>
   pageData.value?.banner_orientation
@@ -138,6 +140,8 @@ const updateMobileStickyBarVisibility = () => {
     showMobileStickyBar.value = true
     return
   }
+
+  isMobile.value = window.innerWidth <= 768
 
   if (window.innerWidth > 768) {
     showMobileStickyBar.value = false
@@ -445,8 +449,8 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
           <!-- 活動內文 -->
           <div v-if="pageData.mainContent" class="p-main-body-render" v-html="pageData.mainContent"></div>
 
-          <!-- 貴賓列表（直式才顯示在內文區，橫式在右側欄） -->
-          <div v-if="guests.length && bannerOrientation === 'portrait'" class="guests-section">
+          <!-- 貴賓列表（直式顯示在內文區，橫式桌面版在右側欄、手機版也在此處） -->
+          <div v-if="guests.length && (bannerOrientation === 'portrait' || isMobile)" class="guests-section">
             <div class="guests-grid">
               <div v-for="g in guests" :key="g.id" class="guest-card">
                 <div class="guest-avatar">
