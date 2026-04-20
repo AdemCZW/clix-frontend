@@ -507,35 +507,34 @@ const closeGuestDetail = () => {
 
         <!-- 郵件設定（發送參數 + 內文編輯） -->
         <div class="tech-card content-card" style="margin-top:20px;">
-          <h3 class="card-subtitle">郵件設定</h3>
-
-          <!-- 發送參數 -->
-          <div class="field mt-16">
-            <label>郵件主旨</label>
-            <input v-model="form.emailSubject" type="text" placeholder="輸入郵件主旨" class="input-styled" />
-          </div>
-          <div class="field mt-16">
-            <label>寄件者名稱</label>
-            <input v-model="form.emailSenderName" type="text" placeholder="輸入寄件者名稱" class="input-styled" />
-          </div>
-          <div class="auto-send-toggle mt-20">
-            <div class="toggle-info">
-              <span class="toggle-label">報名完成即刻發送</span>
-              <span class="toggle-desc">啟用後將在報名成功時自動發送通知信</span>
+          <div class="email-header">
+            <h3 class="card-subtitle">郵件設定</h3>
+            <div class="auto-send-pill" :class="{ active: form.enableAutoSend }" @click="form.enableAutoSend = !form.enableAutoSend">
+              <span class="pill-dot"></span>
+              <span>{{ form.enableAutoSend ? '自動發送已開啟' : '自動發送已關閉' }}</span>
             </div>
-            <label class="switch-container">
-              <input type="checkbox" v-model="form.enableAutoSend" />
-              <span class="switch-slider"></span>
-            </label>
+          </div>
+
+          <!-- 發送參數：主旨 + 寄件者同一排 -->
+          <div class="email-fields-row">
+            <div class="field email-field-subject">
+              <label>郵件主旨</label>
+              <input v-model="form.emailSubject" type="text" placeholder="例：感謝您報名本次活動！" class="input-styled" />
+            </div>
+            <div class="field email-field-sender">
+              <label>寄件者名稱</label>
+              <input v-model="form.emailSenderName" type="text" placeholder="例：CLIX 活動團隊" class="input-styled" />
+            </div>
           </div>
 
           <!-- 郵件內文編輯 -->
-          <div class="card-header-flex" style="margin-top:20px;">
+          <div class="email-editor-header">
             <span class="card-sublabel">郵件內文</span>
             <div class="tag-helper">
-              <button class="btn-mini-tag" @click="insertEmailTag('{name}')">+{name}</button>
-              <button class="btn-mini-tag" @click="insertEmailTag('{event_name}')">+{event_name}</button>
-              <button class="btn-mini-tag" @click="insertEmailTag('{order_id}')">+{order_id}</button>
+              <span class="tag-helper-label">插入變數</span>
+              <button class="btn-mini-tag" @click="insertEmailTag('{name}')">姓名</button>
+              <button class="btn-mini-tag" @click="insertEmailTag('{event_name}')">活動名稱</button>
+              <button class="btn-mini-tag" @click="insertEmailTag('{order_id}')">報名編號</button>
             </div>
           </div>
           <div class="quill-editor-wrapper">
@@ -546,6 +545,7 @@ const closeGuestDetail = () => {
               :options="emailEditorOptions"
             />
           </div>
+          <p class="email-hint">報名成功後系統會自動帶入 QR Code、活動資訊等區塊，此處僅需編輯正文內容。</p>
         </div>
       </div>
 
@@ -1141,6 +1141,96 @@ const closeGuestDetail = () => {
 .email-content-card {
   display: flex;
   flex-direction: column;
+}
+
+.email-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.auto-send-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+  user-select: none;
+}
+
+.auto-send-pill .pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  transition: background 0.2s;
+}
+
+.auto-send-pill.active {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+
+.auto-send-pill.active .pill-dot {
+  background: #10b981;
+}
+
+.auto-send-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.email-fields-row {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.email-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0 12px;
+}
+
+.tag-helper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tag-helper-label {
+  font-size: 0.78rem;
+  color: var(--text-muted, #94a3b8);
+  margin-right: 2px;
+}
+
+.email-hint {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted, #94a3b8);
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .email-fields-row {
+    grid-template-columns: 1fr;
+  }
+  .email-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
 }
 
 .auto-send-toggle {
