@@ -1056,7 +1056,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
 /* 橫式佈局：左邊內文（寬）+ 右邊資訊卡片（窄） */
 .layout-landscape {
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: 1fr 380px;
 }
 .layout-landscape .info-main { order: -1; }  /* 內文排左邊 */
 .layout-landscape .info-sidebar { order: 1; }  /* 資訊排右邊 */
