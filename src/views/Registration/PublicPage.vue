@@ -233,9 +233,35 @@ watch(customFields, (fields) => {
 const isMobile = ref(typeof window !== 'undefined' && window.innerWidth <= 768)
 
 // Banner 方向（從後端 API 取得，不再前端偵測）
+const ALLOWED_IFRAME_HOSTS = [
+  'www.google.com',       // Google Maps
+  'maps.google.com',
+  'www.youtube.com',      // YouTube
+  'youtube.com',
+  'player.vimeo.com',     // Vimeo
+  'www.google.com.tw',
+]
+
 const sanitizedMainContent = computed(() => {
   const raw = pageData.value?.mainContent || ''
-  return DOMPurify.sanitize(raw, { ADD_TAGS: ['iframe'], ADD_ATTR: ['target', 'allowfullscreen', 'frameborder'] })
+  const clean = DOMPurify.sanitize(raw, {
+    ADD_TAGS: ['iframe'],
+    ADD_ATTR: ['target', 'allowfullscreen', 'frameborder'],
+  })
+  // 過濾 iframe src，只允許白名單來源
+  const div = document.createElement('div')
+  div.innerHTML = clean
+  div.querySelectorAll('iframe').forEach((frame) => {
+    try {
+      const host = new URL(frame.src).hostname
+      if (!ALLOWED_IFRAME_HOSTS.includes(host)) {
+        frame.remove()
+      }
+    } catch {
+      frame.remove()
+    }
+  })
+  return div.innerHTML
 })
 
 const bannerOrientation = computed(() =>
