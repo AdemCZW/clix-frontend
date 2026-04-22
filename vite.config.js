@@ -43,6 +43,12 @@ export default defineConfig(({ mode }) => {
             // 關鍵修正：解決 GitHub Pages 404 底線檔案問題
             rollupOptions: {
                 output: {
+                    // 大型 library 獨立分包，避免單一 chunk 過大
+                    manualChunks(id) {
+                        if (id.includes('node_modules/xlsx')) return 'vendor-xlsx'
+                        if (id.includes('node_modules/quill') || id.includes('node_modules/@vueup/vue-quill')) return 'vendor-quill'
+                        if (id.includes('node_modules/jsqr') || id.includes('node_modules/qrcode')) return 'vendor-qr'
+                    },
                     // 將所有以底線開頭的檔案重新命名，移除底線
                     sanitizeFileName(name) {
                         // 一些 plugin 回傳的 module id 可能包含 null 字元或特殊字元

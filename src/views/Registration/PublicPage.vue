@@ -325,9 +325,11 @@ watch(showForm, (formVisible) => {
   }
 })
 
+let draftSaveTimer: ReturnType<typeof setTimeout> | null = null
 watch([form, dynamicValues, draftConsent, showForm], () => {
   if (!showForm.value) return
-  saveDraftToSession()
+  if (draftSaveTimer) clearTimeout(draftSaveTimer)
+  draftSaveTimer = setTimeout(() => saveDraftToSession(), 1000)
 }, { deep: true })
 
 const validate = () => {

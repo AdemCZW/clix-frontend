@@ -1,0 +1,1 @@
+import{X as e,z as t}from"./vendor-quill-DqmlyrTK.js";function n(n,r=300){let i=e(n.value),a=null;return t(n,e=>{a&&clearTimeout(a),a=setTimeout(()=>{i.value=e},r)}),i}export{n as t};

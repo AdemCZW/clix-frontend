@@ -278,7 +278,16 @@ export const usePublicRegisterStore = defineStore('publicRegister', () => {
     const submittedParticipant = ref<Participant | null>(null)
     const BASE = API_BASE_URL
 
+    let lastFetchKey = ''
+    let lastFetchTime = 0
+
     async function fetchPage(shortLink: string) {
+        // 30 秒內同一頁面不重複請求
+        const now = Date.now()
+        if (lastFetchKey === shortLink && page.value && now - lastFetchTime < 30000) {
+            return page.value
+        }
+
         loading.value = true
         error.value = null
         try {
@@ -307,6 +316,8 @@ export const usePublicRegisterStore = defineStore('publicRegister', () => {
                 tickets: raw.tickets || [],
                 faqs: raw.faqs || [],
             } as RegistrationPage
+            lastFetchKey = shortLink
+            lastFetchTime = Date.now()
             return page.value
         } catch (err) {
             if (!error.value) error.value = (err as Error).message
