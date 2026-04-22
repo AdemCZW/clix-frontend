@@ -605,9 +605,12 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
     <!-- Info Page -->
     <template v-else-if="pageData && !showForm">
 
-      <!-- 橫式 Banner：全寬頂部 -->
-      <div v-if="bannerOrientation === 'landscape' && pageData.banner" class="hero-banner">
-        <img :src="pageData.banner" :alt="pageData.eventName" />
+      <!-- 橫式 Banner：全寬頂部，超過 1440px 左右毛玻璃 -->
+      <div v-if="bannerOrientation === 'landscape' && pageData.banner" class="hero-banner-wrap">
+        <div class="hero-banner-bg" :style="{ backgroundImage: `url(${pageData.banner})` }"></div>
+        <div class="hero-banner">
+          <img :src="pageData.banner" :alt="pageData.eventName" />
+        </div>
       </div>
 
       <div class="info-layout" :class="{ 'layout-landscape': bannerOrientation === 'landscape' }">
@@ -922,10 +925,35 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .public-page { background: #f5f5f0; min-height: 100vh; }
 
 /* ─── Banner ─── */
-/* ─── 橫式 Banner 全寬（sticky 視差效果） ─── */
+/* 外層：全寬背景，用 banner 圖片做毛玻璃延伸 */
+.hero-banner-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  width: 100%;
+  max-height: 420px;
+  overflow: hidden;
+}
+
+/* 毛玻璃背景層：鋪滿整個寬度 */
+.hero-banner-bg {
+  position: absolute;
+  inset: -20px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(30px) saturate(1.4);
+  transform: scale(1.1);
+  z-index: 0;
+}
+
+/* Banner 主圖：限制 1440px */
 .hero-banner {
-  width: 100%; max-height: 420px; overflow: hidden;
-  position: sticky; top: 0; z-index: 1;
+  position: relative;
+  z-index: 1;
+  max-width: 1440px;
+  margin: 0 auto;
+  max-height: 420px;
+  overflow: hidden;
 }
 .hero-banner img {
   width: 100%; height: auto; display: block; object-fit: cover; max-height: 420px;
@@ -1133,6 +1161,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
 /* RWD */
 @media (max-width: 768px) {
+  .hero-banner-wrap { max-height: 240px; }
   .hero-banner { max-height: 240px; }
   .hero-banner img { max-height: 240px; }
   .info-layout {
