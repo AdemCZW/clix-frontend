@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
+import DOMPurify from 'dompurify'
 import { usePublicRegisterStore } from '@/stores/participants'
 import LogoSpinner from '@/components/shared/LogoSpinner.vue'
 import FaqSection from '@/components/registration/FaqSection.vue'
@@ -232,6 +233,11 @@ watch(customFields, (fields) => {
 const isMobile = ref(typeof window !== 'undefined' && window.innerWidth <= 768)
 
 // Banner 方向（從後端 API 取得，不再前端偵測）
+const sanitizedMainContent = computed(() => {
+  const raw = pageData.value?.mainContent || ''
+  return DOMPurify.sanitize(raw, { ADD_TAGS: ['iframe'], ADD_ATTR: ['target', 'allowfullscreen', 'frameborder'] })
+})
+
 const bannerOrientation = computed(() =>
   pageData.value?.banner_orientation
   || pageData.value?.bannerOrientation
@@ -631,7 +637,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
           <div v-if="isFull" class="full-alert">報名已截止，名額已滿</div>
 
           <!-- 活動內文 -->
-          <div v-if="pageData.mainContent" class="p-main-body-render" v-html="pageData.mainContent"></div>
+          <div v-if="pageData.mainContent" class="p-main-body-render" v-html="sanitizedMainContent"></div>
 
           <!-- 貴賓列表（直式顯示在內文區，橫式桌面版在右側欄、手機版也在此處） -->
           <div v-if="guests.length && (bannerOrientation === 'portrait' || isMobile)" class="guests-section">
