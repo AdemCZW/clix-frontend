@@ -324,9 +324,32 @@ watch(() => eventsStore.currentEvent?.id, (id) => {
 // ── Banner 選擇（含壓縮）────────────────────────────────────────────────────
 import { compressImage } from "@/utils/imageCompress";
 
+const BANNER_MAX_WIDTH = 1920;
+
 const onFileChange = async (e: Event, type: string) => {
-  const rawFile = (e.target as HTMLInputElement).files?.[0];
+  const input = e.target as HTMLInputElement;
+  const rawFile = input.files?.[0];
   if (!rawFile) return;
+
+  // Banner 寬度驗證
+  if (type === "banner") {
+    const ok = await new Promise<boolean>((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        if (img.width > BANNER_MAX_WIDTH) {
+          alert(`Banner 寬度不可超過 ${BANNER_MAX_WIDTH}px（目前 ${img.width}px），請縮小圖片後重新上傳`);
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = () => { URL.revokeObjectURL(img.src); resolve(false); };
+      img.src = URL.createObjectURL(rawFile);
+    });
+    if (!ok) { input.value = ''; return; }
+  }
+
   const file = await compressImage(rawFile);
   if (type === "banner") form.bannerFile = file;
   const reader = new FileReader();
@@ -561,7 +584,7 @@ const closeGuestDetail = () => {
             <input type="file" @change="onFileChange($event, 'banner')" hidden accept="image/*" />
             <div v-if="!form.bannerPreview" class="placeholder">
               <span>拖拽上傳或點擊選擇</span>
-              <small>建議尺寸 1200×400px, &lt; 5MB</small>
+              <small>最大寬度 1920px，建議橫式 1920×800 / 直式 800×1200</small>
             </div>
           </label>
         </div>
