@@ -251,6 +251,7 @@ const sanitizedMainContent = computed(() => {
   // 過濾 iframe src，只允許白名單來源
   const div = document.createElement('div')
   div.innerHTML = clean
+  // 過濾 iframe src
   div.querySelectorAll('iframe').forEach((frame) => {
     try {
       const host = new URL(frame.src).hostname
@@ -260,6 +261,10 @@ const sanitizedMainContent = computed(() => {
     } catch {
       frame.remove()
     }
+  })
+  // 所有外連補 rel="noopener noreferrer" 防 tabnabbing
+  div.querySelectorAll('a[target="_blank"]').forEach((link) => {
+    link.setAttribute('rel', 'noopener noreferrer')
   })
   return div.innerHTML
 })
