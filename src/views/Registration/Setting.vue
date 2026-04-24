@@ -476,6 +476,8 @@ const confirmPublish = async () => {
       bannerFile:      form.bannerFile,
     });
     form.bannerFile = null;
+    // 同時儲存來賓、票券、FAQ
+    await Promise.all([saveGuests(), saveTickets(), saveFaqs()]);
     const page = await pagesStore.publish(pageId.value);
     isPublished.value = page.isPublished;
     toastSuccess("活動報名頁已發布！");
