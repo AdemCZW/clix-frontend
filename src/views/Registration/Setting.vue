@@ -158,29 +158,23 @@ const saveGuests = async () => {
   if (!eventId) return;
   if (!guestSelectionDirty.value) return;
   await ensureVipParticipantsLoaded(eventId);
-  // 先刪除該活動所有舊來賓
-  const existing = await apiRequest(`/api/guests/?event=${eventId}`);
-  if (existing.ok) {
-    const data = await existing.json();
-    const list = data.results || data;
-    for (const g of list) {
-      await apiRequest(`/api/guests/${g.id}/`, { method: 'DELETE' });
-    }
+
+  // 組裝選中的 VIP 為來賓資料
+  const guests = [...selectedGuestIds.value]
+    .map(id => participantsStore.participants.find(x => x.id === id))
+    .filter(Boolean)
+    .map(p => ({ name: p!.name, title: p!.title, company: p!.company }));
+
+  // 一次 API 完成刪除+新增
+  const res = await apiRequest('/api/guests/bulk_save/', {
+    method: 'POST',
+    body: JSON.stringify({ event: eventId, guests }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('[saveGuests] bulk_save failed:', res.status, err);
   }
-  // 從選中的 VIP 參與者建立來賓
-  for (const id of selectedGuestIds.value) {
-    const p = participantsStore.participants.find(x => x.id === id);
-    if (p) {
-      const res = await apiRequest('/api/guests/', {
-        method: 'POST',
-        body: JSON.stringify({ name: p.name, title: p.title, company: p.company, email: p.email, phone: p.phone, event: eventId }),
-      });
-      if (!res.ok) {
-        const err = await res.text();
-        console.error('[saveGuests] POST failed:', res.status, err);
-      }
-    }
-  }
+
   guestSelectionDirty.value = false;
   guestKeys.value = new Set(
     participantsStore.participants
