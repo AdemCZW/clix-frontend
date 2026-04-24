@@ -36,8 +36,15 @@ export const useParticipantsStore = defineStore('participants', () => {
     const _lastFetched = ref(0)
     const _lastFetchedKey = ref('')
 
+    const buildCacheKey = (params: Record<string, string>) => {
+        const entries = Object.entries(params)
+            .filter(([, value]) => value !== '')
+            .sort(([a], [b]) => a.localeCompare(b))
+        return new URLSearchParams(entries).toString()
+    }
+
     async function fetchParticipants(params: Record<string, string> = {}) {
-        const cacheKey = params.event ? String(params.event) : ''
+        const cacheKey = buildCacheKey(params)
         if (participants.value.length > 0 && _lastFetchedKey.value === cacheKey && Date.now() - _lastFetched.value < CACHE_TTL) {
             return participants.value
         }

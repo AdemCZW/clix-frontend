@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, onMounted, computed, watch } from "vue";
+import { reactive, ref, onMounted, computed, watch, nextTick } from "vue";
 // 引入 Quill 編輯器元件與樣式
 import { QuillEditor } from "@vueup/vue-quill";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
@@ -114,6 +114,12 @@ const loadFaqs = async (pid: number) => {
 
 // ── 活動來賓（從 VIP 參與者勾選）──
 const selectedGuestIds = ref<Set<number>>(new Set());
+const guestKeys = ref<Set<string>>(new Set());
+const loadedVipEventId = ref<number | null>(null);
+const guestSelectionDirty = ref(false);
+const guestParticipantsLoading = ref(false);
+const guestSelectionsReady = computed(() => loadedVipEventId.value === (eventsStore.currentEvent?.id ?? null));
+const guestSelectionCount = computed(() => guestSelectionsReady.value ? selectedGuestIds.value.size : guestKeys.value.size);
 const vipParticipants = computed(() =>
   participantsStore.participants.filter(p => p.type === 'VIP')
 );
@@ -122,11 +128,36 @@ const toggleGuestSelect = (id: number) => {
   const s = new Set(selectedGuestIds.value);
   if (s.has(id)) s.delete(id); else s.add(id);
   selectedGuestIds.value = s;
+  guestSelectionDirty.value = true;
+};
+
+const syncSelectedGuestsFromKeys = () => {
+  const ids = new Set<number>();
+  participantsStore.participants.forEach(p => {
+    if (p.type === 'VIP' && (guestKeys.value.has(`${p.name}|${p.email}`) || guestKeys.value.has(`${p.name}|`))) {
+      ids.add(p.id);
+    }
+  });
+  selectedGuestIds.value = ids;
+};
+
+const ensureVipParticipantsLoaded = async (eventId: number) => {
+  if (loadedVipEventId.value === eventId && participantsStore.participants.length > 0) return;
+  guestParticipantsLoading.value = true;
+  try {
+    await participantsStore.fetchParticipants({ event: String(eventId), type: 'VIP' });
+    loadedVipEventId.value = eventId;
+    syncSelectedGuestsFromKeys();
+  } finally {
+    guestParticipantsLoading.value = false;
+  }
 };
 
 const saveGuests = async () => {
   const eventId = eventsStore.currentEvent?.id;
   if (!eventId) return;
+  if (!guestSelectionDirty.value) return;
+  await ensureVipParticipantsLoaded(eventId);
   // 先刪除該活動所有舊來賓
   const existing = await apiRequest(`/api/guests/?event=${eventId}`);
   if (existing.ok) {
@@ -150,6 +181,12 @@ const saveGuests = async () => {
       }
     }
   }
+  guestSelectionDirty.value = false;
+  guestKeys.value = new Set(
+    participantsStore.participants
+      .filter(p => selectedGuestIds.value.has(p.id))
+      .map(p => `${p.name}|${p.email}`)
+  );
 };
 
 const loadGuests = async (eventId: number) => {
@@ -157,19 +194,12 @@ const loadGuests = async (eventId: number) => {
   if (!res.ok) return;
   const data = await res.json();
   const list: Array<Record<string, unknown>> = data.results || data;
+  guestKeys.value = new Set(list.map(g => `${g.name}|${g.email}`));
   if (list.length === 0) {
     selectedGuestIds.value = new Set();
     return;
   }
-  // 用 email 和 name 雙重比對 VIP 參與者
-  const guestKeys = new Set(list.map(g => `${g.name}|${g.email}`));
-  const ids = new Set<number>();
-  participantsStore.participants.forEach(p => {
-    if (p.type === 'VIP' && (guestKeys.has(`${p.name}|${p.email}`) || guestKeys.has(`${p.name}|`))) {
-      ids.add(p.id);
-    }
-  });
-  selectedGuestIds.value = ids;
+  if (guestSelectionsReady.value) syncSelectedGuestsFromKeys();
 };
 
 // 活動基本資訊（唯讀顯示，來自 eventsStore.currentEvent）
@@ -209,9 +239,26 @@ const showTicketSection = ref(false);
 const showFaqSection = ref(false);
 const bannerOrientation = ref<'landscape' | 'portrait'>('portrait');
 const showToast = ref(false);
+const editorsReady = ref(false);
 const viewingGuest = ref<(Guest | Participant) | null>(null);
 const myQuill = ref<InstanceType<typeof QuillEditor> | null>(null);
 const emailQuill = ref<InstanceType<typeof QuillEditor> | null>(null);
+const viewingGuestAvatar = computed(() => {
+  const guest = viewingGuest.value;
+  return guest && 'avatar' in guest ? guest.avatar || '' : '';
+});
+const viewingGuestBio = computed(() => {
+  const guest = viewingGuest.value;
+  return guest && 'bio' in guest ? guest.bio || '' : '';
+});
+
+const scheduleEditorsMount = () => {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      editorsReady.value = true;
+    });
+  });
+};
 
 // 編輯器工具列配置
 const editorOptions = {
@@ -269,6 +316,7 @@ const insertEmailTag = (tag: string) => {
 // ── 初始化 ────────────────────────────────────────────────────────────────
 const loadPageData = async (eventId: number) => {
   loading.value = true;
+  editorsReady.value = false;
   try {
     let page = await pagesStore.fetchByEvent(eventId);
     if (!page) page = await pagesStore.createPage(eventId);
@@ -284,14 +332,18 @@ const loadPageData = async (eventId: number) => {
     form.enableAutoSend   = page.enableAutoSend;
     form.bannerPreview    = page.banner || null;
     bannerOrientation.value = (page as Record<string, unknown>).banner_orientation as string === 'landscape' ? 'landscape' : 'portrait';
+    selectedGuestIds.value = new Set();
+    guestKeys.value = new Set();
+    loadedVipEventId.value = null;
+    guestSelectionDirty.value = false;
+    guestParticipantsLoading.value = false;
 
-    // 載入參與者、票券、FAQ、來賓
+    // 載入票券、FAQ、來賓；VIP 參與者改為打開來賓區時才抓
     await Promise.all([
-      participantsStore.fetchParticipants({ event: String(eventId) }),
       loadTickets(page.id),
       loadFaqs(page.id),
+      loadGuests(eventId),
     ]);
-    await loadGuests(eventId);  // 需要參與者載入後才能比對
   } catch (err: unknown) {
     const msg = (err as Error).message || "";
     if (msg.includes("401") || msg.includes("Authentication")) {
@@ -303,10 +355,7 @@ const loadPageData = async (eventId: number) => {
     }
   } finally {
     loading.value = false;
-    setTimeout(() => {
-      if (myQuill.value) setupQuillImageUpload(myQuill.value);
-      if (emailQuill.value) setupQuillImageUpload(emailQuill.value);
-    }, 100);
+    scheduleEditorsMount();
   }
 };
 
@@ -319,6 +368,23 @@ onMounted(() => {
 
 watch(() => eventsStore.currentEvent?.id, (id) => {
   if (id) loadPageData(id);
+});
+
+watch(showGuestSection, async (open) => {
+  const eventId = eventsStore.currentEvent?.id;
+  if (!open || !eventId) return;
+  try {
+    await ensureVipParticipantsLoaded(eventId);
+  } catch (err: unknown) {
+    toastError((err as Error).message || '載入 VIP 參與者失敗');
+  }
+});
+
+watch(editorsReady, async (ready) => {
+  if (!ready) return;
+  await nextTick();
+  if (myQuill.value) setupQuillImageUpload(myQuill.value);
+  if (emailQuill.value) setupQuillImageUpload(emailQuill.value);
 });
 
 // ── Banner 選擇（含壓縮）────────────────────────────────────────────────────
@@ -519,11 +585,13 @@ const closeGuestDetail = () => {
           <h3 class="card-subtitle">活動詳細內容編輯器</h3>
           <div class="quill-editor-wrapper">
             <QuillEditor
+              v-if="editorsReady"
               ref="myQuill"
               v-model:content="form.mainContent"
               contentType="html"
               :options="editorOptions"
             />
+            <div v-else class="editor-loading">編輯器載入中...</div>
           </div>
           <div class="editor-autosave-hint">每 30 秒自動緩存草稿</div>
         </div>
@@ -562,11 +630,13 @@ const closeGuestDetail = () => {
           </div>
           <div class="quill-editor-wrapper">
             <QuillEditor
+              v-if="editorsReady"
               ref="emailQuill"
               v-model:content="form.emailContent"
               contentType="html"
               :options="emailEditorOptions"
             />
+            <div v-else class="editor-loading">編輯器載入中...</div>
           </div>
           <p class="email-hint">報名成功後系統會自動帶入 QR Code、活動資訊等區塊，此處僅需編輯正文內容。</p>
         </div>
@@ -621,12 +691,13 @@ const closeGuestDetail = () => {
         <!-- 活動來賓（可收合） -->
         <div class="tech-card">
           <button class="collapse-header" @click="showGuestSection = !showGuestSection">
-            <h3 class="card-subtitle">活動來賓 <span class="collapse-count" v-if="selectedGuestIds.size">{{ selectedGuestIds.size }}</span></h3>
+            <h3 class="card-subtitle">活動來賓 <span class="collapse-count" v-if="guestSelectionCount">{{ guestSelectionCount }}</span></h3>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'arrow-open': showGuestSection }"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div v-if="showGuestSection" class="collapse-body">
             <p class="card-hint">從 VIP 參與者中選取</p>
-            <div v-if="vipParticipants.length === 0" class="card-empty">尚無 VIP 參與者</div>
+            <div v-if="guestParticipantsLoading" class="card-empty">載入 VIP 參與者中...</div>
+            <div v-else-if="vipParticipants.length === 0" class="card-empty">尚無 VIP 參與者</div>
             <div v-else class="guest-pick-list">
               <label v-for="p in vipParticipants" :key="p.id" class="guest-pick-item" :class="{ checked: isGuestSelected(p.id) }">
                 <input type="checkbox" :checked="isGuestSelected(p.id)" @change="toggleGuestSelect(p.id)" hidden />
@@ -742,9 +813,9 @@ const closeGuestDetail = () => {
               <div class="detail-avatar-section">
                 <div class="detail-avatar">
                   <div
-                    v-if="viewingGuest.avatar"
+                    v-if="viewingGuestAvatar"
                     class="avatar-img"
-                    :style="{ backgroundImage: `url(${viewingGuest.avatar})` }"
+                    :style="{ backgroundImage: `url(${viewingGuestAvatar})` }"
                   ></div>
                   <span v-else class="avatar-initial-large">{{ viewingGuest.name.charAt(0) }}</span>
                 </div>
@@ -772,7 +843,7 @@ const closeGuestDetail = () => {
                 </div>
                 <div class="detail-field full-width">
                   <label>簡介</label>
-                  <div class="detail-value">{{ viewingGuest.bio || "未填寫" }}</div>
+                  <div class="detail-value">{{ viewingGuestBio || "未填寫" }}</div>
                 </div>
               </div>
             </div>
@@ -2890,6 +2961,19 @@ label {
 .pv-venue p { margin:0; font-size:.78rem; }
 
 .pv-footer { text-align:center; padding:12px; font-size:.65rem; color:#94a3b8; border-top:1px solid #e2e8f0; }
+
+.editor-loading {
+  min-height: 320px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+  color: var(--text-gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
 
 /* iframe 預覽 */
 .preview-iframe {
