@@ -114,12 +114,18 @@ const loadFaqs = async (pid: number) => {
 
 // ── 活動來賓（從 VIP 參與者勾選）──
 const selectedGuestIds = ref<Set<number>>(new Set());
-const guestKeys = ref<Set<string>>(new Set());
+// 從 API 載入的「捷徑建立的 Guest」對應的 source_participant IDs
+const linkedParticipantIds = ref<Set<number>>(new Set());
+const manualGuestCount = ref(0);
 const loadedVipEventId = ref<number | null>(null);
 const guestSelectionDirty = ref(false);
 const guestParticipantsLoading = ref(false);
 const guestSelectionsReady = computed(() => loadedVipEventId.value === (eventsStore.currentEvent?.id ?? null));
-const guestSelectionCount = computed(() => guestSelectionsReady.value ? selectedGuestIds.value.size : guestKeys.value.size);
+const guestSelectionCount = computed(() =>
+  guestSelectionsReady.value
+    ? selectedGuestIds.value.size + manualGuestCount.value
+    : linkedParticipantIds.value.size + manualGuestCount.value
+);
 const vipParticipants = computed(() =>
   participantsStore.participants.filter(p => p.type === 'VIP')
 );
@@ -131,10 +137,11 @@ const toggleGuestSelect = (id: number) => {
   guestSelectionDirty.value = true;
 };
 
-const syncSelectedGuestsFromKeys = () => {
+const syncSelectedFromLinked = () => {
+  // 用 source_participant ID 直接比對，不再用 name|email
   const ids = new Set<number>();
   participantsStore.participants.forEach(p => {
-    if (p.type === 'VIP' && (guestKeys.value.has(`${p.name}|${p.email}`) || guestKeys.value.has(`${p.name}|`))) {
+    if (p.type === 'VIP' && linkedParticipantIds.value.has(p.id)) {
       ids.add(p.id);
     }
   });
@@ -147,7 +154,7 @@ const ensureVipParticipantsLoaded = async (eventId: number) => {
   try {
     await participantsStore.fetchParticipants({ event: String(eventId), type: 'VIP' });
     loadedVipEventId.value = eventId;
-    syncSelectedGuestsFromKeys();
+    syncSelectedFromLinked();
   } finally {
     guestParticipantsLoading.value = false;
   }
@@ -159,16 +166,13 @@ const saveGuests = async () => {
   if (!guestSelectionDirty.value) return;
   await ensureVipParticipantsLoaded(eventId);
 
-  // 組裝選中的 VIP 為來賓資料
-  const guests = [...selectedGuestIds.value]
-    .map(id => participantsStore.participants.find(x => x.id === id))
-    .filter(Boolean)
-    .map(p => ({ name: p!.name, title: p!.title, company: p!.company }));
-
-  // 一次 API 完成刪除+新增
+  // 只送 participant IDs，後端做差異同步
   const res = await apiRequest('/api/guests/bulk_save/', {
     method: 'POST',
-    body: JSON.stringify({ event: eventId, guests }),
+    body: JSON.stringify({
+      event: eventId,
+      participant_ids: [...selectedGuestIds.value],
+    }),
   });
   if (!res.ok) {
     const err = await res.text();
@@ -176,11 +180,6 @@ const saveGuests = async () => {
   }
 
   guestSelectionDirty.value = false;
-  guestKeys.value = new Set(
-    participantsStore.participants
-      .filter(p => selectedGuestIds.value.has(p.id))
-      .map(p => `${p.name}|${p.email}`)
-  );
 };
 
 const loadGuests = async (eventId: number) => {
@@ -188,12 +187,23 @@ const loadGuests = async (eventId: number) => {
   if (!res.ok) return;
   const data = await res.json();
   const list: Array<Record<string, unknown>> = data.results || data;
-  guestKeys.value = new Set(list.map(g => `${g.name}|${g.email}`));
+  // 從 API 回傳的 Guest 中提取 source_participant IDs
+  const linked = new Set<number>();
+  let manual = 0;
+  for (const g of list) {
+    if (g.source_participant && typeof g.source_participant === 'number') {
+      linked.add(g.source_participant);
+    } else {
+      manual++;
+    }
+  }
+  linkedParticipantIds.value = linked;
+  manualGuestCount.value = manual;
   if (list.length === 0) {
     selectedGuestIds.value = new Set();
     return;
   }
-  if (guestSelectionsReady.value) syncSelectedGuestsFromKeys();
+  if (guestSelectionsReady.value) syncSelectedFromLinked();
 };
 
 // 活動基本資訊（唯讀顯示，來自 eventsStore.currentEvent）
@@ -327,7 +337,8 @@ const loadPageData = async (eventId: number) => {
     form.bannerPreview    = page.banner || null;
     bannerOrientation.value = (page as Record<string, unknown>).banner_orientation as string === 'landscape' ? 'landscape' : 'portrait';
     selectedGuestIds.value = new Set();
-    guestKeys.value = new Set();
+    linkedParticipantIds.value = new Set();
+    manualGuestCount.value = 0;
     loadedVipEventId.value = null;
     guestSelectionDirty.value = false;
     guestParticipantsLoading.value = false;
