@@ -613,6 +613,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
         </div>
       </div>
 
+      <div class="info-layout-wrap">
       <div class="info-layout" :class="{ 'layout-landscape': bannerOrientation === 'landscape' }">
 
         <!-- 直式：左側欄有 Banner + 資訊 -->
@@ -716,6 +717,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
             </div>
           </div>
         </main>
+      </div>
       </div>
 
       <!-- 底部版權 -->
@@ -954,19 +956,25 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   width: 100%; height: auto; display: block; object-fit: cover; max-height: 420px;
 }
 
-/* ─── Info Layout（左右兩欄，合併成一個白色卡片） ─── */
-.info-layout {
-  margin: -28px auto 0;
+/* ─── Info Layout ─── */
+/* 外層：全寬背景 */
+.info-layout-wrap {
+  margin-top: -28px;
   position: relative; z-index: 2;
+  background: #f5f5f0;
+  border-radius: 14px 14px 0 0;
+  border: 1px solid #e8e8e4;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+/* 內層：grid 限 1440px 置中 */
+.info-layout {
+  max-width: 1440px;
+  margin: 0 auto;
   padding: 0 0 60px;
   display: grid;
   grid-template-columns: 1fr 380px;
   gap: 0;
   align-items: start;
-  background: #f5f5f0;
-  border-radius: 14px 14px 0 0;
-  border: 1px solid #e8e8e4;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
 }
 /* 橫式佈局：內文在左，資訊卡在右 */
 .layout-landscape { grid-template-columns: 1fr 380px; }
@@ -1018,8 +1026,6 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .info-main {
   min-width: 0;
   padding: 28px 32px;
-  max-width: 1060px;
-  margin: 0 auto;
 }
 
 .p-tag {
