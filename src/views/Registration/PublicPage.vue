@@ -1031,31 +1031,30 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .p-tag {
   display: inline-block;
   background: #337168; color: #fff;
-  padding: 5px 14px; border-radius: 4px;
-  font-size: 0.68rem; font-weight: 800;
-  letter-spacing: 0.1em; text-transform: uppercase;
-  margin-bottom: 12px;
+  padding: 4px 12px; border-radius: 4px;
+  font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  margin-bottom: 14px;
 }
 .p-title {
-  font-size: clamp(1.3rem, 2.5vw, 1.6rem);
-  font-weight: 800;
-  margin: 0 0 16px;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 900;
+  margin: 0 0 20px;
   color: #0f172a;
-  line-height: 1.35;
+  line-height: 1.3;
   word-break: break-word;
 }
 
 /* Rich Text */
 .p-main-body-render {
   color: #334155;
-  font-size: .95rem;
-  line-height: 1.85;
-  margin-bottom: 32px;
+  font-size: .9rem;
+  line-height: 1.9;
+  margin-bottom: 36px;
 }
-.p-main-body-render :deep(h1),
-.p-main-body-render :deep(h2),
-.p-main-body-render :deep(h3) { color: #0f172a; font-weight: 800; margin-top: 1.4em; }
-.p-main-body-render :deep(h3) { border-left: 3px solid #337168; padding-left: 10px; }
+.p-main-body-render :deep(h1) { font-size: 1.4rem; font-weight: 900; color: #0f172a; margin-top: 1.6em; margin-bottom: 0.6em; }
+.p-main-body-render :deep(h2) { font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-top: 1.5em; margin-bottom: 0.5em; }
+.p-main-body-render :deep(h3) { font-size: 1rem; font-weight: 700; color: #0f172a; margin-top: 1.4em; margin-bottom: 0.4em; border-left: 3px solid #337168; padding-left: 10px; }
 .p-main-body-render :deep(img) { max-width: 100%; border-radius: 8px; }
 .p-main-body-render :deep(a) { color: #337168; font-weight: 600; }
 .p-main-body-render :deep(ul),
@@ -1064,7 +1063,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
 /* 活動地點 */
 .venue-section { margin-top: 40px; padding-top: 32px; border-top: 1px solid #e2e8f0; }
-.section-heading { font-size: 1.3rem; font-weight: 800; color: #0f172a; margin: 0 0 16px; }
+.section-heading { font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0 0 16px; }
 .venue-info { display: flex; gap: 10px; align-items: flex-start; }
 .venue-info svg { flex-shrink: 0; margin-top: 3px; }
 .venue-info strong { font-size: .92rem; color: #0f172a; }
@@ -1152,8 +1151,8 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
 /* 橫式標題下方標籤列 */
 .p-sub-tags {
-  display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;
-  font-size: .82rem; color: #64748b;
+  display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;
+  font-size: .78rem; color: #94a3b8;
 }
 .p-sub-tags span {
   display: inline-flex; align-items: center; gap: 4px;
