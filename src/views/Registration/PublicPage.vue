@@ -687,16 +687,11 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
             </div>
           </div>
 
-          <!-- 手機版立即報名按鈕：放在貴賓區下方 -->
-          <button ref="bookButtonRef" class="btn-book-full mobile-only" @click="openForm" :disabled="isFull">
-            {{ isFull ? '已額滿' : '立即報名' }}
-          </button>
-
           <!-- 票券選擇 -->
           <TicketSection :tickets="tickets" :get-qty="getQty" @change-qty="changeQty" />
 
           <!-- 立即報名按鈕 -->
-          <button class="btn-book-full desktop-only" @click="openForm" :disabled="isFull">
+          <button ref="bookButtonRef" class="btn-book-full" @click="openForm" :disabled="isFull">
             {{ isFull ? '已額滿' : '立即報名' }}
           </button>
 
