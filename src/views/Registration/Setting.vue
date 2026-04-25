@@ -175,8 +175,7 @@ const saveGuests = async () => {
     }),
   });
   if (!res.ok) {
-    const err = await res.text();
-    console.error('[saveGuests] bulk_save failed:', res.status, err);
+    throw new Error('儲存來賓失敗');
   }
 
   guestSelectionDirty.value = false;
