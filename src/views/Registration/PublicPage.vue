@@ -1074,7 +1074,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 /* 貴賓列表 */
 .guests-section { margin: 32px 0; }
 .guests-grid {
-  display: flex; flex-wrap: wrap; gap: 20px;
+  display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;
 }
 .guest-card { text-align: center; width: 90px; }
 .guest-avatar {
