@@ -956,7 +956,6 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
 /* ─── Info Layout（左右兩欄，合併成一個白色卡片） ─── */
 .info-layout {
-  max-width: 1440px;
   margin: -28px auto 0;
   position: relative; z-index: 2;
   padding: 0 0 60px;
@@ -1017,7 +1016,10 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
 /* 主內容區域 */
 .info-main {
-  min-width: 0; padding: 28px 32px;
+  min-width: 0;
+  padding: 28px 32px;
+  max-width: 1060px;
+  margin: 0 auto;
 }
 
 .p-tag {
