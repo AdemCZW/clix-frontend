@@ -69,14 +69,19 @@ const addTicket = () => {
 const removeTicket = (i: number) => tickets.value.splice(i, 1);
 
 const saveTickets = async () => {
-  if (!pageId.value) return;
-  try {
-    const res = await apiRequest('/api/tickets/bulk_save/', {
-      method: 'POST', body: JSON.stringify({ registration_page: pageId.value, tickets: tickets.value }),
-    });
-    if (!res.ok) throw new Error('儲存票券失敗');
-    tickets.value = await res.json();
-  } catch { /* handled by saveDraft */ }
+  if (!pageId.value) {
+    throw new Error('找不到報名頁，無法儲存票券');
+  }
+
+  const res = await apiRequest('/api/tickets/bulk_save/', {
+    method: 'POST', body: JSON.stringify({ registration_page: pageId.value, tickets: tickets.value }),
+  });
+
+  if (!res.ok) {
+    throw new Error('儲存票券失敗');
+  }
+
+  tickets.value = await res.json();
 };
 
 const loadTickets = async (pid: number) => {
@@ -95,14 +100,19 @@ const addFaq = () => {
 const removeFaq = (i: number) => faqs.value.splice(i, 1);
 
 const saveFaqs = async () => {
-  if (!pageId.value) return;
-  try {
-    const res = await apiRequest('/api/faqs/bulk_save/', {
-      method: 'POST', body: JSON.stringify({ registration_page: pageId.value, faqs: faqs.value }),
-    });
-    if (!res.ok) throw new Error('儲存 FAQ 失敗');
-    faqs.value = await res.json();
-  } catch { /* handled by saveDraft */ }
+  if (!pageId.value) {
+    throw new Error('找不到報名頁，無法儲存 FAQ');
+  }
+
+  const res = await apiRequest('/api/faqs/bulk_save/', {
+    method: 'POST', body: JSON.stringify({ registration_page: pageId.value, faqs: faqs.value }),
+  });
+
+  if (!res.ok) {
+    throw new Error('儲存 FAQ 失敗');
+  }
+
+  faqs.value = await res.json();
 };
 
 const loadFaqs = async (pid: number) => {
@@ -241,7 +251,6 @@ const showGuestSection = ref(false);
 const showTicketSection = ref(false);
 const showFaqSection = ref(false);
 const bannerOrientation = ref<'landscape' | 'portrait'>('portrait');
-const showToast = ref(false);
 const editorsReady = ref(false);
 const viewingGuest = ref<(Guest | Participant) | null>(null);
 const myQuill = ref<InstanceType<typeof QuillEditor> | null>(null);
@@ -431,6 +440,10 @@ const onFileChange = async (e: Event, type: string) => {
   reader.readAsDataURL(file);
 };
 
+const savePageSections = async () => {
+  await Promise.all([saveGuests(), saveTickets(), saveFaqs()]);
+};
+
 // ── 儲存草稿 ──────────────────────────────────────────────────────────────
 const saveDraft = async () => {
   if (!pageId.value) {
@@ -452,8 +465,7 @@ const saveDraft = async () => {
     if (saved && saved.banner) {
       form.bannerPreview = saved.banner as string;
     }
-    // 同時儲存來賓、票券、FAQ
-    await Promise.all([saveGuests(), saveTickets(), saveFaqs()]);
+    await savePageSections();
     toastSuccess("活動設定已儲存");
   } catch (err: unknown) {
     toastError((err as Error).message || "儲存失敗");
@@ -471,7 +483,7 @@ const confirmPublish = async () => {
   saving.value = true;
   try {
     // 先儲存最新內容，再發布
-    await pagesStore.saveDraft(pageId.value, {
+    const saved = await pagesStore.saveDraft(pageId.value, {
       mainContent:     form.mainContent,
       emailSubject:    form.emailSubject,
       emailSenderName: form.emailSenderName,
@@ -480,13 +492,13 @@ const confirmPublish = async () => {
       bannerFile:      form.bannerFile,
     });
     form.bannerFile = null;
-    // 同時儲存來賓、票券、FAQ
-    await Promise.all([saveGuests(), saveTickets(), saveFaqs()]);
+    if (saved && saved.banner) {
+      form.bannerPreview = saved.banner as string;
+    }
+    await savePageSections();
     const page = await pagesStore.publish(pageId.value);
     isPublished.value = page.isPublished;
     toastSuccess("活動報名頁已發布！");
-    showToast.value = true;
-    setTimeout(() => { showToast.value = false; }, 2500);
   } catch (err: unknown) {
     toastError((err as Error).message || "發布失敗");
   } finally {
@@ -562,12 +574,6 @@ const closeGuestDetail = () => {
     <PageLoader v-if="loading" text="載入中..." />
 
     <template v-else>
-    <Teleport to="body">
-      <Transition name="slide-down">
-        <div v-if="showToast" class="toast-box">報名頁面已成功生產並發布！</div>
-      </Transition>
-    </Teleport>
-
     <!-- 頂部操作列 -->
     <div class="page-top-bar">
       <div class="top-bar-left">
@@ -2333,21 +2339,6 @@ label {
       transform: translateY(0) scale(0.98);
     }
   }
-}
-
-.toast-box {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--bg-card);
-  color: #167A67;
-  border: 1px solid #167A67;
-  padding: 12px 30px;
-  border-radius: 50px;
-  z-index: 10001;
-  font-weight: 700;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 
 /* Keyframes Animations */

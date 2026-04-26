@@ -159,17 +159,17 @@ const router = createRouter({
 // 路由守衛
 router.beforeEach((to, _from, next) => {
     const userStore = useUserStore()
+    const isAuth = userStore.checkAuth()
 
     // 檢查是否需要身份驗證
     if (to.meta.requiresAuth) {
-        const isAuth = userStore.checkAuth()
         if (!isAuth) {
             next({ path: '/login', query: { redirect: to.fullPath } })
         } else {
             next()
         }
     } else {
-        if (to.path === '/login' && userStore.isAuthenticated) {
+        if (to.path === '/login' && isAuth) {
             next('/admin/dashboard')
         } else {
             next()

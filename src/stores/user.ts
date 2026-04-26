@@ -9,6 +9,29 @@ export const useUserStore = defineStore("user", () => {
     const authToken = ref<string | null>(null)
     const isSuperAdmin = computed(() => !!(user.value && user.value.is_superuser))
 
+    const clearAuthStorage = () => {
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('user_data')
+        clearCurrentEventKeys()
+    }
+
+    const isJwtExpired = (token: string) => {
+        try {
+            const payloadBase64 = token.split('.')[1]
+            if (!payloadBase64) return true
+
+            const normalized = payloadBase64.replace(/-/g, '+').replace(/_/g, '/')
+            const payload = JSON.parse(atob(normalized)) as { exp?: number }
+
+            if (!payload.exp) return false
+
+            return payload.exp * 1000 <= Date.now()
+        } catch {
+            return true
+        }
+    }
+
     const clearCurrentEventKeys = () => {
         localStorage.removeItem('current_event')
         Object.keys(localStorage).forEach((key) => {
@@ -22,13 +45,27 @@ export const useUserStore = defineStore("user", () => {
     const checkAuth = () => {
         const token = localStorage.getItem("access_token")
         const userData = localStorage.getItem("user_data")
-        if (token && userData) {
+
+        if (!token || !userData || isJwtExpired(token)) {
+            authToken.value = null
+            user.value = null
+            isAuthenticated.value = false
+            clearAuthStorage()
+            return false
+        }
+
+        try {
             authToken.value = token
             user.value = JSON.parse(userData) as User
             isAuthenticated.value = true
             return true
+        } catch {
+            authToken.value = null
+            user.value = null
+            isAuthenticated.value = false
+            clearAuthStorage()
+            return false
         }
-        return false
     }
 
     // 登入 (呼叫 POST /api/auth/login/)
@@ -36,6 +73,7 @@ export const useUserStore = defineStore("user", () => {
         const res = await apiRequest('/api/auth/login/', {
             method: 'POST',
             body: JSON.stringify({ username, password }),
+            skipAuthRefresh: true,
         })
 
         if (!res.ok) {
@@ -70,6 +108,7 @@ export const useUserStore = defineStore("user", () => {
                 await apiRequest('/api/auth/logout/', {
                     method: 'POST',
                     body: JSON.stringify({ refresh }),
+                    skipAuthRefresh: true,
                 })
             }
         } catch {
@@ -80,10 +119,7 @@ export const useUserStore = defineStore("user", () => {
         user.value = null
         isAuthenticated.value = false
 
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('user_data')
-        clearCurrentEventKeys()
+        clearAuthStorage()
     }
 
     return {
