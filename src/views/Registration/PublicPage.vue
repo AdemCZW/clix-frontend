@@ -1178,6 +1178,16 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   .page-footer { flex-direction: column; gap: 4px; text-align: center; }
   .mobile-only { display: block; }
   .desktop-only { display: none; }
+
+  /* 手機版字型放大 */
+  .p-tag { font-size: 0.7rem; padding: 5px 14px; margin-bottom: 16px; }
+  .p-title { font-size: 1.6rem; margin-bottom: 12px; }
+  .p-sub-tags { font-size: .82rem; margin-bottom: 20px; }
+  .p-main-body-render { font-size: 1rem; line-height: 2; }
+  .p-main-body-render :deep(h1) { font-size: 1.35rem; }
+  .p-main-body-render :deep(h2) { font-size: 1.15rem; }
+  .p-main-body-render :deep(h3) { font-size: 1.05rem; }
+  .section-heading { font-size: 1.15rem; }
 }
 
 /* ─── Form View ─── */
