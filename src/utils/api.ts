@@ -11,6 +11,10 @@
 const BASE_URL =
     (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 
+type ApiRequestOptions = RequestInit & {
+    skipAuthRefresh?: boolean
+}
+
 /**
  * 取得當前請求 headers（帶 Token）
  */
@@ -59,36 +63,46 @@ const fetchWithTimeout = (url: string, options: RequestInit = {}, timeoutMs = 30
 /**
  * 統一 API 請求，自動處理 401 → Token 刷新 → 重試
  */
-export const apiRequest = async (path: string, options: RequestInit = {}): Promise<Response> => {
+export const apiRequest = async (path: string, options: ApiRequestOptions = {}): Promise<Response> => {
     const url = `${BASE_URL}${path}`
+    const { skipAuthRefresh = false, ...requestOptions } = options
 
     // 若 body 是 FormData，讓瀏覽器自動設定 Content-Type（含 boundary）
     // 否則統一帶 application/json
-    const isFormData = options.body instanceof FormData
+    const isFormData = requestOptions.body instanceof FormData
     const makeHeaders = (): Record<string, string> => {
         const token = localStorage.getItem('access_token')
         const auth: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
         if (isFormData) {
-            return { ...auth, ...(options.headers as Record<string, string>) }
+            return { ...auth, ...(requestOptions.headers as Record<string, string>) }
         }
-        return { ...getHeaders(), ...(options.headers as Record<string, string>) }
+        return { ...getHeaders(), ...(requestOptions.headers as Record<string, string>) }
     }
 
     let response = await fetchWithTimeout(url, {
-        ...options,
+        ...requestOptions,
         headers: makeHeaders(),
     })
 
     // 若 401，嘗試刷新 token 後重試一次
-    if (response.status === 401) {
+    if (!skipAuthRefresh && response.status === 401) {
         try {
             await refreshAccessToken()
             response = await fetchWithTimeout(url, {
-                ...options,
+                ...requestOptions,
                 headers: makeHeaders(),
             })
         } catch {
-            // refresh 失敗，清除憑證並跳轉登入
+            // refresh 失敗 → 清除並跳轉登入
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('refresh_token')
+            localStorage.removeItem('user_data')
+            window.location.href = '/#/login'
+            throw new Error('Authentication expired, please login again')
+        }
+
+        // refresh 成功但重試仍 401 → Token 已被撤銷
+        if (response.status === 401) {
             localStorage.removeItem('access_token')
             localStorage.removeItem('refresh_token')
             localStorage.removeItem('user_data')
