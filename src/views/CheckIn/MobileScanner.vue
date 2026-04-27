@@ -126,6 +126,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import jsQR from "jsqr";
 import { API_BASE_URL } from "@/utils/api";
+import { getAccessToken } from "@/utils/authStorage";
 import { useEventsStore } from "@/stores/events";
 
 interface ScannedInfo {
@@ -140,7 +141,7 @@ const router = useRouter();
 const eventsStore = useEventsStore();
 
 // 登入狀態
-const isLoggedIn = computed(() => !!localStorage.getItem("access_token"));
+const isLoggedIn = computed(() => !!getAccessToken());
 const needsLogin = ref(false);
 
 const goToLogin = () => {
@@ -302,7 +303,7 @@ const stopScanning = () => {
 
 const validateCheckin = async (token: string) => {
   try {
-    const accessToken = localStorage.getItem("access_token");
+    const accessToken = getAccessToken();
     const res = await fetch(`${API_BASE_URL}/api/participants/checkin_by_token/`, {
       method: "POST",
       headers: {
@@ -368,7 +369,7 @@ const sendToStation = async (slot: number) => {
 
   try {
     await new Promise<void>((resolve, reject) => {
-      const token = localStorage.getItem("access_token") || "";
+      const token = getAccessToken() || "";
       const tokenParam = token ? `?token=${token}` : "";
       const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/${tokenParam}`);
       const timeout = setTimeout(() => { ws.close(); reject(new Error("連線超時（5秒）")); }, 5000);

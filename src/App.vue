@@ -1,21 +1,27 @@
 <script setup lang="ts">
 import { RouterView } from "vue-router";
 import Toast from "./components/Toast.vue";
+import ConfirmDialog from "./components/ConfirmDialog.vue";
 
-import { useToast } from "./composables/useToast";
+import { useConfirm } from "./composables/useConfirm";
 import { useTheme } from "./composables/useTheme";
 
-const { toastState } = useToast();
+const { visible: confirmVisible, options: confirmOpts, handleConfirm, handleCancel } = useConfirm();
 useTheme(); // 初始化主題
 </script>
 
 <template>
   <RouterView />
-  <Toast
-    v-model="toastState.show"
-    :message="toastState.message"
-    :type="toastState.type"
-    :duration="toastState.duration"
+  <Toast />
+  <ConfirmDialog
+    :show="confirmVisible"
+    :title="confirmOpts.title"
+    :message="confirmOpts.message"
+    :confirm-text="confirmOpts.confirmText"
+    :cancel-text="confirmOpts.cancelText"
+    :danger="confirmOpts.danger ?? true"
+    @confirm="handleConfirm"
+    @cancel="handleCancel"
   />
 </template>
 

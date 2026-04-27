@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { apiRequest, API_BASE_URL } from '@/utils/api'
+import { apiRequest } from '@/utils/api'
 import { parseApiError } from '@/utils/parseApiError'
+import { useStoreRequest } from '@/utils/useStoreRequest'
+import { useCache } from '@/utils/useCache'
 import type { Participant, RawParticipant, RegistrationPage } from '@/types'
 
 function mapParticipant(p: RawParticipant): Participant {
@@ -25,53 +27,36 @@ function mapParticipant(p: RawParticipant): Participant {
     }
 }
 
+function buildCacheKey(params: Record<string, string>) {
+    const entries = Object.entries(params)
+        .filter(([, value]) => value !== '')
+        .sort(([a], [b]) => a.localeCompare(b))
+    return new URLSearchParams(entries).toString()
+}
+
 export const useParticipantsStore = defineStore('participants', () => {
     const participants = ref<Participant[]>([])
-    const loading = ref(false)
-    const error = ref<string | null>(null)
     const selectedVIPs = ref<Participant[]>([])
-
-    // ── 快取 ──────────────────────────────────────────────────────────────
-    const CACHE_TTL = 30_000 // 30 秒
-    const _lastFetched = ref(0)
-    const _lastFetchedKey = ref('')
-
-    const buildCacheKey = (params: Record<string, string>) => {
-        const entries = Object.entries(params)
-            .filter(([, value]) => value !== '')
-            .sort(([a], [b]) => a.localeCompare(b))
-        return new URLSearchParams(entries).toString()
-    }
+    const { loading, error, run, clearError } = useStoreRequest()
+    const cache = useCache(30_000)
 
     async function fetchParticipants(params: Record<string, string> = {}) {
-        const cacheKey = buildCacheKey(params)
-        if (participants.value.length > 0 && _lastFetchedKey.value === cacheKey && Date.now() - _lastFetched.value < CACHE_TTL) {
-            return participants.value
-        }
-        loading.value = true
-        error.value = null
-        try {
+        const key = buildCacheKey(params)
+        if (participants.value.length > 0 && cache.isValid(key)) return participants.value
+        return run(async () => {
             const query = new URLSearchParams(params).toString()
             const url = query ? `/api/participants/?${query}` : '/api/participants/'
             const res = await apiRequest(url)
             if (!res.ok) throw new Error(`取得參與者列表失敗 (${res.status})`)
             const data = await res.json()
             participants.value = (data.results || data).map(mapParticipant)
-            _lastFetched.value = Date.now()
-            _lastFetchedKey.value = cacheKey
+            cache.touch(key)
             return participants.value
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
+        })
     }
 
-    async function createParticipant(data: Record<string, unknown>) {
-        loading.value = true
-        error.value = null
-        try {
+    const createParticipant = (data: Record<string, unknown>) =>
+        run(async () => {
             const res = await apiRequest('/api/participants/', {
                 method: 'POST',
                 body: JSON.stringify(data),
@@ -80,18 +65,10 @@ export const useParticipantsStore = defineStore('participants', () => {
             const p = mapParticipant(await res.json())
             participants.value.unshift(p)
             return p
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
+        })
 
-    async function updateParticipant(id: number, data: Record<string, unknown>) {
-        loading.value = true
-        error.value = null
-        try {
+    const updateParticipant = (id: number, data: Record<string, unknown>) =>
+        run(async () => {
             const res = await apiRequest(`/api/participants/${id}/`, {
                 method: 'PATCH',
                 body: JSON.stringify(data),
@@ -101,33 +78,17 @@ export const useParticipantsStore = defineStore('participants', () => {
             const idx = participants.value.findIndex(p => p.id === id)
             if (idx !== -1) participants.value[idx] = updated
             return updated
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
+        })
 
-    async function deleteParticipant(id: number) {
-        loading.value = true
-        error.value = null
-        try {
+    const deleteParticipant = (id: number) =>
+        run(async () => {
             const res = await apiRequest(`/api/participants/${id}/`, { method: 'DELETE' })
             if (!res.ok && res.status !== 204) throw new Error(`刪除失敗 (${res.status})`)
             participants.value = participants.value.filter(p => p.id !== id)
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
+        })
 
-    async function checkinByToken(token: string) {
-        loading.value = true
-        error.value = null
-        try {
+    const checkinByToken = (token: string) =>
+        run(async () => {
             const res = await apiRequest('/api/participants/checkin_by_token/', {
                 method: 'POST',
                 body: JSON.stringify({ token }),
@@ -138,18 +99,10 @@ export const useParticipantsStore = defineStore('participants', () => {
             const idx = participants.value.findIndex(p => p.id === updated.id)
             if (idx !== -1) participants.value[idx] = updated
             return { message: data.message as string, participant: updated }
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
+        })
 
-    async function checkIn(id: number) {
-        loading.value = true
-        error.value = null
-        try {
+    const checkIn = (id: number) =>
+        run(async () => {
             const res = await apiRequest(`/api/participants/${id}/check_in/`, {
                 method: 'POST',
                 body: JSON.stringify({}),
@@ -159,18 +112,10 @@ export const useParticipantsStore = defineStore('participants', () => {
             const idx = participants.value.findIndex(p => p.id === id)
             if (idx !== -1) participants.value[idx] = updated
             return updated
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
+        })
 
-    async function checkOut(id: number) {
-        loading.value = true
-        error.value = null
-        try {
+    const checkOut = (id: number) =>
+        run(async () => {
             const res = await apiRequest(`/api/participants/${id}/check_out/`, {
                 method: 'POST',
                 body: JSON.stringify({}),
@@ -180,18 +125,10 @@ export const useParticipantsStore = defineStore('participants', () => {
             const idx = participants.value.findIndex(p => p.id === id)
             if (idx !== -1) participants.value[idx] = updated
             return updated
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
+        })
 
-    async function regenerateQr(id: number) {
-        loading.value = true
-        error.value = null
-        try {
+    const regenerateQr = (id: number) =>
+        run(async () => {
             const res = await apiRequest(`/api/participants/${id}/regenerate_qr/`, {
                 method: 'POST',
                 body: JSON.stringify({}),
@@ -202,13 +139,7 @@ export const useParticipantsStore = defineStore('participants', () => {
             const idx = participants.value.findIndex(p => p.id === id)
             if (idx !== -1) participants.value[idx].qrCodeUrl = newUrl
             return newUrl
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
+        })
 
     async function fetchStatistics(eventId?: number) {
         try {
@@ -224,34 +155,21 @@ export const useParticipantsStore = defineStore('participants', () => {
         }
     }
 
-    async function importParticipants(data: Record<string, unknown>[], eventId: number) {
-        loading.value = true
-        error.value = null
-        try {
+    const importParticipants = (data: Record<string, unknown>[], eventId: number) =>
+        run(async () => {
             const res = await apiRequest('/api/participants/bulk_import/', {
                 method: 'POST',
                 body: JSON.stringify({ event: eventId, participants: data }),
             })
             if (!res.ok) throw new Error(await parseApiError(res, `批量匯入失敗 (${res.status})`))
-            const result = await res.json()
-            // 匯入成功後清除快取，下次拉取最新資料
-            _lastFetched.value = 0
-            return result
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
-
-    function clearError() { error.value = null }
+            cache.invalidate()
+            return res.json()
+        })
 
     function clear() {
         participants.value = []
         error.value = null
-        _lastFetched.value = 0
-        _lastFetchedKey.value = ''
+        cache.invalidate()
     }
 
     return {
@@ -275,37 +193,29 @@ export const useParticipantsStore = defineStore('participants', () => {
 })
 
 // =========================================================
-// 公開報名 Store（前台，不需登入，使用 plain fetch）
+// 公開報名 Store（前台，不需登入）
 // =========================================================
+import { publicGet, publicPost } from '@/utils/publicApi'
+
 export const usePublicRegisterStore = defineStore('publicRegister', () => {
     const page = ref<RegistrationPage | null>(null)
-    const loading = ref(false)
-    const error = ref<string | null>(null)
+    const { loading, error, run } = useStoreRequest()
     const submitted = ref(false)
     const submittedParticipant = ref<Participant | null>(null)
-    const BASE = API_BASE_URL
-
-    let lastFetchKey = ''
-    let lastFetchTime = 0
+    const cache = useCache(30_000)
 
     async function fetchPage(shortLink: string) {
-        // 30 秒內同一頁面不重複請求
-        const now = Date.now()
-        if (lastFetchKey === shortLink && page.value && now - lastFetchTime < 30000) {
-            return page.value
-        }
-
-        loading.value = true
-        error.value = null
-        try {
-            const res = await fetch(`${BASE}/api/public/register/${shortLink}/`)
-            if (res.status === 404) {
-                error.value = '找不到此報名頁面，可能尚未發布或連結錯誤'
-                throw new Error(error.value)
+        if (cache.isValid(shortLink) && page.value) return page.value
+        return run(async () => {
+            let raw: Record<string, any>
+            try {
+                raw = await publicGet(`/api/public/register/${shortLink}/`)
+            } catch (err) {
+                if ((err as Error).message === 'NOT_FOUND') {
+                    throw new Error('找不到此報名頁面，可能尚未發布或連結錯誤')
+                }
+                throw new Error('載入報名頁面失敗')
             }
-            if (!res.ok) throw new Error('載入報名頁面失敗')
-            const raw = await res.json()
-            // 後端回傳 snake_case，前端模板用 camelCase，做映射
             page.value = {
                 ...raw,
                 shortLink: raw.short_link,
@@ -322,49 +232,19 @@ export const usePublicRegisterStore = defineStore('publicRegister', () => {
                 formFields: raw.form_fields || [],
                 tickets: raw.tickets || [],
                 faqs: raw.faqs || [],
-            } as RegistrationPage
-            lastFetchKey = shortLink
-            lastFetchTime = Date.now()
+            } as unknown as RegistrationPage
+            cache.touch(shortLink)
             return page.value
-        } catch (err) {
-            if (!error.value) error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
+        })
     }
 
-    async function submitRegistration(shortLink: string, formData: Record<string, unknown>) {
-        loading.value = true
-        error.value = null
-        try {
-            const res = await fetch(`${BASE}/api/public/register/${shortLink}/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
-            })
-            if (!res.ok) {
-                const errData = await res.json().catch(() => null)
-                if (errData && typeof errData === 'object') {
-                    error.value = Object.entries(errData as Record<string, unknown>)
-                        .map(([, msgs]) => (Array.isArray(msgs) ? msgs.join(', ') : msgs))
-                        .join('；')
-                } else {
-                    error.value = `報名失敗 (${res.status})`
-                }
-                throw new Error(error.value!)
-            }
-            const data = await res.json()
+    const submitRegistration = (shortLink: string, formData: Record<string, unknown>) =>
+        run(async () => {
+            const data = await publicPost<{ participant: Participant }>(`/api/public/register/${shortLink}/`, formData)
             submitted.value = true
             submittedParticipant.value = data.participant
             return data
-        } catch (err) {
-            if (!error.value) error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
+        })
 
     function reset() {
         page.value = null

@@ -3,14 +3,15 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 // XLSX lazy import — 只在匯出時才載入（省 420KB 初始 bundle）
 const loadXLSX = () => import("xlsx");
 import { useToast } from "@/composables/useToast";
+import { useConfirm } from "@/composables/useConfirm";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
-import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import PageLoader from "@/components/shared/PageLoader.vue";
 import LogoSpinner from '@/components/shared/LogoSpinner.vue';
 import type { Participant } from "@/types";
 
 const { success, warning, error: showError } = useToast();
+const { confirm } = useConfirm();
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
 
@@ -229,9 +230,7 @@ const handleImport = async (e: Event) => {
 
             // 顯示彈窗（可選）
             if (
-              confirm(
-                `發現 ${result.errors.length} 筆錯誤。\n\n${errorDetails}\n\n是否查看完整錯誤？`,
-              )
+              await confirm({ message: `發現 ${result.errors.length} 筆錯誤。\n\n${errorDetails}\n\n是否查看完整錯誤？`, confirmText: '查看完整錯誤', danger: false })
             ) {
               console.table(result.errors);
             }
@@ -264,22 +263,19 @@ const openEditPanel = (participant: Participant) => {
   originalParticipantSnapshot.value = JSON.stringify(editingParticipant.value);
 };
 
-const closeEditPanel = () => {
-  if (hasUnsavedParticipant.value && !confirm("尚未儲存變更，確定要離開嗎？")) return;
+const closeEditPanel = async () => {
+  if (hasUnsavedParticipant.value && !(await confirm({ message: '尚未儲存變更，確定要離開嗎？', confirmText: '離開', danger: false }))) return;
   editingParticipant.value = null;
 };
-// 確認刪除 dialog
-const confirmDialog = ref<{ show: boolean; participant: Participant | null }>({ show: false, participant: null });
-
-const deleteParticipant = (participant: Participant | null) => {
+const deleteParticipant = async (participant: Participant | null) => {
   if (!participant) return;
-  confirmDialog.value = { show: true, participant };
-};
 
-const confirmDelete = async () => {
-  const participant = confirmDialog.value.participant;
-  confirmDialog.value = { show: false, participant: null };
-  if (!participant) return;
+  if (!(await confirm({
+    title: '刪除參與者',
+    message: `確定要刪除「${participant.name}」嗎？此操作無法復原。`,
+    confirmText: '確認刪除',
+  }))) return;
+
   try {
     await participantsStore.deleteParticipant(participant.id);
     success("刪除成功");
@@ -492,15 +488,6 @@ const formatDate = (isoString: string) => {
       <button class="mb-export" @click="handleExport">匯出</button>
       <button class="mb-add" @click="addParticipant">+ 新增</button>
     </div>
-
-    <ConfirmDialog
-      :show="confirmDialog.show"
-      title="刪除參與者"
-      :message="`確定要刪除「${confirmDialog.participant?.name}」嗎？此操作無法復原。`"
-      confirmText="確認刪除"
-      @confirm="confirmDelete"
-      @cancel="confirmDialog.show = false"
-    />
     </template>
   </div>
 </template>

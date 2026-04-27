@@ -244,12 +244,14 @@ import { useAdminAccountsStore } from "@/stores/adminAccounts";
 import { useUserStore } from "@/stores/user";
 import { storeToRefs } from "pinia";
 import { useToast } from "@/composables/useToast";
+import { useConfirm } from "@/composables/useConfirm";
 import BaseModal from "@/components/shared/BaseModal.vue";
 import PageLoader from "@/components/shared/PageLoader.vue";
 import LogoSpinner from '@/components/shared/LogoSpinner.vue';
 import type { Manager } from "@/types";
 
 const { success, error, warning } = useToast();
+const { confirm } = useConfirm();
 
 const userStore = useUserStore();
 const { isSuperAdmin } = storeToRefs(userStore);
@@ -399,7 +401,7 @@ const deleteAdmin = async (adminId: number) => {
     confirmMessage = `確定要刪除管理者 ${admin.email} 嗎？`;
   }
 
-  if (!window.confirm(confirmMessage)) return;
+  if (!(await confirm({ message: confirmMessage, confirmText: '確認刪除' }))) return;
 
   try {
     await adminStore.deleteAdmin(adminId);
@@ -413,7 +415,7 @@ const deleteAdmin = async (adminId: number) => {
 const deleteStaff = async (staffId: number) => {
   const staff = staffAccounts.value.find((s) => s.id === staffId);
   if (!staff) return;
-  if (!window.confirm(`確定要刪除員工帳號 ${staff.accountId} 嗎？`)) return;
+  if (!(await confirm({ message: `確定要刪除員工帳號 ${staff.accountId} 嗎？`, confirmText: '確認刪除' }))) return;
 
   try {
     await adminStore.deleteStaff(staffId);

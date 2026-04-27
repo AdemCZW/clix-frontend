@@ -1,78 +1,52 @@
 <template>
   <Teleport to="body">
-    <Transition name="toast-fade">
-      <div v-if="show" class="toast-container" :class="type">
+    <TransitionGroup name="toast-fade" tag="div" class="toast-stack">
+      <div
+        v-for="toast in queue"
+        :key="toast.id"
+        class="toast-container"
+        :class="toast.type"
+        @click="dismiss(toast.id)"
+      >
         <div class="toast-content">
           <div class="toast-icon">
-            <span v-if="type === 'success'">✓</span>
-            <span v-else-if="type === 'error'">✕</span>
-            <span v-else-if="type === 'warning'">⚠</span>
+            <span v-if="toast.type === 'success'">✓</span>
+            <span v-else-if="toast.type === 'error'">✕</span>
+            <span v-else-if="toast.type === 'warning'">⚠</span>
             <span v-else>ℹ</span>
           </div>
-          <div class="toast-message">{{ message }}</div>
+          <div class="toast-message">{{ toast.message }}</div>
         </div>
       </div>
-    </Transition>
+    </TransitionGroup>
   </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { useToast } from "@/composables/useToast";
 
-const props = defineProps({
-  message: {
-    type: String,
-    default: "",
-  },
-  type: {
-    type: String,
-    default: "info", // success, error, warning, info
-    validator: (value: string) => ["success", "error", "warning", "info"].includes(value),
-  },
-  duration: {
-    type: Number,
-    default: 3000,
-  },
-  modelValue: {
-    type: Boolean,
-    default: false,
-  },
-});
-
-const emit = defineEmits(["update:modelValue"]);
-
-const show = ref(props.modelValue);
-
-watch(
-  () => props.modelValue,
-  (newVal) => {
-    show.value = newVal;
-    if (newVal) {
-      setTimeout(() => {
-        show.value = false;
-        emit("update:modelValue", false);
-      }, props.duration);
-    }
-  },
-);
-
-watch(show, (newVal) => {
-  if (!newVal) {
-    emit("update:modelValue", false);
-  }
-});
+const { queue, dismiss } = useToast();
 </script>
 
 <style scoped lang="scss">
-.toast-container {
+.toast-stack {
   position: fixed;
   top: 24px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast-container {
   min-width: 320px;
   max-width: 500px;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .toast-content {
@@ -107,80 +81,51 @@ watch(show, (newVal) => {
   line-height: 1.5;
 }
 
-// Success 样式
+// Success
 .toast-container.success {
-  .toast-content {
-    border-left-color: #10b981;
-  }
-
-  .toast-icon {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-  }
+  .toast-content { border-left-color: #10b981; }
+  .toast-icon { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
 }
 
-// Error 样式
+// Error
 .toast-container.error {
-  .toast-content {
-    border-left-color: #ef4444;
-  }
-
-  .toast-icon {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    color: white;
-  }
+  .toast-content { border-left-color: #ef4444; }
+  .toast-icon { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; }
 }
 
-// Warning 样式
+// Warning
 .toast-container.warning {
-  .toast-content {
-    border-left-color: #f59e0b;
-  }
-
-  .toast-icon {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    color: white;
-  }
+  .toast-content { border-left-color: #f59e0b; }
+  .toast-icon { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
 }
 
-// Info 样式
+// Info
 .toast-container.info {
-  .toast-content {
-    border-left-color: #667eea;
-  }
-
-  .toast-icon {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-  }
+  .toast-content { border-left-color: #667eea; }
+  .toast-icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
 }
 
-// 动画
+// TransitionGroup 動畫
 .toast-fade-enter-active {
   animation: toast-slide-down 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .toast-fade-leave-active {
   animation: toast-fade-out 0.3s ease-out;
+  position: absolute;
+}
+
+.toast-fade-move {
+  transition: transform 0.3s ease;
 }
 
 @keyframes toast-slide-down {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -100%);
-  }
-  100% {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
+  0% { opacity: 0; transform: translateY(-20px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes toast-fade-out {
-  0% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
+  0% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-10px) scale(0.95); }
 }
 </style>

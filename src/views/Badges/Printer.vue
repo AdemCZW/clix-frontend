@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import vPrint from "vue3-print-nb";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
+import { getAccessToken } from "@/utils/authStorage";
 import QRCodeLib from "qrcode";
 import jsQR from "jsqr";
 import PageLoader from "@/components/shared/PageLoader.vue";
@@ -278,7 +279,7 @@ async function sendToStation(slot: number) {
 
   try {
     await new Promise<void>((resolve, reject) => {
-      const accessToken = localStorage.getItem("access_token") || "";
+      const accessToken = getAccessToken() || "";
       const tokenParam = accessToken ? `?token=${accessToken}` : "";
       const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/${tokenParam}`);
 
@@ -354,7 +355,7 @@ async function testStation(slot: number) {
     .replace(/\/$/, "")
     .replace(/^https/, "wss")
     .replace(/^http/, "ws");
-  const token = localStorage.getItem("access_token") || "";
+  const token = getAccessToken() || "";
   const tokenParam = token ? `?token=${token}` : "";
 
   try {

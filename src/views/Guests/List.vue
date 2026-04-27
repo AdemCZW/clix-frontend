@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted, watch } from "vue";
+import { reactive, ref, computed } from "vue";
 import { useGuestsStore } from "@/stores/guests";
 import { useEventsStore } from "@/stores/events";
 import { useToast } from "@/composables/useToast";
+import { useConfirm } from "@/composables/useConfirm";
+import { useEventScopedLoader } from "@/composables/useEventScopedLoader";
 import BasePanel from "@/components/shared/BasePanel.vue";
-import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import type { Guest } from "@/types";
 
 const guestsStore = useGuestsStore();
 const eventsStore = useEventsStore();
 const { success, error } = useToast();
+const { confirm } = useConfirm();
 
 const activityOptions = ref(["所有活動"]);
 const selectedActivity = ref("所有活動");
@@ -33,13 +35,10 @@ const loadGuests = async (eventId: number) => {
   }
 };
 
-onMounted(() => {
-  const event = eventsStore.currentEvent;
-  if (event?.id) loadGuests(event.id);
-});
-
-watch(() => eventsStore.currentEvent?.id, (id) => {
-  if (id) loadGuests(id);
+useEventScopedLoader(loadGuests, {
+  onNoEvent: () => {
+    guests.splice(0, guests.length);
+  },
 });
 
 const formatDate = (dateStr: string | undefined) => dateStr || "--";
@@ -76,17 +75,15 @@ const addGuest = async () => {
   }
 };
 
-// 確認刪除 dialog
-const confirmDialog = ref<{ show: boolean; guest: Guest | null }>({ show: false, guest: null });
-
-const deleteGuest = (guest: Guest | null) => {
-  confirmDialog.value = { show: true, guest };
-};
-
-const confirmDelete = async () => {
-  const guest = confirmDialog.value.guest;
-  confirmDialog.value = { show: false, guest: null };
+const deleteGuest = async (guest: Guest | null) => {
   if (!guest) return;
+
+  if (!(await confirm({
+    title: "刪除貴賓",
+    message: `確定要刪除「${guest.name}」嗎？此操作無法復原。`,
+    confirmText: "確認刪除",
+  }))) return;
+
   try {
     await guestsStore.deleteGuest(guest.id);
     if (editingGuest.value && editingGuest.value.id === guest.id) {
@@ -129,7 +126,8 @@ const onAvatarChange = (e: Event, guest: Guest) => {
   if (file) {
     const reader = new FileReader();
     reader.onload = (event) => {
-      guest.avatar = (event.target as FileReader).result;
+      const result = event.target?.result;
+      guest.avatar = typeof result === "string" ? result : undefined;
     };
     reader.readAsDataURL(file);
   }
@@ -234,17 +232,6 @@ const getInitials = (name: string) => {
         </div>
       </div>
     </div>
-
-    <!-- 刪除確認彈窗 -->
-    <ConfirmDialog
-      :show="confirmDialog.show"
-      :title="`刪除貴賓`"
-      :message="`確定要刪除「${confirmDialog.guest?.name}」嗎？此操作無法復原。`"
-      confirmText="確認刪除"
-      @confirm="confirmDelete"
-      @cancel="confirmDialog.show = false"
-    />
-
     <!-- 右側滑出編輯面板 -->
     <BasePanel v-model="editPanelOpen" title="編輯貴賓資訊">
       <template v-if="editingGuest">

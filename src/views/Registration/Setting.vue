@@ -10,6 +10,8 @@ import { useEventsStore } from "@/stores/events";
 import { useRegistrationPagesStore } from "@/stores/registrationPages";
 import { useUserStore } from "@/stores/user";
 import { useToast } from "@/composables/useToast";
+import { useConfirm } from "@/composables/useConfirm";
+import { useEventScopedLoader } from "@/composables/useEventScopedLoader";
 import { apiRequest } from "@/utils/api";
 import { setupQuillImageUpload } from "@/composables/useQuillImageUpload";
 import { useRouter } from "vue-router";
@@ -24,6 +26,7 @@ const pagesStore = useRegistrationPagesStore();
 const userStore = useUserStore();
 const router = useRouter();
 const { success: toastSuccess, error: toastError } = useToast();
+const { confirm } = useConfirm();
 
 // 目前報名頁的 ID，以及儲存/載入狀態
 const pageId = ref<number | null>(null);
@@ -372,15 +375,16 @@ const loadPageData = async (eventId: number) => {
   }
 };
 
-onMounted(() => {
-  userStore.checkAuth();
-  const event = eventsStore.currentEvent;
-  if (!event?.id) { router.push("/admin/events"); return; }
-  loadPageData(event.id);
+const { loadCurrentEvent } = useEventScopedLoader(loadPageData, {
+  immediate: false,
+  onNoEvent: () => {
+    router.push("/admin/events");
+  },
 });
 
-watch(() => eventsStore.currentEvent?.id, (id) => {
-  if (id) loadPageData(id);
+onMounted(() => {
+  userStore.checkAuth();
+  void loadCurrentEvent();
 });
 
 watch(showGuestSection, async (open) => {
@@ -416,7 +420,7 @@ const onFileChange = async (e: Event, type: string) => {
       const img = new Image();
       img.onload = () => {
         if (img.width > BANNER_MAX_WIDTH) {
-          alert(`Banner 寬度不可超過 ${BANNER_MAX_WIDTH}px（目前 ${img.width}px），請縮小圖片後重新上傳`);
+          toastError(`Banner 寬度不可超過 ${BANNER_MAX_WIDTH}px（目前 ${img.width}px），請縮小圖片後重新上傳`);
           resolve(false);
         } else {
           resolve(true);
@@ -527,8 +531,7 @@ const saveCustomSlug = async () => {
   const slug = customSlug.value.trim();
   if (!slug) { toastError("連結後綴不能為空"); return; }
   if (slug === extractSlug(shortLink.value)) { toastSuccess("連結未變更"); return; }
-  const ok = confirm(`確定要將報名連結更新為「${slug}」嗎？\n\n⚠️ 原網址將會失效，已分享出去的連結將無法使用。`);
-  if (!ok) return;
+  if (!(await confirm({ title: '更新報名連結', message: `確定要將報名連結更新為「${slug}」嗎？\n\n⚠️ 原網址將會失效，已分享出去的連結將無法使用。`, confirmText: '確認更新', danger: false }))) return;
   try {
     const updated = await pagesStore.saveDraft(pageId.value, {
       shortLink: slug,

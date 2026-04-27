@@ -2,12 +2,11 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { apiRequest } from '@/utils/api'
 import { parseApiError } from '@/utils/parseApiError'
+import { useStoreRequest } from '@/utils/useStoreRequest'
 import { compressImage } from '@/utils/imageCompress'
+import { toFormData } from '@/utils/formData'
 import type { RegistrationPage, RawRegistrationPage, FormField } from '@/types'
 
-/**
- * 後端欄位 → 前端 camelCase
- */
 function mapPage(page: RawRegistrationPage): RegistrationPage {
     return {
         id: page.id,
@@ -40,23 +39,20 @@ interface PageFormData {
     shortLink?: string
 }
 
-/**
- * 將表單資料轉成 FormData 或純 JSON payload
- */
 async function buildPatchPayload(formData: PageFormData): Promise<{ body: FormData | string }> {
     if (formData.bannerFile instanceof File) {
         const compressedBannerFile = await compressImage(formData.bannerFile)
-        const fd = new FormData()
-        fd.append('banner', compressedBannerFile)
-        if (formData.mainContent !== undefined) fd.append('main_content', formData.mainContent)
-        if (formData.emailSubject !== undefined) fd.append('email_subject', formData.emailSubject)
-        if (formData.emailSenderName !== undefined) fd.append('email_sender_name', formData.emailSenderName)
-        if (formData.emailContent !== undefined) fd.append('email_content', formData.emailContent)
-        if (formData.enableAutoSend !== undefined) fd.append('enable_auto_send', String(formData.enableAutoSend))
-        if (formData.formFields !== undefined) fd.append('form_fields', JSON.stringify(formData.formFields))
+        const fd = toFormData({
+            banner: compressedBannerFile,
+            main_content: formData.mainContent,
+            email_subject: formData.emailSubject,
+            email_sender_name: formData.emailSenderName,
+            email_content: formData.emailContent,
+            enable_auto_send: formData.enableAutoSend,
+            form_fields: formData.formFields !== undefined ? JSON.stringify(formData.formFields) : undefined,
+        })
         return { body: fd }
     }
-    // 純 JSON — 只送有值的欄位
     const payload: Record<string, unknown> = {}
     if (formData.mainContent !== undefined) payload.main_content = formData.mainContent
     if (formData.emailSubject !== undefined) payload.email_subject = formData.emailSubject
@@ -70,45 +66,19 @@ async function buildPatchPayload(formData: PageFormData): Promise<{ body: FormDa
 
 export const useRegistrationPagesStore = defineStore('registrationPages', () => {
     const currentPage = ref<RegistrationPage | null>(null)
-    const loading = ref(false)
-    const error = ref<string | null>(null)
+    const { loading, error, run, clearError } = useStoreRequest()
 
-    /**
-     * 取得活動對應的報名頁設定
-     * GET /api/registration-pages/by_event/{eventId}/
-     */
-    async function fetchByEvent(eventId: number) {
-        loading.value = true
-        error.value = null
-        try {
+    const fetchByEvent = (eventId: number) =>
+        run(async () => {
             const res = await apiRequest(`/api/registration-pages/by_event/${eventId}/`)
-            if (res.status === 404) {
-                currentPage.value = null
-                return null
-            }
-            if (!res.ok) {
-                const msg = `取得報名頁設定失敗 (${res.status})`
-                error.value = msg
-                throw new Error(msg)
-            }
+            if (res.status === 404) { currentPage.value = null; return null }
+            if (!res.ok) throw new Error(`取得報名頁設定失敗 (${res.status})`)
             currentPage.value = mapPage(await res.json())
             return currentPage.value
-        } catch (err) {
-            if (!error.value) error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
+        })
 
-    /**
-     * 建立報名頁設定
-     * POST /api/registration-pages/
-     */
-    async function createPage(eventId: number, data: Partial<PageFormData> = {}) {
-        loading.value = true
-        error.value = null
-        try {
+    const createPage = (eventId: number, data: Partial<PageFormData> = {}) =>
+        run(async () => {
             const payload = {
                 event: eventId,
                 main_content: data.mainContent ?? '',
@@ -122,150 +92,64 @@ export const useRegistrationPagesStore = defineStore('registrationPages', () => 
                 method: 'POST',
                 body: JSON.stringify(payload),
             })
-            if (!res.ok) {
-                error.value = await parseApiError(res, `建立報名頁設定失敗 (${res.status})`)
-                throw new Error(error.value)
-            }
+            if (!res.ok) throw new Error(await parseApiError(res, `建立報名頁設定失敗 (${res.status})`))
             currentPage.value = mapPage(await res.json())
             return currentPage.value
-        } catch (err) {
-            if (!error.value) error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
+        })
 
-    /**
-     * 儲存草稿
-     * PATCH /api/registration-pages/{pageId}/
-     */
-    async function saveDraft(pageId: number, formData: PageFormData) {
-        loading.value = true
-        error.value = null
-        try {
+    const saveDraft = (pageId: number, formData: PageFormData) =>
+        run(async () => {
             const { body } = await buildPatchPayload(formData)
             const res = await apiRequest(`/api/registration-pages/${pageId}/`, {
                 method: 'PATCH',
                 body,
             })
-            if (!res.ok) {
-                error.value = await parseApiError(res, `儲存失敗 (${res.status})`)
-                throw new Error(error.value)
-            }
+            if (!res.ok) throw new Error(await parseApiError(res, `儲存失敗 (${res.status})`))
             currentPage.value = mapPage(await res.json())
             return currentPage.value
-        } catch (err) {
-            if (!error.value) error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
+        })
 
-    /**
-     * 發布
-     * POST /api/registration-pages/{pageId}/publish/
-     */
-    async function publish(pageId: number) {
-        loading.value = true
-        error.value = null
-        try {
+    const publish = (pageId: number) =>
+        run(async () => {
             const res = await apiRequest(`/api/registration-pages/${pageId}/publish/`, {
                 method: 'POST',
                 body: JSON.stringify({}),
             })
-            if (!res.ok) {
-                error.value = await parseApiError(res, `發布失敗 (${res.status})`)
-                throw new Error(error.value)
-            }
+            if (!res.ok) throw new Error(await parseApiError(res, `發布失敗 (${res.status})`))
             currentPage.value = mapPage(await res.json())
             return currentPage.value
-        } catch (err) {
-            if (!error.value) error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
+        })
 
-    /**
-     * 取消發布（存為草稿）
-     * POST /api/registration-pages/{pageId}/unpublish/
-     */
-    async function unpublish(pageId: number) {
-        loading.value = true
-        error.value = null
-        try {
+    const unpublish = (pageId: number) =>
+        run(async () => {
             const res = await apiRequest(`/api/registration-pages/${pageId}/unpublish/`, {
                 method: 'POST',
                 body: JSON.stringify({}),
             })
-            if (!res.ok) {
-                error.value = await parseApiError(res, `取消發布失敗 (${res.status})`)
-                throw new Error(error.value)
-            }
+            if (!res.ok) throw new Error(await parseApiError(res, `取消發布失敗 (${res.status})`))
             currentPage.value = mapPage(await res.json())
             return currentPage.value
-        } catch (err) {
-            if (!error.value) error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
+        })
 
-    /**
-     * 重新產生短連結
-     * POST /api/registration-pages/{pageId}/regenerate_link/
-     */
-    async function regenerateLink(pageId: number) {
-        loading.value = true
-        error.value = null
-        try {
+    const regenerateLink = (pageId: number) =>
+        run(async () => {
             const res = await apiRequest(`/api/registration-pages/${pageId}/regenerate_link/`, {
                 method: 'POST',
                 body: JSON.stringify({}),
             })
-            if (!res.ok) {
-                error.value = `重新產生短連結失敗 (${res.status})`
-                throw new Error(error.value)
-            }
+            if (!res.ok) throw new Error(`重新產生短連結失敗 (${res.status})`)
             const data: { short_link?: string } = await res.json()
             const newLink = data.short_link || ''
             if (currentPage.value) currentPage.value.shortLink = newLink
             return newLink
-        } catch (err) {
-            if (!error.value) error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
+        })
 
-    /**
-     * 刪除報名頁設定
-     * DELETE /api/registration-pages/{pageId}/
-     */
-    async function deletePage(pageId: number) {
-        loading.value = true
-        error.value = null
-        try {
+    const deletePage = (pageId: number) =>
+        run(async () => {
             const res = await apiRequest(`/api/registration-pages/${pageId}/`, { method: 'DELETE' })
-            if (!res.ok && res.status !== 204) {
-                error.value = `刪除失敗 (${res.status})`
-                throw new Error(error.value)
-            }
+            if (!res.ok && res.status !== 204) throw new Error(`刪除失敗 (${res.status})`)
             currentPage.value = null
-        } catch (err) {
-            if (!error.value) error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
-    }
-
-    function clearError() { error.value = null }
+        })
 
     function clear() {
         currentPage.value = null

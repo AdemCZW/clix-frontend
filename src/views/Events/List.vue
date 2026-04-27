@@ -189,6 +189,8 @@ import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { useEventsStore } from "@/stores/events";
 import { useToast } from "@/composables/useToast";
+import { useConfirm } from "@/composables/useConfirm";
+import { useEventSwitcher } from "@/composables/useEventSwitcher";
 import { apiRequest } from "@/utils/api";
 import BaseModal from "@/components/shared/BaseModal.vue";
 import BasePanel from "@/components/shared/BasePanel.vue";
@@ -209,6 +211,8 @@ const router = useRouter();
 const userStore = useUserStore();
 const eventsStore = useEventsStore();
 const { success, error } = useToast();
+const { confirm } = useConfirm();
+const { switchEvent } = useEventSwitcher();
 
 const searchQuery = ref("");
 const activeFilter = ref("all");
@@ -229,10 +233,7 @@ const originalEditSnapshot = ref("");
 const editPanelOpen = computed({
   get: () => !!editingEvent.value,
   set: (v) => {
-    if (!v) {
-      if (hasUnsavedChanges.value && !confirm("尚未儲存變更，確定要離開嗎？")) return;
-      editingEvent.value = null;
-    }
+    if (!v) closeEditPanel();
   },
 });
 
@@ -256,8 +257,8 @@ const openEditPanel = (event: Event) => {
   originalEditSnapshot.value = JSON.stringify(data);
 };
 
-const closeEditPanel = () => {
-  if (hasUnsavedChanges.value && !confirm("尚未儲存變更，確定要離開嗎？")) return;
+const closeEditPanel = async () => {
+  if (hasUnsavedChanges.value && !(await confirm({ message: '尚未儲存變更，確定要離開嗎？', confirmText: '離開', danger: false }))) return;
   editingEvent.value = null;
 };
 
@@ -360,25 +361,14 @@ const loadEvents = async () => {
 
 onMounted(loadEvents);
 
-const selectEvent = (event: Event) => {
-  eventsStore.setCurrentEvent(event, userStore.user?.id);
-  router.push("/admin/registration-setting");
-};
+const selectEvent = (event: Event) => switchEvent(event, "/admin/registration-setting");
 
-const selectEventForFormFields = (event: Event) => {
-  eventsStore.setCurrentEvent(event, userStore.user?.id);
-  router.push({ path: "/admin/form-fields", query: { eventId: event.id } });
-};
+const selectEventForFormFields = (event: Event) =>
+  switchEvent(event, { path: "/admin/form-fields", query: { eventId: event.id } });
 
-const editEvent = (event: Event) => {
-  eventsStore.setCurrentEvent(event, userStore.user?.id);
-  router.push("/admin/registration-setting");
-};
+const editEvent = (event: Event) => switchEvent(event, "/admin/registration-setting");
 
-const viewDetails = (event: Event) => {
-  eventsStore.setCurrentEvent(event, userStore.user?.id);
-  router.push("/admin/registration-setting");
-};
+const viewDetails = (event: Event) => switchEvent(event, "/admin/registration-setting");
 
 const createEvent = async () => {
   if (!newEvent.value.name || !newEvent.value.date || !newEvent.value.time || !newEvent.value.location) {

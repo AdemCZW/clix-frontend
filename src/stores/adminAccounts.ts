@@ -1,20 +1,16 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { apiRequest } from '@/utils/api'
+import { useStoreRequest } from '@/utils/useStoreRequest'
+import { useCache } from '@/utils/useCache'
 import type { Manager, RawManager, Staff, RawStaff } from '@/types'
 
 export const useAdminAccountsStore = defineStore('adminAccounts', () => {
     const adminAccounts = ref<Manager[]>([])
     const staffAccounts = ref<Staff[]>([])
-    const loading = ref(false)
-    const error = ref<string | null>(null)
-
-    // 快取
-    const CACHE_TTL = 30_000
-    let _managersLastFetch = 0
-    let _staffLastFetch = 0
-
-    // ----- 資料格式轉換（API snake_case → 前端 camelCase）-----
+    const { loading, error, run } = useStoreRequest()
+    const managersCache = useCache(30_000)
+    const staffCache = useCache(30_000)
 
     const mapManager = (m: RawManager): Manager => ({
         id: m.id,
@@ -38,41 +34,27 @@ export const useAdminAccountsStore = defineStore('adminAccounts', () => {
     // ----- 讀取資料 -----
 
     const fetchManagers = async () => {
-        if (adminAccounts.value.length > 0 && Date.now() - _managersLastFetch < CACHE_TTL) return
-        loading.value = true
-        error.value = null
-        try {
+        if (adminAccounts.value.length > 0 && managersCache.isValid()) return
+        await run(async () => {
             const res = await apiRequest('/api/managers/')
             if (!res.ok) throw new Error('無法取得管理者列表')
             const data = await res.json()
             const list: RawManager[] = Array.isArray(data) ? data : (data.results || [])
             adminAccounts.value = list.map(mapManager)
-            _managersLastFetch = Date.now()
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
+            managersCache.touch()
+        })
     }
 
     const fetchStaff = async () => {
-        if (staffAccounts.value.length > 0 && Date.now() - _staffLastFetch < CACHE_TTL) return
-        loading.value = true
-        error.value = null
-        try {
+        if (staffAccounts.value.length > 0 && staffCache.isValid()) return
+        await run(async () => {
             const res = await apiRequest('/api/staff/')
             if (!res.ok) throw new Error('無法取得員工列表')
             const data = await res.json()
             const list: RawStaff[] = Array.isArray(data) ? data : (data.results || [])
             staffAccounts.value = list.map(mapStaff)
-            _staffLastFetch = Date.now()
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        } finally {
-            loading.value = false
-        }
+            staffCache.touch()
+        })
     }
 
     // ----- 計算工具 -----
@@ -89,96 +71,88 @@ export const useAdminAccountsStore = defineStore('adminAccounts', () => {
 
     // ----- 管理者 CRUD -----
 
-    const addAdmin = async (email: string, password: string, staffQuota: number) => {
-        const res = await apiRequest('/api/managers/', {
-            method: 'POST',
-            body: JSON.stringify({ email, password, staff_quota: staffQuota }),
-        })
-        if (!res.ok) {
-            let msg = '新增管理者失敗'
-            try {
-                const err: Record<string, unknown> = await res.json()
-                if (err.detail) {
-                    msg = err.detail as string
-                } else {
-                    const allMsgs: string[] = []
-                    for (const [field, val] of Object.entries(err)) {
-                        const text = Array.isArray(val) ? val[0] : val
-                        if (field === 'non_field_errors') {
-                            allMsgs.unshift(text as string)
-                        } else {
-                            allMsgs.push(`${field}：${text}`)
-                        }
-                    }
-                    if (allMsgs.length) msg = allMsgs.join('；')
-                }
-            } catch { /* 非 JSON 回應，保留預設訊息 */ }
-            throw new Error(msg)
+    const parseCreateError = async (res: Response, fallback: string) => {
+        try {
+            const err: Record<string, unknown> = await res.json()
+            if (err.detail) return err.detail as string
+            const allMsgs: string[] = []
+            for (const [field, val] of Object.entries(err)) {
+                const text = Array.isArray(val) ? val[0] : val
+                if (field === 'non_field_errors') allMsgs.unshift(text as string)
+                else allMsgs.push(`${field}：${text}`)
+            }
+            return allMsgs.length ? allMsgs.join('；') : fallback
+        } catch {
+            return fallback
         }
-        const data: RawManager = await res.json()
-        adminAccounts.value.push(mapManager(data))
-        return data
+    }
+
+    const addAdmin = async (email: string, password: string, staffQuota: number) => {
+        return run(async () => {
+            const res = await apiRequest('/api/managers/', {
+                method: 'POST',
+                body: JSON.stringify({ email, password, staff_quota: staffQuota }),
+            })
+            if (!res.ok) throw new Error(await parseCreateError(res, '新增管理者失敗'))
+            const data: RawManager = await res.json()
+            adminAccounts.value.push(mapManager(data))
+            managersCache.invalidate()
+            return data
+        })
     }
 
     const deleteAdmin = async (adminId: number) => {
-        const res = await apiRequest('/api/managers/' + adminId + '/', { method: 'DELETE' })
-        if (!res.ok) throw new Error('刪除管理者失敗')
-        staffAccounts.value = staffAccounts.value.filter((s) => s.managerId !== adminId)
-        adminAccounts.value = adminAccounts.value.filter((a) => a.id !== adminId)
+        return run(async () => {
+            const res = await apiRequest('/api/managers/' + adminId + '/', { method: 'DELETE' })
+            if (!res.ok) throw new Error('刪除管理者失敗')
+            staffAccounts.value = staffAccounts.value.filter((s) => s.managerId !== adminId)
+            adminAccounts.value = adminAccounts.value.filter((a) => a.id !== adminId)
+            managersCache.invalidate()
+            staffCache.invalidate()
+        })
     }
 
     const updateAdminQuota = async (adminId: number, newQuota: number) => {
-        const res = await apiRequest('/api/managers/' + adminId + '/', {
-            method: 'PATCH',
-            body: JSON.stringify({ staff_quota: newQuota }),
+        return run(async () => {
+            const res = await apiRequest('/api/managers/' + adminId + '/', {
+                method: 'PATCH',
+                body: JSON.stringify({ staff_quota: newQuota }),
+            })
+            if (!res.ok) throw new Error('更新配額失敗')
+            const data: { staff_quota: number } = await res.json()
+            const admin = adminAccounts.value.find((a) => a.id === adminId)
+            if (admin) admin.staffQuota = data.staff_quota
+            managersCache.invalidate()
         })
-        if (!res.ok) throw new Error('更新配額失敗')
-        const data: { staff_quota: number } = await res.json()
-        const admin = adminAccounts.value.find((a) => a.id === adminId)
-        if (admin) admin.staffQuota = data.staff_quota
     }
 
     // ----- 員工 CRUD -----
 
     const addStaff = async (managerId: number, password: string) => {
-        if (!canAddStaff(managerId)) {
-            throw new Error('已達員工額度上限')
-        }
-        const res = await apiRequest('/api/staff/', {
-            method: 'POST',
-            body: JSON.stringify({ manager: managerId, password }),
+        return run(async () => {
+            if (!canAddStaff(managerId)) throw new Error('已達員工額度上限')
+            const res = await apiRequest('/api/staff/', {
+                method: 'POST',
+                body: JSON.stringify({ manager: managerId, password }),
+            })
+            if (!res.ok) throw new Error(await parseCreateError(res, '新增員工失敗'))
+            const data: RawStaff = await res.json()
+            const newStaff = mapStaff(data)
+            staffAccounts.value.push(newStaff)
+            staffCache.invalidate()
+            managersCache.invalidate()
+            return newStaff
         })
-        if (!res.ok) {
-            let msg = '新增員工失敗'
-            try {
-                const err: Record<string, unknown> = await res.json()
-                if (err.detail) {
-                    msg = err.detail as string
-                } else {
-                    const allMsgs: string[] = []
-                    for (const [field, val] of Object.entries(err)) {
-                        const text = Array.isArray(val) ? val[0] : val
-                        if (field === 'non_field_errors') {
-                            allMsgs.unshift(text as string)
-                        } else {
-                            allMsgs.push(`${field}：${text}`)
-                        }
-                    }
-                    if (allMsgs.length) msg = allMsgs.join('；')
-                }
-            } catch { /* 非 JSON 回應，保留預設訊息 */ }
-            throw new Error(msg)
-        }
-        const data: RawStaff = await res.json()
-        const newStaff = mapStaff(data)
-        staffAccounts.value.push(newStaff)
-        return newStaff
     }
 
     const deleteStaff = async (staffId: number) => {
-        const res = await apiRequest('/api/staff/' + staffId + '/', { method: 'DELETE' })
-        if (!res.ok) throw new Error('刪除員工失敗')
-        staffAccounts.value = staffAccounts.value.filter((s) => s.id !== staffId)
+        return run(async () => {
+            const res = await apiRequest('/api/staff/' + staffId + '/', { method: 'DELETE' })
+            if (!res.ok) throw new Error('刪除員工失敗')
+            staffAccounts.value = staffAccounts.value.filter((s) => s.id !== staffId)
+            staffCache.invalidate()
+            managersCache.invalidate()
+        })
     }
 
     const getStaffByManager = (managerId: number) => {

@@ -2,50 +2,32 @@ import { ref, computed, reactive } from 'vue'
 import { defineStore } from 'pinia'
 import { apiRequest } from '@/utils/api'
 import { parseApiError } from '@/utils/parseApiError'
+import { useStoreRequest } from '@/utils/useStoreRequest'
+import { useCache } from '@/utils/useCache'
 import type { Guest } from '@/types'
 
 export const useGuestsStore = defineStore('guests', () => {
 
     // ===== API State =====
     const guests = reactive<Guest[]>([])
-    const isLoading = ref(false)
-    const error = ref<string | null>(null)
+    const { loading: isLoading, error, run } = useStoreRequest()
+    const cache = useCache(30_000)
 
-    // ── 快取 ──────────────────────────────────────────────────────────────
-    const CACHE_TTL = 30_000 // 30 秒
-    const _lastFetched = ref(0)
-    const _lastFetchedEventId = ref<number | null>(null)
-
-    /**
-     * 取得活動貴賓 GET /api/guests/?event={eventId}
-     */
     const fetchGuests = async (eventId: number) => {
-        if (guests.length > 0 && _lastFetchedEventId.value === eventId && Date.now() - _lastFetched.value < CACHE_TTL) return
-        isLoading.value = true
-        error.value = null
-        try {
+        const key = String(eventId)
+        if (guests.length > 0 && cache.isValid(key)) return
+        await run(async () => {
             const res = await apiRequest(`/api/guests/?event=${eventId}`)
             if (!res.ok) throw new Error('取得貴賓列表失敗')
             const data = await res.json()
             guests.splice(0, guests.length)
             guests.push(...(data.results || data))
-            _lastFetched.value = Date.now()
-            _lastFetchedEventId.value = eventId
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        } finally {
-            isLoading.value = false
-        }
+            cache.touch(key)
+        })
     }
 
-    /**
-     * 建立貴賓 POST /api/guests/
-     */
-    const createGuest = async (payload: Partial<Guest>) => {
-        isLoading.value = true
-        error.value = null
-        try {
+    const createGuest = (payload: Partial<Guest>) =>
+        run(async () => {
             const res = await apiRequest('/api/guests/', {
                 method: 'POST',
                 body: JSON.stringify(payload),
@@ -54,21 +36,10 @@ export const useGuestsStore = defineStore('guests', () => {
             const newGuest: Guest = await res.json()
             guests.push(newGuest)
             return newGuest
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        } finally {
-            isLoading.value = false
-        }
-    }
+        })
 
-    /**
-     * 更新貴賓 PATCH /api/guests/{id}/
-     */
-    const updateGuest = async (id: number, payload: Partial<Guest>) => {
-        isLoading.value = true
-        error.value = null
-        try {
+    const updateGuest = (id: number, payload: Partial<Guest>) =>
+        run(async () => {
             const res = await apiRequest(`/api/guests/${id}/`, {
                 method: 'PATCH',
                 body: JSON.stringify(payload),
@@ -78,35 +49,17 @@ export const useGuestsStore = defineStore('guests', () => {
             const idx = guests.findIndex((g) => g.id === id)
             if (idx > -1) Object.assign(guests[idx], updated)
             return updated
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        } finally {
-            isLoading.value = false
-        }
-    }
+        })
 
-    /**
-     * 刪除貴賓 DELETE /api/guests/{id}/
-     */
-    const deleteGuest = async (id: number) => {
-        isLoading.value = true
-        error.value = null
-        try {
+    const deleteGuest = (id: number) =>
+        run(async () => {
             const res = await apiRequest(`/api/guests/${id}/`, { method: 'DELETE' })
             if (!res.ok) throw new Error('刪除貴賓失敗')
             const idx = guests.findIndex((g) => g.id === id)
             if (idx > -1) guests.splice(idx, 1)
-            // 同步從選中列表移除
             const selIdx = selectedGuests.value.findIndex((g) => g.id === id)
             if (selIdx > -1) selectedGuests.value.splice(selIdx, 1)
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        } finally {
-            isLoading.value = false
-        }
-    }
+        })
 
     // ===== Selection State（報名頁面預覽用）=====
     const selectedGuests = ref<Guest[]>([])
@@ -131,7 +84,6 @@ export const useGuestsStore = defineStore('guests', () => {
     const getSelectedGuests = computed(() => selectedGuests.value)
 
     return {
-        // API state
         guests,
         isLoading,
         error,
@@ -139,7 +91,6 @@ export const useGuestsStore = defineStore('guests', () => {
         createGuest,
         updateGuest,
         deleteGuest,
-        // Selection state
         selectedGuests,
         toggleGuest,
         isGuestSelected,

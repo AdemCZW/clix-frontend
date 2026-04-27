@@ -6,8 +6,8 @@
  * 正式環境：透過 VITE_API_BASE_URL 環境變數指定後端完整 URL
  */
 
-// 開發環境用相對路徑（Vite proxy 處理），正式環境用環境變數
-// 移除結尾斜線，避免拼接路徑時出現雙斜線
+import { getAccessToken, getRefreshToken, setTokens, clearAuth } from '@/utils/authStorage'
+
 const BASE_URL =
     (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 
@@ -18,29 +18,21 @@ type ApiRequestOptions = RequestInit & {
 let refreshPromise: Promise<string> | null = null
 
 const clearAuthAndRedirect = (): never => {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
-    localStorage.removeItem('user_data')
+    clearAuth()
     window.location.href = '/#/login'
     throw new Error('Authentication expired, please login again')
 }
 
-/**
- * 取得當前請求 headers（帶 Token）
- */
 const getHeaders = (): Record<string, string> => {
-    const token = localStorage.getItem('access_token')
+    const token = getAccessToken()
     return {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     }
 }
 
-/**
- * 使用 refresh_token 刷新 access_token
- */
 const refreshAccessToken = async (): Promise<string> => {
-    const refresh = localStorage.getItem('refresh_token')
+    const refresh = getRefreshToken()
     if (!refresh) throw new Error('No refresh token')
 
     const res = await fetch(`${BASE_URL}/api/auth/refresh/`, {
@@ -52,10 +44,7 @@ const refreshAccessToken = async (): Promise<string> => {
     if (!res.ok) throw new Error('Token refresh failed')
 
     const data: { access: string; refresh?: string } = await res.json()
-    localStorage.setItem('access_token', data.access)
-    if (data.refresh) {
-        localStorage.setItem('refresh_token', data.refresh)
-    }
+    setTokens(data.access, data.refresh)
     return data.access
 }
 
@@ -65,13 +54,9 @@ const refreshAccessTokenOnce = async (): Promise<string> => {
             refreshPromise = null
         })
     }
-
     return refreshPromise
 }
 
-/**
- * 帶超時的 fetch（預設 30 秒）
- */
 const fetchWithTimeout = (url: string, options: RequestInit = {}, timeoutMs = 30000): Promise<Response> => {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
@@ -83,18 +68,13 @@ const fetchWithTimeout = (url: string, options: RequestInit = {}, timeoutMs = 30
         .finally(() => clearTimeout(timer))
 }
 
-/**
- * 統一 API 請求，自動處理 401 → Token 刷新 → 重試
- */
 export const apiRequest = async (path: string, options: ApiRequestOptions = {}): Promise<Response> => {
     const url = `${BASE_URL}${path}`
     const { skipAuthRefresh = false, ...requestOptions } = options
 
-    // 若 body 是 FormData，讓瀏覽器自動設定 Content-Type（含 boundary）
-    // 否則統一帶 application/json
     const isFormData = requestOptions.body instanceof FormData
     const makeHeaders = (): Record<string, string> => {
-        const token = localStorage.getItem('access_token')
+        const token = getAccessToken()
         const auth: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
         if (isFormData) {
             return { ...auth, ...(requestOptions.headers as Record<string, string>) }
@@ -107,7 +87,6 @@ export const apiRequest = async (path: string, options: ApiRequestOptions = {}):
         headers: makeHeaders(),
     })
 
-    // 若 401，嘗試刷新 token 後重試一次
     if (!skipAuthRefresh && response.status === 401) {
         try {
             await refreshAccessTokenOnce()
@@ -120,7 +99,6 @@ export const apiRequest = async (path: string, options: ApiRequestOptions = {}):
             headers: makeHeaders(),
         })
 
-        // refresh 成功但重試仍 401 → Token 已被撤銷
         if (response.status === 401) {
             clearAuthAndRedirect()
         }

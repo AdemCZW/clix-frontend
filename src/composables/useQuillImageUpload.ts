@@ -1,5 +1,6 @@
 import { apiRequest } from '@/utils/api'
 import { compressImage } from '@/utils/imageCompress'
+import { useToast } from '@/composables/useToast'
 
 /**
  * Quill 編輯器圖片上傳 handler
@@ -18,6 +19,8 @@ export function setupQuillImageUpload(quillEditor: any) {
   const toolbar = quill.getModule('toolbar')
   if (!toolbar) return
 
+  const { error: toastError } = useToast()
+
   toolbar.addHandler('image', () => {
     const input = document.createElement('input')
     input.type = 'file'
@@ -29,7 +32,7 @@ export function setupQuillImageUpload(quillEditor: any) {
 
       // 限制 5MB
       if (file.size > 5 * 1024 * 1024) {
-        alert('圖片大小不能超過 5MB')
+        toastError('圖片大小不能超過 5MB')
         return
       }
 
@@ -45,7 +48,7 @@ export function setupQuillImageUpload(quillEditor: any) {
 
         if (!res.ok) {
           const err = await res.json().catch(() => null)
-          alert(err?.detail || '圖片上傳失敗')
+          toastError(err?.detail || '圖片上傳失敗')
           return
         }
 
@@ -54,7 +57,7 @@ export function setupQuillImageUpload(quillEditor: any) {
         quill.insertEmbed(range.index, 'image', data.url)
         quill.setSelection(range.index + 1)
       } catch {
-        alert('圖片上傳失敗，請檢查網路連線')
+        toastError('圖片上傳失敗，請檢查網路連線')
       }
     }
 

@@ -4,16 +4,27 @@ import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { useSeatsStore } from "@/stores/seats";
 import { useToast } from "@/composables/useToast";
+import { useConfirm } from "@/composables/useConfirm";
+import { useEventScopedLoader } from "@/composables/useEventScopedLoader";
 import { apiRequest } from "@/utils/api";
 import PageLoader from "@/components/shared/PageLoader.vue";
-import type { ParticipantType, Seat, SeatAttendee } from "@/types";
+import type { ParticipantType } from "@/types";
+import type { Seat } from "@/types";
+import type { SeatAttendee } from "@/types";
 
-interface SeatPerson { id: number; serial: string; name: string; company: string; type: ParticipantType; }
+interface SeatPerson {
+  id: number;
+  serial: string;
+  name: string;
+  company: string;
+  type: ParticipantType;
+}
 
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
 const seatsStore = useSeatsStore();
 const { success: toastSuccess, error: toastError } = useToast();
+const { confirm } = useConfirm();
 
 const panelOpen = ref(false);
 const mobileToolsOpen = ref(false);
@@ -492,9 +503,9 @@ const hasGuestsInFirstCol = () => {
   return false;
 };
 
-const removeRowBottom = () => {
+const removeRowBottom = async () => {
   if (rows.value <= 1) return;
-  if (hasGuestsInLastRow() && !confirm('最後一列有來賓，確定要刪除嗎？來賓將被移回未分配名單。')) return;
+  if (hasGuestsInLastRow() && !(await confirm({ message: '最後一列有來賓，確定要刪除嗎？來賓將被移回未分配名單。', confirmText: '確認刪除' }))) return;
   const seats = activitySeats[currentActivityId.value];
   if (!seats) return;
   const startDel = (rows.value - 1) * cols.value;
@@ -506,9 +517,9 @@ const removeRowBottom = () => {
   updateUnassignedList();
 };
 
-const removeRowTop = () => {
+const removeRowTop = async () => {
   if (rows.value <= 1) return;
-  if (hasGuestsInFirstRow() && !confirm('第一列有來賓，確定要刪除嗎？來賓將被移回未分配名單。')) return;
+  if (hasGuestsInFirstRow() && !(await confirm({ message: '第一列有來賓，確定要刪除嗎？來賓將被移回未分配名單。', confirmText: '確認刪除' }))) return;
   const seats = activitySeats[currentActivityId.value];
   if (!seats) return;
   const offset = cols.value;
@@ -521,9 +532,9 @@ const removeRowTop = () => {
   updateUnassignedList();
 };
 
-const removeColRight = () => {
+const removeColRight = async () => {
   if (cols.value <= 1) return;
-  if (hasGuestsInLastCol() && !confirm('最右欄有來賓，確定要刪除嗎？來賓將被移回未分配名單。')) return;
+  if (hasGuestsInLastCol() && !(await confirm({ message: '最右欄有來賓，確定要刪除嗎？來賓將被移回未分配名單。', confirmText: '確認刪除' }))) return;
   const seats = activitySeats[currentActivityId.value];
   if (!seats) return;
   const oldCols = cols.value;
@@ -543,9 +554,9 @@ const removeColRight = () => {
   updateUnassignedList();
 };
 
-const removeColLeft = () => {
+const removeColLeft = async () => {
   if (cols.value <= 1) return;
-  if (hasGuestsInFirstCol() && !confirm('最左欄有來賓，確定要刪除嗎？來賓將被移回未分配名單。')) return;
+  if (hasGuestsInFirstCol() && !(await confirm({ message: '最左欄有來賓，確定要刪除嗎？來賓將被移回未分配名單。', confirmText: '確認刪除' }))) return;
   const seats = activitySeats[currentActivityId.value];
   if (!seats) return;
   const oldCols = cols.value;
@@ -617,15 +628,15 @@ const loadEventData = async (eventId: number) => {
   }
 };
 
-watch(() => eventsStore.currentEvent?.id, (id) => {
-  if (id) loadEventData(id);
+const { loadCurrentEvent } = useEventScopedLoader(loadEventData, {
+  immediate: false,
 });
 
 onMounted(() => {
   const event = eventsStore.currentEvent;
   seatsStore.ensureActivity(currentActivityId.value);
   if (event?.id) {
-    loadEventData(event.id);
+    void loadCurrentEvent();
   } else {
     pageLoading.value = false;
   }

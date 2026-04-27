@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { reactive, ref, onMounted, computed, watch } from "vue";
+import { reactive, ref, onMounted, computed } from "vue";
 import { QuillEditor } from "@vueup/vue-quill";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
 import { useToast } from "@/composables/useToast";
+import { useConfirm } from "@/composables/useConfirm";
+import { useEventScopedLoader } from "@/composables/useEventScopedLoader";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { apiRequest } from "@/utils/api";
@@ -18,6 +20,7 @@ interface EmailTemplate {
 }
 
 const { success, warning } = useToast();
+const { confirm } = useConfirm();
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
 
@@ -188,16 +191,12 @@ const sendEmail = async () => {
   }
 
   const confirmMsg = [
-    `確定要發送郵件嗎？`,
-    ``,
     `主旨：${mailSettings.subject}`,
     `收件人數：${withEmail.length} 人`,
     noEmail > 0 ? `（${noEmail} 人無 Email 將被略過）` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ].filter(Boolean).join("\n");
 
-  if (!confirm(confirmMsg)) return;
+  if (!(await confirm({ title: '確定要發送郵件嗎？', message: confirmMsg, confirmText: '確認發送', danger: false }))) return;
 
   sending.value = true;
   try {
@@ -254,17 +253,17 @@ const loadEventParticipants = async (eventId?: number) => {
   }
 };
 
+const { loadCurrentEvent } = useEventScopedLoader(loadEventParticipants, {
+  immediate: false,
+});
+
 onMounted(async () => {
   loadTemplates();
   setTimeout(() => {
     if (myQuill.value) setupQuillImageUpload(myQuill.value);
   }, 100);
-  await loadEventParticipants(eventsStore.currentEvent?.id);
+  await loadCurrentEvent();
   pageLoading.value = false;
-});
-
-watch(() => eventsStore.currentEvent?.id, (id) => {
-  if (id) loadEventParticipants(id);
 });
 </script>
 

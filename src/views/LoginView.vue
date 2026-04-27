@@ -28,7 +28,6 @@ const handleLogin = async () => {
 
     if (result.success) {
       success("登入成功！");
-      localStorage.removeItem("current_event");
       const redirect = router.currentRoute.value.query.redirect as string | undefined;
       router.push(redirect || "/admin/dashboard");
     }

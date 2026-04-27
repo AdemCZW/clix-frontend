@@ -1,6 +1,17 @@
 import { defineStore } from "pinia"
 import { ref, computed } from "vue"
 import { apiRequest } from "@/utils/api"
+import {
+    getAccessToken,
+    getRefreshToken,
+    setTokens,
+    getStoredUser,
+    setStoredUser,
+    isJwtExpired,
+    clearAuth,
+    clearCurrentEventKeys,
+    clearAll,
+} from "@/utils/authStorage"
 import type { User, LoginResponse } from "@/types"
 
 export const useUserStore = defineStore("user", () => {
@@ -9,66 +20,24 @@ export const useUserStore = defineStore("user", () => {
     const authToken = ref<string | null>(null)
     const isSuperAdmin = computed(() => !!(user.value && user.value.is_superuser))
 
-    const clearAuthStorage = () => {
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('user_data')
-        clearCurrentEventKeys()
-    }
-
-    const isJwtExpired = (token: string) => {
-        try {
-            const payloadBase64 = token.split('.')[1]
-            if (!payloadBase64) return true
-
-            const normalized = payloadBase64.replace(/-/g, '+').replace(/_/g, '/')
-            const payload = JSON.parse(atob(normalized)) as { exp?: number }
-
-            if (!payload.exp) return false
-
-            return payload.exp * 1000 <= Date.now()
-        } catch {
-            return true
-        }
-    }
-
-    const clearCurrentEventKeys = () => {
-        localStorage.removeItem('current_event')
-        Object.keys(localStorage).forEach((key) => {
-            if (key.startsWith('current_event__')) {
-                localStorage.removeItem(key)
-            }
-        })
-    }
-
-    // 檢查是否已登入
     const checkAuth = () => {
-        const token = localStorage.getItem("access_token")
-        const userData = localStorage.getItem("user_data")
+        const token = getAccessToken()
+        const userData = getStoredUser<User>()
 
         if (!token || !userData || isJwtExpired(token)) {
             authToken.value = null
             user.value = null
             isAuthenticated.value = false
-            clearAuthStorage()
+            clearAll()
             return false
         }
 
-        try {
-            authToken.value = token
-            user.value = JSON.parse(userData) as User
-            isAuthenticated.value = true
-            return true
-        } catch {
-            authToken.value = null
-            user.value = null
-            isAuthenticated.value = false
-            clearAuthStorage()
-            return false
-        }
+        authToken.value = token
+        user.value = userData
+        isAuthenticated.value = true
+        return true
     }
 
-    // 登入 (呼叫 POST /api/auth/login/)
     const login = async (username: string, password: string) => {
         const res = await apiRequest('/api/auth/login/', {
             method: 'POST',
@@ -86,24 +55,21 @@ export const useUserStore = defineStore("user", () => {
 
         const data: LoginResponse = await res.json()
 
-        localStorage.setItem('access_token', data.access)
-        localStorage.setItem('refresh_token', data.refresh)
-        localStorage.setItem('user_data', JSON.stringify(data.user))
+        setTokens(data.access, data.refresh)
+        setStoredUser(data.user)
 
         authToken.value = data.access
         user.value = data.user
         isAuthenticated.value = true
 
-        // 每次登入都要求重新選擇活動
         clearCurrentEventKeys()
 
         return { success: true, user: data.user }
     }
 
-    // 登出 (呼叫 POST /api/auth/logout/)
     const logout = async () => {
         try {
-            const refresh = localStorage.getItem('refresh_token')
+            const refresh = getRefreshToken()
             if (refresh) {
                 await apiRequest('/api/auth/logout/', {
                     method: 'POST',
@@ -119,7 +85,7 @@ export const useUserStore = defineStore("user", () => {
         user.value = null
         isAuthenticated.value = false
 
-        clearAuthStorage()
+        clearAll()
     }
 
     return {

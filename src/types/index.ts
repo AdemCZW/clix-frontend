@@ -110,13 +110,6 @@ export interface RawParticipant {
 // ── Toast ──────────────────────────────────────────────
 export type ToastType = 'info' | 'success' | 'error' | 'warning'
 
-export interface ToastState {
-  show: boolean
-  message: string
-  type: ToastType
-  duration: number
-}
-
 // ── 貴賓 ──────────────────────────────────────────────
 export interface Guest {
   id: number

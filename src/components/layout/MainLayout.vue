@@ -4,6 +4,7 @@ import { useRouter, useRoute } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { useEventsStore } from "@/stores/events";
 import { useToast } from "@/composables/useToast";
+import { useEventSwitcher } from "@/composables/useEventSwitcher";
 import OnboardingModal from "@/components/onboarding/OnboardingModal.vue";
 import ThemeToggle from "@/components/ThemeToggle.vue";
 
@@ -12,6 +13,7 @@ const route = useRoute();
 const userStore = useUserStore();
 const eventsStore = useEventsStore();
 const { success } = useToast();
+const { switchEvent } = useEventSwitcher();
 
 const sidebarOpen = ref(false);
 const globalSearch = ref("");
@@ -80,7 +82,7 @@ const navigateTo = (path: string) => {
 };
 
 const handleOnboardingComplete = (data: any) => {
-  eventsStore.setCurrentEvent(data.event, userStore.user?.id);
+  switchEvent(data.event);
   showOnboarding.value = false;
 };
 
@@ -95,7 +97,7 @@ const handleLogout = async () => {
 // 活動切換下拉
 const showEventDropdown = ref(false);
 const selectEvent = (event: any) => {
-  eventsStore.setCurrentEvent(event, userStore.user?.id);
+  switchEvent(event);
   showEventDropdown.value = false;
 };
 </script>

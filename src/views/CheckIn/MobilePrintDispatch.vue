@@ -3,6 +3,7 @@ import { ref, computed, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import jsQR from "jsqr";
 import { apiRequest } from "@/utils/api";
+import { getAccessToken } from "@/utils/authStorage";
 import type { Participant } from "@/types";
 import LogoSpinner from '@/components/shared/LogoSpinner.vue';
 
@@ -129,7 +130,7 @@ const sendToStation = async (slot) => {
 
   try {
     await new Promise<void>((resolve, reject) => {
-      const token = localStorage.getItem("access_token") || "";
+      const token = getAccessToken() || "";
       const tokenParam = token ? `?token=${token}` : "";
       const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/${tokenParam}`);
 

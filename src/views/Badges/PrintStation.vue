@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import QRCodeLib from "qrcode";
+import { getAccessToken } from "@/utils/authStorage";
 
 const route = useRoute();
 const slot = computed(() => String(route.params.slot || "1"));
@@ -79,7 +80,7 @@ function connectWebSocket() {
     .replace(/\/$/, "")
     .replace(/^https/, "wss")
     .replace(/^http/, "ws");
-  const token = localStorage.getItem("access_token") || "";
+  const token = getAccessToken() || "";
   const tokenParam = token ? `?token=${token}` : "";
   wsInstance = new WebSocket(`${wsBase}/ws/print/${sessionId.value}/${tokenParam}`);
   wsInstance.onopen  = () => { wsStatus.value = "connected"; };

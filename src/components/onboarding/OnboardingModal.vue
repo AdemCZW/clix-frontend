@@ -238,6 +238,7 @@
 import { ref, reactive, computed, watch } from "vue";
 import { useUserStore } from "@/stores/user";
 import { useEventsStore } from "@/stores/events";
+import { useToast } from "@/composables/useToast";
 
 const props = defineProps({
   show: {
@@ -254,6 +255,7 @@ const emit = defineEmits(["close", "complete"]);
 
 const userStore = useUserStore();
 const eventsStore = useEventsStore();
+const { error: toastError } = useToast();
 
 const currentStep = ref(1);
 
@@ -292,7 +294,7 @@ const createAndSelect = async () => {
     });
     emit('complete', { event: created });
   } catch (err: unknown) {
-    alert((err as Error).message || '建立活動失敗');
+    toastError((err as Error).message || '建立活動失敗');
   } finally {
     isCreating.value = false;
   }

@@ -248,6 +248,7 @@ import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { useUserStore } from "@/stores/user";
 import { useCheckinStats } from "@/composables/useCheckinStats";
+import { useEventSwitcher } from "@/composables/useEventSwitcher";
 import PageLoader from "@/components/shared/PageLoader.vue";
 
 const router = useRouter();
@@ -424,12 +425,10 @@ const loadDashboard = async () => {
 
 onMounted(loadDashboard);
 
+const { switchEvent } = useEventSwitcher();
 const selectEvent = (displayEvent) => {
   const storeEvent = eventsStore.events.find((e) => e.id === displayEvent.id);
-  if (storeEvent) {
-    eventsStore.setCurrentEvent(storeEvent, userStore.user?.id);
-  }
-  router.push("/admin/checkin-history");
+  if (storeEvent) switchEvent(storeEvent, "/admin/checkin-history");
 };
 </script>
 
