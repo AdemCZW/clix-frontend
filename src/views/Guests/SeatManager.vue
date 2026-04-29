@@ -706,15 +706,34 @@ watch(() => participantsStore.participants.length, () => {
       <!-- 工具列（桌機） -->
       <div class="sp-toolbar sp-toolbar-desktop">
         <div class="sp-grid-btns">
-          <button class="sp-tb sm" @click="addRowTop" title="上方新增一列">↑+</button>
-          <button class="sp-tb sm" @click="addRowBottom" title="下方新增一列">↓+</button>
-          <button class="sp-tb sm" @click="addColLeft" title="左側新增一欄">←+</button>
-          <button class="sp-tb sm" @click="addColRight" title="右側新增一欄">→+</button>
-          <span class="sp-tb-divider"></span>
-          <button class="sp-tb sm del" @click="removeRowTop" title="刪除第一列">↑−</button>
-          <button class="sp-tb sm del" @click="removeRowBottom" title="刪除最後一列">↓−</button>
-          <button class="sp-tb sm del" @click="removeColLeft" title="刪除最左欄">←−</button>
-          <button class="sp-tb sm del" @click="removeColRight" title="刪除最右欄">→−</button>
+          <div class="sp-btn-group add">
+            <button class="sp-grid-btn add" @click="addRowTop" title="上方新增一列">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="10"/><polyline points="5,5.5 8,3 11,5.5"/><line x1="4" y1="13" x2="12" y2="13"/></svg>
+            </button>
+            <button class="sp-grid-btn add" @click="addRowBottom" title="下方新增一列">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="8" y1="6" x2="8" y2="13"/><polyline points="5,10.5 8,13 11,10.5"/><line x1="4" y1="3" x2="12" y2="3"/></svg>
+            </button>
+            <button class="sp-grid-btn add" @click="addColLeft" title="左側新增一欄">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="8" x2="10" y2="8"/><polyline points="5.5,5 3,8 5.5,11"/><line x1="13" y1="4" x2="13" y2="12"/></svg>
+            </button>
+            <button class="sp-grid-btn add" @click="addColRight" title="右側新增一欄">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="6" y1="8" x2="13" y2="8"/><polyline points="10.5,5 13,8 10.5,11"/><line x1="3" y1="4" x2="3" y2="12"/></svg>
+            </button>
+          </div>
+          <div class="sp-btn-group del">
+            <button class="sp-grid-btn del" @click="removeRowTop" title="刪除第一列">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="10"/><polyline points="5,5.5 8,3 11,5.5"/><line x1="4" y1="13" x2="12" y2="13" stroke-dasharray="2,2"/></svg>
+            </button>
+            <button class="sp-grid-btn del" @click="removeRowBottom" title="刪除最後一列">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="8" y1="6" x2="8" y2="13"/><polyline points="5,10.5 8,13 11,10.5"/><line x1="4" y1="3" x2="12" y2="3" stroke-dasharray="2,2"/></svg>
+            </button>
+            <button class="sp-grid-btn del" @click="removeColLeft" title="刪除最左欄">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="8" x2="10" y2="8"/><polyline points="5.5,5 3,8 5.5,11"/><line x1="13" y1="4" x2="13" y2="12" stroke-dasharray="2,2"/></svg>
+            </button>
+            <button class="sp-grid-btn del" @click="removeColRight" title="刪除最右欄">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="6" y1="8" x2="13" y2="8"/><polyline points="10.5,5 13,8 10.5,11"/><line x1="3" y1="4" x2="3" y2="12" stroke-dasharray="2,2"/></svg>
+            </button>
+          </div>
         </div>
         <span class="sp-tb-divider"></span>
         <span class="sp-grid-info">{{ rows }} × {{ cols }}</span>
@@ -739,19 +758,19 @@ watch(() => participantsStore.participants.length, () => {
           <div class="sp-mt-section">
             <span class="sp-mt-label">增加</span>
             <div class="sp-mt-btns">
-              <button @click="addRowTop">↑ 列</button>
-              <button @click="addRowBottom">↓ 列</button>
-              <button @click="addColLeft">← 欄</button>
-              <button @click="addColRight">→ 欄</button>
+              <button @click="addRowTop"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="10"/><polyline points="5,5.5 8,3 11,5.5"/><line x1="4" y1="13" x2="12" y2="13"/></svg> 上列</button>
+              <button @click="addRowBottom"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="8" y2="13"/><polyline points="5,10.5 8,13 11,10.5"/><line x1="4" y1="3" x2="12" y2="3"/></svg> 下列</button>
+              <button @click="addColLeft"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="8" x2="10" y2="8"/><polyline points="5.5,5 3,8 5.5,11"/><line x1="13" y1="4" x2="13" y2="12"/></svg> 左欄</button>
+              <button @click="addColRight"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="8" x2="13" y2="8"/><polyline points="10.5,5 13,8 10.5,11"/><line x1="3" y1="4" x2="3" y2="12"/></svg> 右欄</button>
             </div>
           </div>
           <div class="sp-mt-section">
             <span class="sp-mt-label">刪除</span>
             <div class="sp-mt-btns">
-              <button class="del" @click="removeRowTop">↑ 列</button>
-              <button class="del" @click="removeRowBottom">↓ 列</button>
-              <button class="del" @click="removeColLeft">← 欄</button>
-              <button class="del" @click="removeColRight">→ 欄</button>
+              <button class="del" @click="removeRowTop"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="10"/><polyline points="5,5.5 8,3 11,5.5"/><line x1="4" y1="13" x2="12" y2="13" stroke-dasharray="2,2"/></svg> 上列</button>
+              <button class="del" @click="removeRowBottom"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="8" y2="13"/><polyline points="5,10.5 8,13 11,10.5"/><line x1="4" y1="3" x2="12" y2="3" stroke-dasharray="2,2"/></svg> 下列</button>
+              <button class="del" @click="removeColLeft"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="8" x2="10" y2="8"/><polyline points="5.5,5 3,8 5.5,11"/><line x1="13" y1="4" x2="13" y2="12" stroke-dasharray="2,2"/></svg> 左欄</button>
+              <button class="del" @click="removeColRight"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="8" x2="13" y2="8"/><polyline points="10.5,5 13,8 10.5,11"/><line x1="3" y1="4" x2="3" y2="12" stroke-dasharray="2,2"/></svg> 右欄</button>
             </div>
           </div>
           <button class="sp-mt-link" @click="openMonitor">即時監控</button>
@@ -981,13 +1000,27 @@ watch(() => participantsStore.participants.length, () => {
 .sp-toolbar { display:flex; align-items:center; gap:6px; margin-bottom:12px; background:var(--bg-card); padding:6px 10px; border-radius:10px; border:1px solid var(--border-color); }
 .sp-tb { padding:7px 12px; border:none; background:transparent; border-radius:7px; cursor:pointer; font-size:.82rem; font-weight:500; color:var(--text-muted); transition:.15s; }
 .sp-tb:hover { background:var(--bg-hover); color:var(--text-secondary); }
-.sp-tb.sm { padding:5px 8px; font-size:.75rem; font-weight:700; min-width:32px; text-align:center; }
-.sp-tb.del { color:var(--danger, #ef4444); }
-.sp-tb.del:hover { background:rgba(239,68,68,.08); color:#dc2626; }
 .sp-tb.save { background:#167A67; color:#fff; font-weight:600; }
 .sp-tb.save:hover { background:#0f5d4e; }
 .sp-tb.save:disabled { opacity:.5; cursor:not-allowed; }
-.sp-grid-btns { display:flex; align-items:center; gap:2px; }
+.sp-grid-btns { display:flex; align-items:center; gap:8px; }
+.sp-btn-group {
+  display:flex; align-items:center; gap:0; border-radius:8px; overflow:hidden;
+  border:1px solid var(--border-color); background:var(--bg-primary);
+}
+.sp-btn-group.del { border-color:rgba(239,68,68,.25); }
+.sp-grid-btn {
+  display:flex; align-items:center; justify-content:center;
+  width:34px; height:32px; border:none; background:transparent;
+  cursor:pointer; transition:all .15s; color:var(--text-muted); position:relative;
+}
+.sp-grid-btn + .sp-grid-btn { border-left:1px solid var(--border-color); }
+.sp-btn-group.del .sp-grid-btn + .sp-grid-btn { border-left-color:rgba(239,68,68,.2); }
+.sp-grid-btn.add:hover { background:rgba(22,122,103,.08); color:#167A67; }
+.sp-grid-btn.add:active { background:rgba(22,122,103,.15); }
+.sp-grid-btn.del { color:rgba(239,68,68,.6); }
+.sp-grid-btn.del:hover { background:rgba(239,68,68,.08); color:#ef4444; }
+.sp-grid-btn.del:active { background:rgba(239,68,68,.15); }
 .sp-tb-divider { width:1px; height:20px; background:var(--border-color); margin:0 6px; flex-shrink:0; }
 .sp-grid-info { font-size:.78rem; font-weight:600; color:var(--text-muted); padding:0 4px; }
 
@@ -1106,13 +1139,15 @@ watch(() => participantsStore.participants.length, () => {
   .sp-mt-label { font-size:.72rem; font-weight:700; color:var(--text-muted); min-width:28px; }
   .sp-mt-btns { display:flex; gap:4px; flex-wrap:wrap; }
   .sp-mt-btns button {
-    padding:5px 10px; border:1px solid var(--border-color); background:var(--bg-primary);
-    border-radius:6px; font-size:.74rem; font-weight:600; color:var(--text-secondary);
+    display:flex; align-items:center; gap:4px;
+    padding:6px 10px; border:1px solid var(--border-color); background:var(--bg-primary);
+    border-radius:8px; font-size:.74rem; font-weight:600; color:var(--text-secondary);
     cursor:pointer; transition:.15s;
   }
   .sp-mt-btns button:active { background:var(--bg-hover); }
-  .sp-mt-btns button.del { color:#ef4444; border-color:#fecaca; }
+  .sp-mt-btns button.del { color:#ef4444; border-color:rgba(239,68,68,.25); }
   .sp-mt-btns button.del:active { background:#fef2f2; }
+  .sp-mt-btns button svg { flex-shrink:0; }
   .sp-mt-link {
     padding:6px; border:none; background:transparent; color:#167A67;
     font-size:.8rem; font-weight:600; cursor:pointer; text-align:left;
