@@ -1063,7 +1063,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 
 /* 活動地點 */
 .venue-section { margin-top: 40px; padding-top: 32px; border-top: 1px solid #e2e8f0; }
-.section-heading { font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0 0 16px; }
+.section-heading { font-size: 1.3rem; font-weight: 800; color: #0f172a; margin: 0 0 16px; }
 .venue-info { display: flex; gap: 10px; align-items: flex-start; }
 .venue-info svg { flex-shrink: 0; margin-top: 3px; }
 .venue-info strong { font-size: .92rem; color: #0f172a; }
@@ -1169,25 +1169,29 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   .hero-banner img { max-height: 240px; }
   .info-layout {
     grid-template-columns: 1fr;
-    padding: 16px 16px 220px;
+    padding: 0 0 200px;
     gap: 0;
+  }
+  .info-main {
+    padding: 0;
   }
   .info-sidebar { display: none; }
   .sidebar-sticky { position: static; }
   .sidebar-banner img { max-height: 240px; object-fit: cover; }
-  .page-footer { flex-direction: column; gap: 4px; text-align: center; }
+  .page-footer { flex-direction: column; gap: 4px; text-align: center; padding: 16px; }
   .mobile-only { display: block; }
   .desktop-only { display: none; }
 
-  /* 手機版字型放大 */
-  .p-tag { font-size: 0.7rem; padding: 5px 14px; margin-bottom: 16px; }
-  .p-title { font-size: 1.6rem; margin-bottom: 12px; }
-  .p-sub-tags { font-size: .82rem; margin-bottom: 20px; }
-  .p-main-body-render { font-size: 1rem; line-height: 2; }
-  .p-main-body-render :deep(h1) { font-size: 1.35rem; }
-  .p-main-body-render :deep(h2) { font-size: 1.15rem; }
-  .p-main-body-render :deep(h3) { font-size: 1.05rem; }
-  .section-heading { font-size: 1.15rem; }
+  /* 手機版字型 */
+  .p-tag { font-size: 0.7rem; padding: 5px 14px; margin-bottom: 10px; }
+  .p-title { font-size: 1.5rem; margin-bottom: 10px; line-height: 1.35; }
+  .p-sub-tags { font-size: .8rem; margin-bottom: 16px; }
+  .p-main-body-render { font-size: .95rem; line-height: 1.85; margin-bottom: 24px; }
+  .p-main-body-render :deep(h1) { font-size: 1.25rem; }
+  .p-main-body-render :deep(h2) { font-size: 1.1rem; }
+  .p-main-body-render :deep(h3) { font-size: 1rem; }
+  .section-heading { font-size: 1.2rem; margin-bottom: 12px; }
+  .venue-section { margin-top: 28px; padding-top: 24px; }
 }
 
 /* ─── Form View ─── */
