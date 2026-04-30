@@ -42,25 +42,23 @@ const handleLogin = async () => {
 
 <template>
   <div class="login-page">
-    <!-- 幾何背景 -->
-    <div class="geo-bg">
-      <div class="geo-base"></div>
-      <div class="geo-green-left"></div>
-      <div class="geo-green-center"></div>
-      <div class="geo-gold-right"></div>
-      <div class="geo-gold-top"></div>
-      <div class="geo-dark-bottom"></div>
-    </div>
+    <!-- 幾何 SVG 背景 -->
+    <svg class="geo-bg" viewBox="0 0 1000 700" preserveAspectRatio="none" aria-hidden="true">
+      <!-- 綠色底 -->
+      <rect width="1000" height="700" fill="#167A67"/>
+      <!-- 右側黃色色塊（含右下小綠角） -->
+      <polygon points="600,0 1000,0 1000,595 880,700 500,700 300,210" fill="#E0A800"/>
+      <!-- 左下黃色三角 -->
+      <polygon points="0,350 0,700 500,700" fill="#E0A800"/>
+    </svg>
 
     <!-- 內容層 -->
     <div class="login-content">
-      <!-- 左側文案 -->
       <div class="login-hero">
         <h1 class="hero-title">一鍵啟動<br/>開啟您的全方位活動管理</h1>
         <p class="hero-desc">專業的自動化流程管理，從建立到售票，助您輕鬆應對每一場挑戰</p>
       </div>
 
-      <!-- 右側登入卡 -->
       <div class="login-card">
         <div class="card-logo">
           <img src="/clix-logo.svg" alt="CLIX" class="clix-logo" />
@@ -95,14 +93,14 @@ const handleLogin = async () => {
           </label>
 
           <button type="submit" class="btn-login" :disabled="loading">
-            <span v-if="!loading">登 入</span>
+            <span v-if="!loading">登入</span>
             <span v-else class="loading-text">
               <span class="spinner"></span>
               登入中...
             </span>
           </button>
 
-          <p class="signup-hint">還沒有帳號嗎？去問 Shawn</p>
+          <p class="signup-hint">還沒有帳號嗎？<a href="#">去問 Shawn</a></p>
         </form>
       </div>
     </div>
@@ -123,69 +121,9 @@ const handleLogin = async () => {
 .geo-bg {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: 0;
-}
-
-.geo-base {
-  position: absolute;
-  inset: 0;
-  background: #4a7c6f;
-}
-
-/* 左側深綠三角 */
-.geo-green-left {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 55%;
-  height: 100%;
-  background: #3d6b5e;
-  clip-path: polygon(0 0, 100% 0, 60% 100%, 0 100%);
-}
-
-/* 中央綠色三角（交疊） */
-.geo-green-center {
-  position: absolute;
-  top: 0;
-  left: 15%;
-  width: 50%;
-  height: 100%;
-  background: #2f5a4e;
-  clip-path: polygon(30% 0, 100% 0, 50% 100%, 0 100%);
-}
-
-/* 右側金色三角 */
-.geo-gold-right {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 50%;
-  height: 100%;
-  background: #d4a843;
-  clip-path: polygon(40% 0, 100% 0, 100% 100%, 10% 100%);
-}
-
-/* 右上角較深的金色 */
-.geo-gold-top {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 35%;
-  height: 60%;
-  background: #c49a38;
-  clip-path: polygon(30% 0, 100% 0, 100% 100%);
-}
-
-/* 底部暗色三角 */
-.geo-dark-bottom {
-  position: absolute;
-  bottom: 0;
-  left: 20%;
-  width: 60%;
-  height: 40%;
-  background: #2a4f44;
-  clip-path: polygon(0 100%, 50% 20%, 100% 100%);
-  opacity: 0.4;
 }
 
 /* ─── 內容層 ─── */
@@ -195,44 +133,44 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 80px;
+  gap: 60px;
   width: 100%;
-  max-width: 1100px;
-  padding: 40px;
+  max-width: 1200px;
+  padding: 60px;
 }
 
 /* ─── 左側文案 ─── */
 .login-hero {
   flex: 1;
-  max-width: 480px;
+  max-width: 540px;
 }
 
 .hero-title {
-  font-size: 2.8rem;
+  font-size: 3rem;
   font-weight: 900;
   color: #fff;
   line-height: 1.3;
-  margin: 0 0 20px;
-  letter-spacing: -0.02em;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  margin: 0 0 24px;
+  letter-spacing: -0.01em;
 }
 
 .hero-desc {
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.85);
   line-height: 1.7;
   margin: 0;
-  max-width: 380px;
+  max-width: 460px;
+  font-weight: 500;
 }
 
 /* ─── 右側登入卡 ─── */
 .login-card {
-  width: 400px;
+  width: 380px;
   flex-shrink: 0;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 40px 36px 32px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
   animation: cardIn 0.5s ease-out;
 }
 
@@ -247,7 +185,7 @@ const handleLogin = async () => {
 }
 
 .clix-logo {
-  height: 44px;
+  height: 48px;
   width: auto;
 }
 
@@ -263,7 +201,7 @@ const handleLogin = async () => {
 
 .form-label {
   display: block;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   font-weight: 600;
   color: #334155;
   margin-bottom: 8px;
@@ -280,12 +218,10 @@ const handleLogin = async () => {
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
 
-  &::placeholder { color: #94a3b8; }
-
   &:focus {
     outline: none;
     border-color: #167A67;
-    box-shadow: 0 0 0 3px rgba(22, 122, 103, 0.1);
+    box-shadow: 0 0 0 3px rgba(22, 122, 103, 0.12);
   }
 
   &:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -296,9 +232,9 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
   cursor: pointer;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   color: #334155;
   font-weight: 500;
   user-select: none;
@@ -316,12 +252,12 @@ const handleLogin = async () => {
   width: 100%;
   padding: 14px;
   border: none;
-  border-radius: 8px;
+  border-radius: 999px;
   background: #1e293b;
   color: #fff;
   font-size: 1rem;
   font-weight: 700;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.3em;
   cursor: pointer;
   transition: background 0.2s, transform 0.1s;
 
@@ -335,6 +271,7 @@ const handleLogin = async () => {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  letter-spacing: 0.05em;
 }
 
 .spinner {
@@ -352,11 +289,16 @@ const handleLogin = async () => {
 .signup-hint {
   text-align: center;
   font-size: 0.82rem;
-  color: #64748b;
-  margin: 16px 0 0;
+  color: #475569;
+  margin: 14px 0 0;
+  font-weight: 500;
 
-  a { color: #167A67; font-weight: 600; text-decoration: none; }
-  a:hover { text-decoration: underline; }
+  a {
+    color: #475569;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  a:hover { color: #167A67; }
 }
 
 /* ─── RWD ─── */
@@ -372,17 +314,13 @@ const handleLogin = async () => {
     max-width: 100%;
   }
 
-  .hero-title { font-size: 1.8rem; }
+  .hero-title { font-size: 1.9rem; }
   .hero-desc { max-width: 100%; margin: 0 auto; font-size: 0.9rem; }
 
   .login-card {
     width: 100%;
     max-width: 400px;
   }
-
-  /* 手機版背景微調 — 金色區域縮小避免壓過文字 */
-  .geo-gold-right { clip-path: polygon(55% 0, 100% 0, 100% 100%, 25% 100%); }
-  .geo-gold-top { width: 40%; height: 50%; }
 }
 
 @media (max-width: 480px) {
@@ -391,24 +329,22 @@ const handleLogin = async () => {
     padding: 48px 16px 32px;
   }
 
-  .login-hero { margin-bottom: 0; }
-  .hero-title { font-size: 1.5rem; margin-bottom: 12px; }
+  .hero-title { font-size: 1.55rem; margin-bottom: 12px; }
   .hero-desc { font-size: 0.82rem; line-height: 1.6; }
 
   .login-card {
     padding: 28px 20px 24px;
-    border-radius: 14px;
-    max-width: 100%;
+    border-radius: 16px;
   }
 
   .card-logo { margin-bottom: 24px; }
-  .clix-logo { height: 36px; }
+  .clix-logo { height: 38px; }
 
   .form-group { margin-bottom: 16px; }
-  .form-label { font-size: 0.82rem; margin-bottom: 6px; }
-  .form-input { padding: 11px 12px; font-size: 0.9rem; }
-  .remember-row { margin-bottom: 20px; font-size: 0.82rem; }
-  .btn-login { padding: 13px; font-size: 0.95rem; }
+  .form-label { font-size: 0.86rem; margin-bottom: 6px; }
+  .form-input { padding: 11px 12px; font-size: 0.92rem; }
+  .remember-row { margin-bottom: 22px; font-size: 0.86rem; }
+  .btn-login { padding: 13px; font-size: 0.95rem; letter-spacing: 0.25em; }
   .signup-hint { font-size: 0.78rem; margin-top: 14px; }
 }
 </style>
