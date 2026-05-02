@@ -180,6 +180,7 @@ const pageData = computed(() => (store.page as {
   formFields?: Array<{
     id?: number | string
     label: string
+    field_key?: string
     field_type?: string
     is_required?: boolean
     is_hidden?: boolean
@@ -212,13 +213,16 @@ const pageData = computed(() => (store.page as {
   event_status_text?: string
 } | null) ?? null)
 
-// 取得非隱藏、非固定的自定義欄位（相容 snake_case 與 camelCase）
+// 已有專屬 UI 的系統欄位（name/email/phone）— 不渲染避免重複
+const HARDCODED_KEYS = new Set(['name', 'email', 'phone'])
+
+// 取得會渲染到表單中的欄位：未隱藏 + 不在 hardcoded UI 中
 const customFields = computed(() => {
   const fields = pageData.value?.formFields || []
   return fields.filter((f) => {
-    const hidden = f.is_hidden ?? false
-    const fixed  = f.is_fixed  ?? false
-    return !hidden && !fixed
+    if (f.is_hidden) return false
+    if (f.field_key && HARDCODED_KEYS.has(f.field_key)) return false
+    return true
   })
 })
 
@@ -391,22 +395,49 @@ const handleSubmit = async () => {
   if (!validate()) return
   submitting.value = true
   try {
-    // 組合自定義欄位值
+    // 分離系統欄位（buyer_*/note/promo_code）vs 真正自訂欄位（form_answers）
+    const buyer: Record<string, string> = {}
+    let note = ''
+    let promoCode = ''
     const customData: Record<string, string> = {}
+
     customFields.value.forEach((f) => {
       const key = String(f.id ?? f.label)
-      if (dynamicValues[key] !== undefined && dynamicValues[key] !== '') {
-        customData[f.label] = dynamicValues[key]
+      const val = (dynamicValues[key] ?? '').trim()
+      if (!val) return
+
+      switch (f.field_key) {
+        case 'buyer_name':  buyer.name = val; break
+        case 'buyer_email': buyer.email = val; break
+        case 'buyer_phone': buyer.phone = val; break
+        case 'note':        note = val; break
+        case 'promo_code':  promoCode = val; break
+        default:
+          // 真正的自訂欄位（沒有 field_key 或非系統 key）
+          customData[f.label] = val
       }
     })
+
+    // 訂購人預設沿用參加人（若主辦未開啟訂購人欄位）
+    const buyerPayload = {
+      name: buyer.name || form.name,
+      email: buyer.email || form.email,
+      phone: buyer.phone || form.phone,
+    }
+
     await store.submitRegistration(shortLink, {
-      name: form.name,
-      email: form.email,
-      phone: form.phone,
-      company: form.company || undefined,
-      title: form.title || undefined,
-      type: form.type,
-      ...Object.keys(customData).length > 0 ? { custom_fields: customData } : {},
+      buyer: buyerPayload,
+      attendees: [{
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        company: form.company || undefined,
+        title: form.title || undefined,
+        type: form.type,
+        ...Object.keys(customData).length > 0 ? { form_answers: customData } : {},
+      }],
+      ...(note ? { note } : {}),
+      ...(promoCode ? { promo_code: promoCode } : {}),
     })
     removeSavedDraft()
   } catch {
