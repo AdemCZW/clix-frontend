@@ -1,1 +1,0 @@
-var e=`/clix-logo.svg`;export{e as t};

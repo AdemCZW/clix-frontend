@@ -67,8 +67,16 @@
         class="event-row"
       >
         <!-- 縮圖 -->
-        <div class="row-thumb" :style="event.banner ? { backgroundImage: `url(${event.banner})` } : {}">
-          <div v-if="!event.banner" class="thumb-placeholder">CLIX</div>
+        <div class="row-thumb">
+          <img
+            v-if="event.banner"
+            :src="event.banner"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            class="thumb-img"
+          />
+          <div v-else class="thumb-placeholder">CLIX</div>
         </div>
 
         <!-- 標題 + 建立日期 -->
@@ -615,17 +623,24 @@ const createEvent = async () => {
   height: 88px;
   border-radius: 8px;
   background-color: #cad2c5;
-  background-size: cover;
-  background-position: center;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  position: relative;
+
+  .thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
 
   .thumb-placeholder {
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.7);
     font-weight: 700;
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     letter-spacing: 0.1em;
   }
 }
@@ -773,45 +788,130 @@ const createEvent = async () => {
 /* ── RWD ── */
 @media (max-width: 1100px) {
   .event-row {
-    grid-template-columns: 100px 1fr;
-    gap: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    grid-template-columns: none;
+    gap: 14px;
+    padding: 16px;
   }
 
-  .row-vline,
-  .row-info,
+  .row-thumb { width: 110px; height: 75px; }
+
+  .row-title-block {
+    flex: 1;
+    min-width: 0;
+    align-self: center;
+  }
+
+  .row-vline { display: none; }
+
+  .row-info {
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px dashed #e5e7eb;
+  }
+
   .row-actions {
-    grid-column: 1 / -1;
+    width: 100%;
+    gap: 22px;
+    flex-wrap: wrap;
+    padding-top: 4px;
+    margin-right: 0;
   }
 
-  .row-info { padding-top: 8px; border-top: 1px dashed #e5e7eb; }
-  .row-actions { gap: 16px; flex-wrap: wrap; }
   .row-status {
     position: static;
     align-self: flex-start;
-    grid-column: 1 / -1;
-    width: fit-content;
+    order: 99;
   }
 }
 
 @media (max-width: 768px) {
-  .events-view { padding: 16px; }
+  .events-view {
+    padding: 16px;
+    border-radius: 12px;
+  }
 
-  .page-title { font-size: 1.4rem; }
+  .page-title { font-size: 1.5rem; }
+
+  .btn-create {
+    padding: 9px 16px;
+    font-size: 0.88rem;
+  }
 
   .tabs {
-    gap: 18px;
+    gap: 22px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     &::-webkit-scrollbar { display: none; }
   }
 
-  .tab { white-space: nowrap; font-size: 0.88rem; }
+  .tab {
+    white-space: nowrap;
+    font-size: 0.95rem;
+    padding: 10px 0;
+  }
 
-  .row-thumb { width: 80px; height: 60px; }
-  .row-title { font-size: 0.92rem; }
-  .info-line { font-size: 0.8rem; }
-  .row-link { font-size: 0.82rem; }
+  .event-row {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .row-thumb { width: 100px; height: 70px; }
+
+  .row-title {
+    font-size: 1rem;
+    -webkit-line-clamp: 3;
+  }
+
+  .row-meta { font-size: 0.85rem; }
+
+  .info-line {
+    font-size: 0.88rem;
+    .info-icon { width: 16px; height: 16px; }
+  }
+
+  .row-link { font-size: 0.92rem; }
+
+  .row-status {
+    font-size: 0.8rem;
+    padding: 4px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .events-view {
+    padding: 14px 12px;
+    border-radius: 10px;
+  }
+
+  .page-title { font-size: 1.3rem; }
+
+  .btn-create {
+    padding: 8px 14px;
+    font-size: 0.82rem;
+  }
+
+  .tabs {
+    gap: 18px;
+  }
+
+  .tab { font-size: 0.9rem; }
+
+  .row-thumb { width: 90px; height: 64px; }
+
+  .row-title { font-size: 0.95rem; }
+  .row-meta { font-size: 0.8rem; }
+  .info-line { font-size: 0.84rem; }
+
+  .row-actions {
+    gap: 14px;
+  }
+
+  .row-link { font-size: 0.86rem; }
 }
 
 // 表單共用樣式
