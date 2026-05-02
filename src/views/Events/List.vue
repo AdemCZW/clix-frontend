@@ -1,34 +1,34 @@
 <template>
   <div class="events-view">
-    <div class="filter-bar">
-      <div class="search-box">
-        <input type="text" placeholder="搜尋活動名稱" v-model="searchQuery" />
-      </div>
-      <div class="filter-tabs">
-        <button
-          v-for="tab in filterTabs"
-          :key="tab.value"
-          class="filter-tab"
-          :class="{ active: activeFilter === tab.value }"
-          @click="activeFilter = tab.value"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
+    <!-- 標題列 -->
+    <header class="page-head">
+      <h1 class="page-title">活動列表</h1>
       <button v-if="userStore.isSuperAdmin" class="btn-create" @click="showCreateModal = true">
-        <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
         建立新活動
       </button>
-    </div>
+    </header>
 
-    <!-- Loading 骨架屏 -->
-    <div v-if="loadingEvents" class="events-grid">
-      <div v-for="n in 4" :key="n" class="event-card skeleton-card">
-        <div class="skeleton-banner"></div>
+    <!-- 分頁 Tabs -->
+    <nav class="tabs">
+      <button
+        v-for="tab in filterTabs"
+        :key="tab.value"
+        class="tab"
+        :class="{ active: activeFilter === tab.value }"
+        @click="activeFilter = tab.value"
+      >
+        {{ tab.label }}
+        <span v-if="tabCount(tab.value) !== null" class="tab-count">({{ tabCount(tab.value) }})</span>
+      </button>
+    </nav>
+
+    <!-- Loading 骨架 -->
+    <div v-if="loadingEvents" class="events-list">
+      <div v-for="n in 4" :key="n" class="event-row skeleton-row">
+        <div class="skeleton-thumb"></div>
         <div class="skeleton-body">
           <div class="skeleton-line w60"></div>
           <div class="skeleton-line w40"></div>
-          <div class="skeleton-line w80"></div>
         </div>
       </div>
     </div>
@@ -52,55 +52,57 @@
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
           <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
           <line x1="3" y1="10" x2="21" y2="10"/>
-          <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
         </svg>
       </div>
       <h3>{{ searchQuery ? '找不到符合的活動' : '尚無活動' }}</h3>
       <p>{{ searchQuery ? '請嘗試其他關鍵字或清除篩選條件' : '點擊「建立新活動」開始規劃您的第一個活動' }}</p>
-      <button v-if="!searchQuery && userStore.isSuperAdmin" class="btn-create" @click="showCreateModal = true">
-        <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> 建立新活動
-      </button>
+      <button v-if="!searchQuery && userStore.isSuperAdmin" class="btn-create" @click="showCreateModal = true">建立新活動</button>
     </div>
 
-    <div v-else class="events-grid">
-      <div
+    <!-- 活動列表（橫向 row 布局） -->
+    <div v-else class="events-list">
+      <article
         v-for="event in filteredEvents"
         :key="event.id"
-        class="event-card"
-        :class="{ expired: isEventExpired(event) }"
-        @click="selectEvent(event)"
+        class="event-row"
       >
-        <div class="card-banner" :style="{ backgroundImage: `url(${event.banner})` }">
-          <div class="event-status-badge" :class="isEventExpired(event) ? 'expired' : event.status">
-            {{ isEventExpired(event) ? '已過期' : event.statusText }}
+        <!-- 縮圖 -->
+        <div class="row-thumb" :style="event.banner ? { backgroundImage: `url(${event.banner})` } : {}">
+          <div v-if="!event.banner" class="thumb-placeholder">CLIX</div>
+        </div>
+
+        <!-- 標題 + 建立日期 -->
+        <div class="row-title-block">
+          <h3 class="row-title">{{ event.name }}</h3>
+          <p class="row-meta">{{ formatCreatedAt(event) }} 建立</p>
+        </div>
+
+        <!-- 中間分隔線 -->
+        <div class="row-vline"></div>
+
+        <!-- 時間 + 報名人數 -->
+        <div class="row-info">
+          <div class="info-line">
+            <svg class="info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+            <span>{{ formatDateRange(event) }}</span>
+          </div>
+          <div class="info-line">
+            <svg class="info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>
+            <span>{{ event.participantsCount || 0 }} 人報名</span>
           </div>
         </div>
-        <div class="card-content">
-          <h3 class="event-title">{{ event.name }}</h3>
-          <div class="event-meta">
-            <div class="meta-item">
-              <span class="meta-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
-              <span class="meta-text">{{ event.date }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
-              <span class="meta-text">{{ event.location }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-              <span class="meta-text">{{ event.participantsCount }} 人報名</span>
-            </div>
-          </div>
-          <div class="card-actions">
-            <span class="reg-page-badge" :class="{ has: event.hasRegistrationPage }">
-              {{ event.hasRegistrationPage ? '已建立報名頁' : '尚無報名頁' }}
-            </span>
-            <button v-if="userStore.isSuperAdmin" class="btn-action btn-edit-event" @click.stop="openEditPanel(event)">編輯活動</button>
-            <button class="btn-action" @click.stop="selectEvent(event)">設定報名頁面</button>
-            <button class="btn-action" @click.stop="selectEventForFormFields(event)">報名表欄位</button>
-          </div>
+
+        <!-- 動作連結 -->
+        <div class="row-actions">
+          <a v-if="userStore.isSuperAdmin" class="row-link" @click.stop="openEditPanel(event)">編輯活動</a>
+          <a class="row-link" @click.stop="selectEvent(event)">報名頁面</a>
+          <a class="row-link" @click.stop="selectEventForFormFields(event)">報名表欄位</a>
+          <a class="row-link" @click.stop="previewEvent(event)">預覽</a>
         </div>
-      </div>
+
+        <!-- 狀態標籤（右上） -->
+        <div class="row-status" :class="statusClass(event)">{{ statusLabel(event) }}</div>
+      </article>
     </div>
 
     <!-- 建立活動彈窗 -->
@@ -286,6 +288,7 @@ const saveEditEvent = async () => {
 
 const filterTabs = [
   { label: "全部", value: "all" },
+  { label: "草稿", value: "draft" },
   { label: "進行中", value: "active" },
   { label: "即將開始", value: "upcoming" },
   { label: "已結束", value: "completed" },
@@ -312,11 +315,77 @@ const filteredEvents = computed(() => {
   }
 
   if (activeFilter.value !== "all") {
-    result = result.filter((event) => event.status === activeFilter.value);
+    result = result.filter((event) => matchTab(event, activeFilter.value));
   }
 
   return result;
 });
+
+// 分頁判斷
+const matchTab = (event: Event, tab: string): boolean => {
+  if (tab === "draft") return !event.isPublished;
+  if (tab === "completed") return event.status === "completed" || isEventExpired(event);
+  if (tab === "active") return event.status === "active" && !isEventExpired(event);
+  if (tab === "upcoming") return event.status === "upcoming" && !isEventExpired(event);
+  return true;
+};
+
+const tabCount = (tab: string): number | null => {
+  if (tab === "all") return eventsStore.events.length;
+  if (tab === "draft" || tab === "completed") {
+    return eventsStore.events.filter((e) => matchTab(e, tab)).length;
+  }
+  return null; // 進行中、即將開始不顯示計數
+};
+
+// 狀態顯示
+const statusLabel = (event: Event): string => {
+  if (isEventExpired(event)) return "已結束";
+  if (!event.isPublished) return "草稿";
+  if (event.status === "active") return "活動進行中";
+  if (event.status === "upcoming") return "即將開始";
+  return event.statusText || "已結束";
+};
+
+const statusClass = (event: Event): string => {
+  if (isEventExpired(event)) return "ended";
+  if (!event.isPublished) return "draft";
+  if (event.status === "active") return "active";
+  if (event.status === "upcoming") return "upcoming";
+  return "ended";
+};
+
+// 日期格式化
+const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
+const formatDateWithWeek = (dateStr: string, time?: string): string => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const wd = WEEKDAYS[d.getDay()];
+  return `${dateStr}(${wd})${time ? ` ${time}` : ""}`;
+};
+
+const formatDateRange = (event: Event): string => {
+  const start = formatDateWithWeek(event.date, event.time);
+  const endDate = event.endDate || event.date;
+  const endTime = (event as Event & { endTime?: string }).endTime || event.time;
+  const end = formatDateWithWeek(endDate, endTime);
+  if (!start) return "";
+  if (start === end) return `${start} (GMT+8)`;
+  return `${start} ~ ${end} (GMT+8)`;
+};
+
+const formatCreatedAt = (event: Event): string => {
+  const created = (event as Event & { createdAt?: string }).createdAt;
+  if (created) return created.slice(0, 10);
+  return event.date || "";
+};
+
+const previewEvent = (event: Event) => {
+  const slug = (event as Event & { shortLink?: string }).shortLink;
+  if (slug) window.open(slug.startsWith("http") ? slug : `/#/page/${slug}`, "_blank");
+  else selectEvent(event);
+};
 
 // 載入活動列表
 const loadEvents = async () => {
@@ -399,140 +468,88 @@ const createEvent = async () => {
 
 <style lang="scss" scoped>
 .events-view {
-  padding: 16px;
-  max-width: 1400px;
+  padding: 24px 32px;
+  max-width: 1500px;
   margin: 0 auto;
+  background: #fff;
+  min-height: 100%;
+  border-radius: 16px;
 }
 
-.page-header {
+/* ── 標題列 ── */
+.page-head {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 14px;
-
-  .header-left {
-    .title {
-      font-size: 2rem;
-      font-weight: 800;
-      color: var(--text-main);
-      margin: 0 0 8px 0;
-    }
-
-    .subtitle {
-      font-size: 0.95rem;
-      color: var(--text-secondary);
-      margin: 0;
-    }
-  }
-
-  .btn-create {
-    background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.3s;
-
-    &:hover {
-      background: linear-gradient(135deg, #0f5d4e 0%, #4338ca 100%);
-      box-shadow: 0 4px 12px rgba(22, 122, 103, 0.3);
-      transform: translateY(-2px);
-    }
-
-    .icon {
-      font-size: 1.2rem;
-    }
-  }
-}
-
-.filter-bar {
-  display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-  justify-content: space-between;
-
-  .btn-create {
-    background: #167A67;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.84rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.15s;
-    white-space: nowrap;
-
-    &:hover { background: #0f5d4e; }
-    .icon { font-size: 1rem; }
-  }
+  margin-bottom: 20px;
 }
 
-.search-box {
-  flex: 1;
-  max-width: 400px;
-
-  input {
-    width: 100%;
-    border: 1px solid var(--border-color);
-    background: var(--bg-card);
-    color: var(--text-main);
-    padding: 8px 12px;
-    font-size: 0.88rem;
-    border-radius: 8px;
-    transition: all 0.15s;
-    font-weight: 500;
-
-    &:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 4px rgba(22, 122, 103, 0.1);
-    }
-
-    &::placeholder {
-      color: var(--text-muted);
-      font-weight: 400;
-    }
-  }
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+  letter-spacing: -0.01em;
 }
 
-.filter-tabs {
-  display: flex;
-  gap: 8px;
-}
-
-.filter-tab {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  padding: 6px 14px;
+.btn-create {
+  background: #167A67;
+  color: #fff;
+  border: none;
+  padding: 10px 22px;
   border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.84rem;
   font-weight: 600;
-  color: var(--text-secondary);
-  transition: all 0.15s;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
 
-  &:hover {
-    border-color: var(--accent);
-    color: #167A67;
+  &:hover { background: #0f5d4e; }
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 32px;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 20px;
+}
+
+.tab {
+  background: transparent;
+  border: none;
+  padding: 12px 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s;
+
+  .tab-count {
+    margin-left: 4px;
+    font-weight: 600;
   }
+
+  &:hover { color: #475569; }
 
   &.active {
-    background: #167A67;
-    color: white;
-    border-color: var(--accent);
+    color: #167A67;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: #167A67;
+      border-radius: 2px 2px 0 0;
+    }
   }
 }
 
+/* ── 空狀態 ── */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -546,153 +563,255 @@ const createEvent = async () => {
     width: 96px;
     height: 96px;
     border-radius: 24px;
-    background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+    background: #f3f4f6;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #a5b4fc;
+    color: #cbd5e1;
     margin-bottom: 8px;
   }
 
   h3 {
     font-size: 1.2rem;
     font-weight: 700;
-    color: var(--text-main);
+    color: #1e293b;
     margin: 0;
   }
 
   p {
     font-size: 0.9rem;
-    color: var(--text-muted);
+    color: #94a3b8;
     margin: 0 0 8px 0;
   }
 }
 
-.events-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+/* ── Events List ── */
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.event-card {
-  background: var(--bg-card);
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid var(--border-color);
-  cursor: pointer;
-  transition: all 0.15s;
+.event-row {
+  display: grid;
+  grid-template-columns: 130px minmax(180px, 1.3fr) 1px minmax(220px, 1.4fr) auto auto;
+  gap: 24px;
+  align-items: center;
+  padding: 18px 22px 18px 18px;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #f3f4f6;
+  position: relative;
+  transition: background 0.15s, border-color 0.15s;
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+  }
+}
+
+.row-thumb {
+  width: 130px;
+  height: 88px;
+  border-radius: 8px;
+  background-color: #cad2c5;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .thumb-placeholder {
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: 0.1em;
+  }
+}
+
+.row-title-block {
+  min-width: 0;
+}
+
+.row-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px;
+  line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.row-meta {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.row-vline {
+  width: 1px;
+  height: 56px;
+  background: #e5e7eb;
+}
+
+.row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.info-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.86rem;
+  color: #475569;
+
+  .info-icon {
+    flex-shrink: 0;
+    color: #94a3b8;
+  }
+}
+
+.row-actions {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  margin-right: 12px;
+}
+
+.row-link {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #167A67;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s;
+
+  &:hover {
+    color: #0f5d4e;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+.row-status {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+
+  &.active {
+    background: #e8f5f1;
+    color: #167A67;
+    border: 1px solid #b9dcd2;
   }
 
-  .card-banner {
-    height: 130px;
-    background-size: cover;
-    background-position: center;
-    background-color: #e5e7eb;
-    position: relative;
-
-    .event-status-badge {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      backdrop-filter: blur(8px);
-
-      &.active {
-        background: rgba(209, 250, 229, 0.95);
-        color: #065f46;
-      }
-
-      &.upcoming {
-        background: rgba(219, 234, 254, 0.95);
-        color: #3730a3;
-      }
-
-      &.completed {
-        background: rgba(243, 244, 246, 0.95);
-        color: var(--text-secondary);
-      }
-    }
+  &.upcoming {
+    background: #eef2ff;
+    color: #4338ca;
+    border: 1px solid #c7d2fe;
   }
 
-  .card-content {
-    padding: 14px;
-
-    .event-title {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--text-main);
-      margin: 0 0 10px 0;
-    }
-
-    .event-meta {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      margin-bottom: 12px;
-
-      .meta-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.82rem;
-        color: var(--text-secondary);
-
-        .meta-icon {
-          font-size: 0.9rem;
-        }
-      }
-    }
-
-    .card-actions {
-      display: flex;
-      gap: 6px;
-      padding-top: 10px;
-      border-top: 1px solid var(--border-color);
-      align-items: center;
-
-      .reg-page-badge {
-        font-size: 0.75rem;
-        font-weight: 600;
-        padding: 4px 10px;
-        border-radius: 20px;
-        background: var(--bg-hover);
-        color: var(--text-muted);
-        flex-shrink: 0;
-        &.has {
-          background: #d1fae5;
-          color: #059669;
-        }
-      }
-
-      .btn-action {
-        flex: 1;
-        padding: 6px 12px;
-        border-radius: 7px;
-        border: 1px solid #167A67;
-        background: #167A67;
-        color: white;
-        font-weight: 600;
-        font-size: 0.8rem;
-        cursor: pointer;
-        transition: all 0.15s;
-
-        &:hover { background: #0f5d4e; }
-
-        &.secondary {
-          background: var(--bg-card);
-          color: #167A67;
-          &:hover { background: rgba(22,122,103,.08); }
-        }
-      }
-    }
+  &.draft {
+    background: #f3f4f6;
+    color: #64748b;
+    border: 1px solid #e5e7eb;
   }
+
+  &.ended {
+    background: #f3f4f6;
+    color: #94a3b8;
+    border: 1px solid #e5e7eb;
+  }
+}
+
+/* ── 骨架屏 ── */
+.skeleton-row {
+  pointer-events: none;
+  background: #f9fafb;
+
+  .skeleton-thumb {
+    width: 130px;
+    height: 88px;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  .skeleton-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .skeleton-line {
+    height: 14px;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+    &.w60 { width: 60%; }
+    &.w40 { width: 40%; }
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── RWD ── */
+@media (max-width: 1100px) {
+  .event-row {
+    grid-template-columns: 100px 1fr;
+    gap: 16px;
+  }
+
+  .row-vline,
+  .row-info,
+  .row-actions {
+    grid-column: 1 / -1;
+  }
+
+  .row-info { padding-top: 8px; border-top: 1px dashed #e5e7eb; }
+  .row-actions { gap: 16px; flex-wrap: wrap; }
+  .row-status {
+    position: static;
+    align-self: flex-start;
+    grid-column: 1 / -1;
+    width: fit-content;
+  }
+}
+
+@media (max-width: 768px) {
+  .events-view { padding: 16px; }
+
+  .page-title { font-size: 1.4rem; }
+
+  .tabs {
+    gap: 18px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+  }
+
+  .tab { white-space: nowrap; font-size: 0.88rem; }
+
+  .row-thumb { width: 80px; height: 60px; }
+  .row-title { font-size: 0.92rem; }
+  .info-line { font-size: 0.8rem; }
+  .row-link { font-size: 0.82rem; }
 }
 
 // 表單共用樣式

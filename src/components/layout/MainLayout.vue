@@ -166,6 +166,8 @@ const selectEvent = (event: any) => {
           <span class="hamburger-line"></span>
         </button>
 
+        <div class="header-divider"></div>
+
         <!-- 活動切換器 -->
         <div class="event-switcher" v-if="eventsStore.currentEvent">
           <div class="event-chip" @click="showEventDropdown = !showEventDropdown">
@@ -237,50 +239,56 @@ const selectEvent = (event: any) => {
   background: var(--bg-primary);
 }
 
-/* ===== SIDEBAR ===== */
+/* ===== SIDEBAR (深色) ===== */
 .sidebar {
   width: 240px;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
+  background: #2a2d33;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  color: #d4d4d8;
 }
 
 .sidebar-header {
-  padding: 16px 20px;
+  padding: 18px 20px;
   display: flex;
   align-items: center;
+  height: 64px;
+  box-sizing: border-box;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 
   .brand-logo-img {
-    height: 32px;
+    height: 30px;
     width: auto;
+    filter: brightness(0) invert(1);
   }
 }
 
 .menu {
   flex: 1;
-  padding: 0 12px;
+  padding: 16px 16px 0;
   overflow-y: auto;
 }
 
 .menu-section {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
+
+  & + .menu-section {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    margin-top: 12px;
+    padding-top: 12px;
+  }
 }
 
 .section-divider {
-  padding: 16px 12px 8px;
+  padding: 6px 16px 14px;
   display: flex;
   align-items: center;
 
   .divider-text {
-    font-size: 0.75rem;
+    font-size: 0.86rem;
     font-weight: 700;
-    color: var(--accent);
-    background: var(--accent-light);
-    padding: 4px 12px;
-    border-radius: 12px;
-    max-width: 100%;
+    color: #a0a4ad;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -288,23 +296,23 @@ const selectEvent = (event: any) => {
 }
 
 .menu-item {
-  padding: 10px 12px;
+  padding: 11px 14px;
   margin-bottom: 2px;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
-  color: var(--text-muted);
+  color: #c4c7cf;
   transition: all 0.15s ease;
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 0.9rem;
+  gap: 12px;
+  font-size: 0.92rem;
   font-weight: 500;
 
   .menu-icon {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
-    color: var(--text-muted);
+    color: #9ba0a8;
   }
 
   .menu-label {
@@ -312,32 +320,32 @@ const selectEvent = (event: any) => {
   }
 
   &:hover {
-    background: var(--bg-hover);
-    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+
+    .menu-icon { color: #c4c7cf; }
   }
 
   &.active {
-    background: var(--accent-light);
-    color: var(--accent);
+    background: #3b3f47;
+    color: #fff;
     font-weight: 600;
 
-    .menu-icon {
-      color: var(--accent);
-    }
+    .menu-icon { color: #fff; }
   }
 }
 
 .sidebar-footer {
   padding: 16px;
-  border-top: 1px solid var(--border-light);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 
   .logout-btn {
     width: 100%;
     padding: 10px;
     background: transparent;
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    color: var(--text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    color: #9ba0a8;
     cursor: pointer;
     font-size: 0.85rem;
     font-weight: 500;
@@ -348,9 +356,9 @@ const selectEvent = (event: any) => {
     transition: all 0.2s;
 
     &:hover {
-      border-color: #f87171;
-      color: #ef4444;
-      background: #fef2f2;
+      border-color: rgba(248, 113, 113, 0.5);
+      color: #fca5a5;
+      background: rgba(239, 68, 68, 0.1);
     }
   }
 }
@@ -369,8 +377,15 @@ const selectEvent = (event: any) => {
   display: flex;
   align-items: center;
   gap: 16px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  background: #2a2d33;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.header-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.15);
+  margin-right: 4px;
 }
 
 .event-switcher {
@@ -380,32 +395,34 @@ const selectEvent = (event: any) => {
 .event-chip {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 8px 14px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
+  background: #383a40;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
-  min-width: 160px;
+  min-width: 220px;
 
   &:hover {
-    border-color: var(--text-muted);
-    background: var(--bg-hover);
+    border-color: rgba(255, 255, 255, 0.2);
+    background: #3f4248;
   }
 
   .chip-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #22c55e;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     flex-shrink: 0;
   }
 
   .chip-name {
-    font-size: 0.88rem;
+    font-size: 0.92rem;
     font-weight: 600;
-    color: var(--text-main);
+    color: #fff;
+    flex: 1;
     max-width: 180px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -413,7 +430,7 @@ const selectEvent = (event: any) => {
   }
 
   .chip-arrow {
-    color: var(--text-muted);
+    color: #c4c7cf;
     transition: transform 0.2s;
     flex-shrink: 0;
     &.flipped { transform: rotate(180deg); }
@@ -422,13 +439,13 @@ const selectEvent = (event: any) => {
 
 .event-dropdown {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   left: 0;
-  min-width: 220px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: var(--shadow-lg);
+  min-width: 240px;
+  background: #383a40;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   z-index: 100;
   padding: 6px;
   max-height: 300px;
@@ -436,18 +453,18 @@ const selectEvent = (event: any) => {
 
   .dropdown-item {
     padding: 10px 14px;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 0.88rem;
-    color: var(--text-main);
+    color: #d4d4d8;
     display: flex;
     justify-content: space-between;
     align-items: center;
     transition: background 0.15s;
 
-    &:hover { background: var(--bg-hover); }
-    &.current { background: var(--accent-light); color: var(--accent); font-weight: 600; }
-    .check-mark { color: var(--accent); font-weight: 700; }
+    &:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+    &.current { background: #167A67; color: #fff; font-weight: 600; }
+    .check-mark { color: #fff; font-weight: 700; }
   }
 }
 
@@ -458,28 +475,30 @@ const selectEvent = (event: any) => {
 
 .header-search {
   display: flex;
+  flex-direction: row-reverse;
   align-items: center;
   gap: 8px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
+  background: #383a40;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   padding: 8px 14px;
-  min-width: 240px;
+  min-width: 280px;
   transition: all 0.2s;
 
   &:focus-within {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
+    border-color: rgba(255, 255, 255, 0.25);
   }
+
+  svg { stroke: #9ba0a8 !important; }
 
   input {
     border: none;
     background: transparent;
     outline: none;
     font-size: 0.88rem;
-    color: var(--text-main);
+    color: #fff;
     width: 100%;
-    &::placeholder { color: var(--text-muted); }
+    &::placeholder { color: #9ba0a8; }
   }
 }
 
@@ -492,7 +511,14 @@ const selectEvent = (event: any) => {
   display: flex;
   align-items: center;
   transition: background 0.15s;
-  &:hover { background: var(--bg-hover); }
+  color: #c4c7cf;
+
+  svg { stroke: #c4c7cf; }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    svg { stroke: #fff; }
+  }
 }
 
 .header-user {
@@ -501,23 +527,23 @@ const selectEvent = (event: any) => {
   gap: 10px;
 
   .role-badge {
-    font-size: 0.72rem;
-    background: #ef4444;
+    font-size: 0.78rem;
+    background: #c8651c;
     color: white;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-weight: 600;
     letter-spacing: 0.3px;
   }
 
   .user-avatar {
     width: 36px;
     height: 36px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, #167A67 0%, #8b5cf6 100%);
+    border-radius: 50%;
+    background: #167A67;
     color: white;
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -527,9 +553,9 @@ const selectEvent = (event: any) => {
 /* ===== VIEW PORT ===== */
 .view-port {
   flex: 1;
-  padding: 24px;
+  padding: 16px 16px 24px;
   overflow-y: auto;
-  background: var(--bg-primary);
+  background: #f0f2f5;
 }
 
 /* ===== HAMBURGER ===== */
@@ -546,7 +572,7 @@ const selectEvent = (event: any) => {
     display: block;
     width: 22px;
     height: 2px;
-    background: var(--text-main);
+    background: #d4d4d8;
     border-radius: 2px;
   }
 }
