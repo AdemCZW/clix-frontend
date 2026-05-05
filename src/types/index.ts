@@ -107,6 +107,27 @@ export interface RawParticipant {
   updated_at: string
 }
 
+/**
+ * 公開報名成功後回傳的單筆 participant（已在 store 層正規化為 camelCase）。
+ *
+ * 僅給成功頁 / SuccessState.vue 使用。**不要**把它當成一般 `Participant`：
+ * 這份資料是公開報名 response 拼出來的，缺 status / managerId 等後台欄位。
+ */
+export interface PublicSubmittedParticipant {
+  id: number
+  name: string
+  email: string
+  phone: string
+  company: string
+  title: string
+  type: string
+  ticketId: number | null
+  ticketName: string
+  ticketNumber: string
+  checkInToken: string
+  qrCodeUrl: string
+}
+
 // ── Toast ──────────────────────────────────────────────
 export type ToastType = 'info' | 'success' | 'error' | 'warning'
 

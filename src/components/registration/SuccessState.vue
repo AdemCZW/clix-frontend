@@ -1,18 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import LogoSpinner from '@/components/shared/LogoSpinner.vue'
-
-interface ParticipantLike {
-  name?: string
-  qr_code_url?: string
-  qrCodeUrl?: string
-  check_in_token?: string
-  checkInToken?: string
-  ticket_name?: string
-  ticketName?: string
-  ticket_number?: string
-  ticketNumber?: string
-}
+import type { PublicSubmittedParticipant } from '@/types'
 
 interface OrderLike {
   order_number?: string
@@ -24,9 +13,13 @@ interface OrderLike {
 
 interface ReminderRow { key: string; kind?: string; text: string }
 
+// 多人版接受 store 已 normalize 的 PublicSubmittedParticipant，
+// 單人 fallback 仍接受舊 props（直接以 partial 形式併入 displayParticipants）
+type DisplayParticipant = Partial<PublicSubmittedParticipant>
+
 const props = defineProps<{
-  // 新版（多人）— 推薦使用
-  participants?: ParticipantLike[]
+  // 新版（多人）— 推薦使用，已在 store 層 normalize 為 camelCase
+  participants?: PublicSubmittedParticipant[]
   order?: OrderLike | null
 
   // 舊版單人（向下相容，仍會被前頁傳入）
@@ -38,15 +31,13 @@ const props = defineProps<{
   ticketInfo?: string
 }>()
 
-// 統一資料源：若 props.participants 有資料就用新版，否則 fall back 到舊版單筆
-const displayParticipants = computed<ParticipantLike[]>(() => {
+const displayParticipants = computed<DisplayParticipant[]>(() => {
   if (props.participants && props.participants.length > 0) return props.participants
-  // Fallback：舊單人介面
   if (props.participantName || props.qrCodeUrl) {
     return [{
-      name: props.participantName,
-      qr_code_url: props.qrCodeUrl,
-      check_in_token: props.checkInToken,
+      name: props.participantName ?? '',
+      qrCodeUrl: props.qrCodeUrl ?? '',
+      checkInToken: props.checkInToken ?? '',
     }]
   }
   return []
@@ -54,11 +45,6 @@ const displayParticipants = computed<ParticipantLike[]>(() => {
 
 const isMultiAttendee = computed(() => displayParticipants.value.length > 1)
 const hasOrder = computed(() => !!(props.order && props.order.order_number))
-
-const getQrUrl = (p: ParticipantLike) => p.qr_code_url || p.qrCodeUrl || ''
-const getToken = (p: ParticipantLike) => p.check_in_token || p.checkInToken || ''
-const getTicketName = (p: ParticipantLike) => p.ticket_name || p.ticketName || ''
-const getTicketNumber = (p: ParticipantLike) => p.ticket_number || p.ticketNumber || ''
 </script>
 
 <template>
@@ -100,24 +86,24 @@ const getTicketNumber = (p: ParticipantLike) => p.ticket_number || p.ticketNumbe
     <div v-if="displayParticipants.length" class="qr-list" :class="{ 'multi': isMultiAttendee }">
       <div
         v-for="(p, idx) in displayParticipants"
-        :key="getToken(p) || `p_${idx}`"
+        :key="p.checkInToken || `p_${idx}`"
         class="qr-card"
       >
         <div class="qr-card-head">
           <span class="qr-card-idx">{{ isMultiAttendee ? `參加人 ${idx + 1}` : '報到 QR Code' }}</span>
-          <span v-if="getTicketName(p)" class="qr-card-ticket">{{ getTicketName(p) }}</span>
+          <span v-if="p.ticketName" class="qr-card-ticket">{{ p.ticketName }}</span>
         </div>
 
         <div v-if="p.name" class="qr-card-name">{{ p.name }}</div>
 
-        <div v-if="getQrUrl(p)" class="qr-img-wrap">
-          <img :src="getQrUrl(p)" alt="QR Code" />
+        <div v-if="p.qrCodeUrl" class="qr-img-wrap">
+          <img :src="p.qrCodeUrl" alt="QR Code" />
         </div>
 
         <p class="qr-hint">現場出示此 QR Code 掃描報到</p>
 
-        <p v-if="getTicketNumber(p)" class="qr-ticket-no">票號 {{ getTicketNumber(p) }}</p>
-        <p v-else-if="getToken(p)" class="qr-token">{{ getToken(p) }}</p>
+        <p v-if="p.ticketNumber" class="qr-ticket-no">票號 {{ p.ticketNumber }}</p>
+        <p v-else-if="p.checkInToken" class="qr-token">{{ p.checkInToken }}</p>
       </div>
     </div>
 

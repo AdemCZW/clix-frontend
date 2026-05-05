@@ -64,6 +64,16 @@ const getElementPageTop = (element: HTMLElement) => {
 
 const getDraftStorageKey = () => `public-registration-draft:${shortLink}`
 
+// 草稿過期時間：24 小時。超過自動清掉避免「上週的票券設定 + 今天的票券設定」混在一起
+const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000
+
+const isDraftExpired = (updatedAt: unknown): boolean => {
+  if (typeof updatedAt !== 'string' || !updatedAt) return false
+  const ts = Date.parse(updatedAt)
+  if (Number.isNaN(ts)) return false
+  return Date.now() - ts > DRAFT_MAX_AGE_MS
+}
+
 const formatDraftTime = (value: string) => {
   if (!value) return ''
 
@@ -119,9 +129,13 @@ const applyDraft = (draft: any) => {
       orderExtras.promoCode = String(draft.orderExtras.promoCode || '')
     }
     if (draft.ticketQty && typeof draft.ticketQty === 'object') {
+      // 只套用「目前票券設定中仍存在」的 id，避免後台改過票券後恢復草稿時殘留幽靈 ticketId
+      const validTicketIds = new Set(tickets.value.map((t) => t.id))
       Object.entries(draft.ticketQty).forEach(([k, v]) => {
         const id = Number(k)
-        if (Number.isFinite(id) && typeof v === 'number') ticketQty[id] = v
+        if (!Number.isFinite(id) || typeof v !== 'number') return
+        if (validTicketIds.size > 0 && !validTicketIds.has(id)) return
+        ticketQty[id] = v
       })
     }
     // attendeeForms 會因 ticketQty 變更而被重建，所以等下一個 tick 再填
@@ -175,6 +189,10 @@ const loadSavedDraft = () => {
   try {
     const parsedDraft = JSON.parse(rawDraft)
     if (!parsedDraft || typeof parsedDraft !== 'object') return null
+    if (isDraftExpired(parsedDraft.updatedAt)) {
+      window.sessionStorage.removeItem(getDraftStorageKey())
+      return null
+    }
     return parsedDraft
   } catch {
     window.sessionStorage.removeItem(getDraftStorageKey())
@@ -474,6 +492,12 @@ onBeforeUnmount(() => {
     window.cancelAnimationFrame(mobileStickyBarRafId)
     mobileStickyBarRafId = null
   }
+
+  // 卸載時清掉 pending draft save，避免元件已銷毀仍寫入 sessionStorage
+  if (draftSaveTimer) {
+    clearTimeout(draftSaveTimer)
+    draftSaveTimer = null
+  }
 })
 
 const updateMobileStickyBarVisibility = () => {
@@ -772,15 +796,9 @@ const landscapeSummaryItems = computed(() => {
   return items
 })
 
-const submittedQrCodeUrl = computed(() => {
-  const participant = store.submittedParticipant as any
-  return participant?.qr_code_url || participant?.qrCodeUrl || ''
-})
-
-const submittedCheckInToken = computed(() => {
-  const participant = store.submittedParticipant as any
-  return participant?.check_in_token || participant?.checkInToken || ''
-})
+// store 已將 raw response normalize 為 camelCase PublicSubmittedParticipant，這裡不再雙讀
+const submittedQrCodeUrl = computed(() => store.submittedParticipant?.qrCodeUrl ?? '')
+const submittedCheckInToken = computed(() => store.submittedParticipant?.checkInToken ?? '')
 
 // 貴賓列表
 const guests = computed(() => pageData.value?.guests || [])

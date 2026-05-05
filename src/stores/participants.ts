@@ -4,7 +4,7 @@ import { apiRequest } from '@/utils/api'
 import { parseApiError } from '@/utils/parseApiError'
 import { useStoreRequest } from '@/utils/useStoreRequest'
 import { useCache } from '@/utils/useCache'
-import type { Participant, RawParticipant, RegistrationPage } from '@/types'
+import type { Participant, RawParticipant, RegistrationPage, PublicSubmittedParticipant } from '@/types'
 
 function mapParticipant(p: RawParticipant): Participant {
     return {
@@ -213,13 +213,36 @@ export interface PublicSubmittedOrder {
     created_at?: string
 }
 
+// 把後端 raw participant 拍平成成功頁用的 camelCase 型別
+// 後端目前已是 snake_case，但保留 camelCase fallback 以容忍未來中介層轉換
+function toPublicSubmittedParticipant(raw: any): PublicSubmittedParticipant {
+    return {
+        id: Number(raw?.id ?? 0),
+        name: String(raw?.name ?? ''),
+        email: String(raw?.email ?? ''),
+        phone: String(raw?.phone ?? ''),
+        company: String(raw?.company ?? ''),
+        title: String(raw?.title ?? ''),
+        type: String(raw?.type ?? ''),
+        ticketId:
+            (typeof raw?.ticket === 'number' ? raw.ticket : null)
+            ?? (typeof raw?.ticket_id === 'number' ? raw.ticket_id : null)
+            ?? (typeof raw?.ticketId === 'number' ? raw.ticketId : null),
+        ticketName: String(raw?.ticket_name ?? raw?.ticketName ?? ''),
+        ticketNumber: String(raw?.ticket_number ?? raw?.ticketNumber ?? ''),
+        checkInToken: String(raw?.check_in_token ?? raw?.checkInToken ?? ''),
+        qrCodeUrl: String(raw?.qr_code_url ?? raw?.qrCodeUrl ?? ''),
+    }
+}
+
 export const usePublicRegisterStore = defineStore('publicRegister', () => {
     const page = ref<RegistrationPage | null>(null)
     const { loading, error, run } = useStoreRequest()
     const submitted = ref(false)
     // submittedParticipant 保留作舊畫面 fallback；新畫面請優先讀 submittedParticipants / submittedOrder
-    const submittedParticipant = ref<Participant | null>(null)
-    const submittedParticipants = ref<Participant[]>([])
+    // 三者都是「公開報名成功頁」專用型別（PublicSubmittedParticipant），不要當成一般後台 Participant 使用
+    const submittedParticipant = ref<PublicSubmittedParticipant | null>(null)
+    const submittedParticipants = ref<PublicSubmittedParticipant[]>([])
     const submittedOrder = ref<PublicSubmittedOrder | null>(null)
     const cache = useCache(30_000)
 
@@ -263,17 +286,18 @@ export const usePublicRegisterStore = defineStore('publicRegister', () => {
             const data = await publicPost<{
                 message?: string
                 order?: PublicSubmittedOrder | null
-                participants?: Participant[]
-                participant?: Participant | null
+                participants?: any[]
+                participant?: any | null
             }>(`/api/public/register/${shortLink}/`, formData)
 
-            const participants = data.participants ?? (data.participant ? [data.participant] : [])
+            const rawParticipants = data.participants ?? (data.participant ? [data.participant] : [])
+            const normalized = rawParticipants.map(toPublicSubmittedParticipant)
 
             submitted.value = true
             submittedOrder.value = data.order ?? null
-            submittedParticipants.value = participants
+            submittedParticipants.value = normalized
             // 舊畫面 fallback：取第一位 participant
-            submittedParticipant.value = participants[0] ?? null
+            submittedParticipant.value = normalized[0] ?? null
             return data
         })
 
