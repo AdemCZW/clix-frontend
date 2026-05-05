@@ -197,11 +197,30 @@ export const useParticipantsStore = defineStore('participants', () => {
 // =========================================================
 import { publicGet, publicPost } from '@/utils/publicApi'
 
+// ── 公開報名後端回傳的 order 結構（snake_case，僅用於成功頁顯示）──
+export interface PublicSubmittedOrder {
+    id: number
+    order_number: string
+    buyer_name: string
+    buyer_email: string
+    buyer_phone: string
+    payment_method?: string
+    payment_status?: string
+    paid_at?: string | null
+    total_amount: number
+    promo_code?: string
+    note?: string
+    created_at?: string
+}
+
 export const usePublicRegisterStore = defineStore('publicRegister', () => {
     const page = ref<RegistrationPage | null>(null)
     const { loading, error, run } = useStoreRequest()
     const submitted = ref(false)
+    // submittedParticipant 保留作舊畫面 fallback；新畫面請優先讀 submittedParticipants / submittedOrder
     const submittedParticipant = ref<Participant | null>(null)
+    const submittedParticipants = ref<Participant[]>([])
+    const submittedOrder = ref<PublicSubmittedOrder | null>(null)
     const cache = useCache(30_000)
 
     async function fetchPage(shortLink: string) {
@@ -240,9 +259,21 @@ export const usePublicRegisterStore = defineStore('publicRegister', () => {
 
     const submitRegistration = (shortLink: string, formData: Record<string, unknown>) =>
         run(async () => {
-            const data = await publicPost<{ participant: Participant }>(`/api/public/register/${shortLink}/`, formData)
+            // 後端回傳：{ message, order, participants[], participant (向下相容) }
+            const data = await publicPost<{
+                message?: string
+                order?: PublicSubmittedOrder | null
+                participants?: Participant[]
+                participant?: Participant | null
+            }>(`/api/public/register/${shortLink}/`, formData)
+
+            const participants = data.participants ?? (data.participant ? [data.participant] : [])
+
             submitted.value = true
-            submittedParticipant.value = data.participant
+            submittedOrder.value = data.order ?? null
+            submittedParticipants.value = participants
+            // 舊畫面 fallback：取第一位 participant
+            submittedParticipant.value = participants[0] ?? null
             return data
         })
 
@@ -250,6 +281,8 @@ export const usePublicRegisterStore = defineStore('publicRegister', () => {
         page.value = null
         submitted.value = false
         submittedParticipant.value = null
+        submittedParticipants.value = []
+        submittedOrder.value = null
         error.value = null
     }
 
@@ -259,6 +292,8 @@ export const usePublicRegisterStore = defineStore('publicRegister', () => {
         error,
         submitted,
         submittedParticipant,
+        submittedParticipants,
+        submittedOrder,
         fetchPage,
         submitRegistration,
         reset,

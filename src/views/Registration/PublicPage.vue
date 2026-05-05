@@ -13,17 +13,39 @@ const route = useRoute()
 const store = usePublicRegisterStore()
 const shortLink = String(route.params.shortLink || '')
 
-const form = reactive({
+// ─── Buyer / 訂購人（依後端 form_fields 中 buyer_* 是否顯示來決定要不要呈現區塊）───
+const buyerForm = reactive({
   name: '',
   email: '',
   phone: '',
-  company: '',
-  title: '',
-  type: '一般民眾',
 })
 
-// 動態自定義欄位的值，key 為欄位 id
-const dynamicValues = reactive<Record<string, string>>({})
+// ─── Order-level 欄位（note / promo_code）───
+const orderExtras = reactive({
+  note: '',
+  promoCode: '',
+})
+
+// ─── Attendee 表單（每張票對應 1 個）───
+type AttendeeData = {
+  name: string
+  email: string
+  phone: string
+  company: string
+  title: string
+  type: string
+  formAnswers: Record<string, string>
+}
+
+interface AttendeeForm {
+  uid: string                    // v-for 穩定 key，重 sync 時保留資料
+  ticketId: number | null        // null = 此頁完全沒有票券設定
+  ticketName: string             // UI 標示用
+  data: AttendeeData
+}
+
+const attendeeForms = ref<AttendeeForm[]>([])
+
 const formErrors = ref<Record<string, string>>({})
 const submitting = ref(false)
 const showForm = ref(false)
@@ -58,12 +80,19 @@ const formatDraftTime = (value: string) => {
 }
 
 const hasDraftContent = () => {
-  const baseFields = [form.name, form.email, form.phone, form.company, form.title]
-  const hasBaseValue = baseFields.some((value) => String(value || '').trim())
-  const hasCustomValue = Object.values(dynamicValues).some((value) => String(value || '').trim())
-  const hasCustomType = form.type !== '一般民眾'
-
-  return hasBaseValue || hasCustomValue || hasCustomType
+  // Buyer
+  const buyerHasValue = !!(buyerForm.name || buyerForm.email || buyerForm.phone)
+  // Order extras
+  const orderHasValue = !!(orderExtras.note || orderExtras.promoCode)
+  // Attendees
+  const attendeesHaveValue = attendeeForms.value.some((a) => {
+    const d = a.data
+    if (d.name || d.email || d.phone || d.company || d.title) return true
+    if (d.type !== '一般民眾') return true
+    if (Object.values(d.formAnswers).some((v) => String(v || '').trim())) return true
+    return false
+  })
+  return buyerHasValue || orderHasValue || attendeesHaveValue
 }
 
 const removeSavedDraft = () => {
@@ -78,24 +107,58 @@ const removeSavedDraft = () => {
 const applyDraft = (draft: any) => {
   if (!draft || typeof draft !== 'object') return
 
-  const savedForm = draft.form || {}
-  form.name = typeof savedForm.name === 'string' ? savedForm.name : ''
-  form.email = typeof savedForm.email === 'string' ? savedForm.email : ''
-  form.phone = typeof savedForm.phone === 'string' ? savedForm.phone : ''
-  form.company = typeof savedForm.company === 'string' ? savedForm.company : ''
-  form.title = typeof savedForm.title === 'string' ? savedForm.title : ''
-  form.type = typeof savedForm.type === 'string' ? savedForm.type : '一般民眾'
-
-  const savedDynamicValues = draft.dynamicValues || {}
-  Object.keys(dynamicValues).forEach((key) => {
-    dynamicValues[key] = typeof savedDynamicValues[key] === 'string' ? savedDynamicValues[key] : ''
-  })
-
-  Object.keys(savedDynamicValues).forEach((key) => {
-    if (typeof savedDynamicValues[key] === 'string') {
-      dynamicValues[key] = savedDynamicValues[key]
+  if (draft.version === 2) {
+    // ── 新版（multi-attendee）─────────────────────────────
+    if (draft.buyer && typeof draft.buyer === 'object') {
+      buyerForm.name = String(draft.buyer.name || '')
+      buyerForm.email = String(draft.buyer.email || '')
+      buyerForm.phone = String(draft.buyer.phone || '')
     }
-  })
+    if (draft.orderExtras && typeof draft.orderExtras === 'object') {
+      orderExtras.note = String(draft.orderExtras.note || '')
+      orderExtras.promoCode = String(draft.orderExtras.promoCode || '')
+    }
+    if (draft.ticketQty && typeof draft.ticketQty === 'object') {
+      Object.entries(draft.ticketQty).forEach(([k, v]) => {
+        const id = Number(k)
+        if (Number.isFinite(id) && typeof v === 'number') ticketQty[id] = v
+      })
+    }
+    // attendeeForms 會因 ticketQty 變更而被重建，所以等下一個 tick 再填
+    nextTick(() => {
+      if (Array.isArray(draft.attendees)) {
+        draft.attendees.forEach((dAtt: any, idx: number) => {
+          const target = attendeeForms.value[idx]
+          if (!target || !dAtt?.data) return
+          target.data.name = String(dAtt.data.name || '')
+          target.data.email = String(dAtt.data.email || '')
+          target.data.phone = String(dAtt.data.phone || '')
+          target.data.company = String(dAtt.data.company || '')
+          target.data.title = String(dAtt.data.title || '')
+          target.data.type = String(dAtt.data.type || '一般民眾')
+          if (dAtt.data.formAnswers && typeof dAtt.data.formAnswers === 'object') {
+            target.data.formAnswers = { ...dAtt.data.formAnswers }
+          }
+        })
+      }
+    })
+  } else {
+    // ── 舊版（v1，單一 attendee）相容載入 ─────────────────
+    const savedForm = draft.form || {}
+    if (attendeeForms.value.length > 0) {
+      const a = attendeeForms.value[0]
+      a.data.name = String(savedForm.name || '')
+      a.data.email = String(savedForm.email || '')
+      a.data.phone = String(savedForm.phone || '')
+      a.data.company = String(savedForm.company || '')
+      a.data.title = String(savedForm.title || '')
+      a.data.type = String(savedForm.type || '一般民眾')
+      const savedDV = draft.dynamicValues || {}
+      Object.keys(savedDV).forEach((k) => {
+        if (typeof savedDV[k] === 'string') a.data.formAnswers[k] = savedDV[k]
+      })
+    }
+  }
 
   draftConsent.value = true
   draftRestored.value = true
@@ -148,15 +211,23 @@ const saveDraftToSession = () => {
 
   const updatedAt = new Date().toISOString()
   const payload = {
-    form: {
-      name: form.name,
-      email: form.email,
-      phone: form.phone,
-      company: form.company,
-      title: form.title,
-      type: form.type,
-    },
-    dynamicValues: { ...dynamicValues },
+    version: 2,
+    buyer: { ...buyerForm },
+    orderExtras: { ...orderExtras },
+    ticketQty: { ...ticketQty },
+    attendees: attendeeForms.value.map((a) => ({
+      uid: a.uid,
+      ticketId: a.ticketId,
+      data: {
+        name: a.data.name,
+        email: a.data.email,
+        phone: a.data.phone,
+        company: a.data.company,
+        title: a.data.title,
+        type: a.data.type,
+        formAnswers: { ...a.data.formAnswers },
+      },
+    })),
     updatedAt,
   }
 
@@ -213,24 +284,115 @@ const pageData = computed(() => (store.page as {
   event_status_text?: string
 } | null) ?? null)
 
-// 已有專屬 UI 的系統欄位（name/email/phone）— 不渲染避免重複
-const HARDCODED_KEYS = new Set(['name', 'email', 'phone'])
+// 系統 field_key 分流：每個 key 渲染到不同位置
+const HARDCODED_ATTENDEE_KEYS = new Set(['name', 'email', 'phone'])
+const BUYER_KEYS = new Set(['buyer_name', 'buyer_email', 'buyer_phone'])
+const ORDER_KEYS = new Set(['note', 'promo_code'])
 
-// 取得會渲染到表單中的欄位：未隱藏 + 不在 hardcoded UI 中
-const customFields = computed(() => {
-  const fields = pageData.value?.formFields || []
-  return fields.filter((f) => {
+// 訂購人區塊欄位（buyer_*）— 只有未隱藏才出現
+const buyerFields = computed(() =>
+  (pageData.value?.formFields || []).filter(
+    (f) => f.field_key && BUYER_KEYS.has(f.field_key) && !f.is_hidden
+  )
+)
+
+// 訂單層欄位（note、promo_code）— 表單底部單獨區塊
+const orderFields = computed(() =>
+  (pageData.value?.formFields || []).filter(
+    (f) => f.field_key && ORDER_KEYS.has(f.field_key) && !f.is_hidden
+  )
+)
+
+// 每位 attendee 都會看到的自訂欄位
+//   - 未隱藏
+//   - 不是 hardcoded（name/email/phone 有專屬 UI）
+//   - 不是 buyer_*（在 buyer 區塊渲染）
+//   - 不是 note/promo_code（在訂單區塊渲染）
+const attendeeCustomFields = computed(() =>
+  (pageData.value?.formFields || []).filter((f) => {
     if (f.is_hidden) return false
-    if (f.field_key && HARDCODED_KEYS.has(f.field_key)) return false
+    if (!f.field_key) return true                              // 純自訂欄位
+    if (HARDCODED_ATTENDEE_KEYS.has(f.field_key)) return false
+    if (BUYER_KEYS.has(f.field_key)) return false
+    if (ORDER_KEYS.has(f.field_key)) return false
     return true
   })
+)
+
+const showBuyerBlock = computed(() => buyerFields.value.length > 0)
+
+// ─── 票券與 attendee 表單同步 ────────────────────────────
+const tickets = computed(() => pageData.value?.tickets || [])
+const ticketQty = reactive<Record<number, number>>({})
+
+// 決議 3：單一票種預設 1，多票種預設 0
+watch(tickets, (list) => {
+  if (!list.length) return
+  if (list.length === 1) {
+    if (ticketQty[list[0].id] === undefined) ticketQty[list[0].id] = 1
+  } else {
+    list.forEach((t) => {
+      if (ticketQty[t.id] === undefined) ticketQty[t.id] = 0
+    })
+  }
+}, { immediate: true })
+
+const changeQty = (id: number, delta: number) => {
+  const cur = ticketQty[id] ?? 0
+  ticketQty[id] = Math.max(0, cur + delta)
+}
+const getQty = (id: number) => ticketQty[id] ?? 0
+
+const totalTicketCount = computed(() =>
+  Object.values(ticketQty).reduce((sum, q) => sum + (q || 0), 0)
+)
+
+// 每張票對應 1 個 slot；無票券活動則永遠 1 個 slot
+type TicketSlot = { ticketId: number | null; ticketName: string }
+
+const ticketSlots = computed<TicketSlot[]>(() => {
+  if (tickets.value.length === 0) {
+    return [{ ticketId: null, ticketName: '' }]
+  }
+  const slots: TicketSlot[] = []
+  for (const t of tickets.value) {
+    const q = ticketQty[t.id] ?? 0
+    for (let i = 0; i < q; i++) slots.push({ ticketId: t.id, ticketName: t.name })
+  }
+  return slots
 })
 
-// 當自定義欄位載入後，初始化 dynamicValues
-watch(customFields, (fields) => {
-  fields.forEach((f) => {
-    const key = String(f.id ?? f.label)
-    if (dynamicValues[key] === undefined) dynamicValues[key] = ''
+const createEmptyAttendee = (ticketId: number | null, ticketName: string): AttendeeForm => ({
+  uid: `att_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  ticketId,
+  ticketName,
+  data: {
+    name: '', email: '', phone: '',
+    company: '', title: '', type: '一般民眾',
+    formAnswers: {},
+  },
+})
+
+// 同步 attendeeForms：依 (ticketId, position) 重用既有 attendee 資料，避免改 qty 時清空已填內容
+watch(ticketSlots, (slots) => {
+  const reusableMap = new Map<string, AttendeeForm>()
+  const usedCount = new Map<number | null, number>()
+  for (const a of attendeeForms.value) {
+    const pos = usedCount.get(a.ticketId) ?? 0
+    reusableMap.set(`${a.ticketId}_${pos}`, a)
+    usedCount.set(a.ticketId, pos + 1)
+  }
+
+  const slotPosCount = new Map<number | null, number>()
+  attendeeForms.value = slots.map((slot) => {
+    const pos = slotPosCount.get(slot.ticketId) ?? 0
+    slotPosCount.set(slot.ticketId, pos + 1)
+    const reused = reusableMap.get(`${slot.ticketId}_${pos}`)
+    if (reused) {
+      reused.ticketName = slot.ticketName
+      return reused
+    }
+    return createEmptyAttendee(slot.ticketId, slot.ticketName)
   })
 }, { immediate: true })
 
@@ -367,75 +529,106 @@ watch(showForm, (formVisible) => {
 })
 
 let draftSaveTimer: ReturnType<typeof setTimeout> | null = null
-watch([form, dynamicValues, draftConsent, showForm], () => {
+watch([buyerForm, attendeeForms, orderExtras, ticketQty, draftConsent, showForm], () => {
   if (!showForm.value) return
   if (draftSaveTimer) clearTimeout(draftSaveTimer)
   draftSaveTimer = setTimeout(() => saveDraftToSession(), 1000)
 }, { deep: true })
 
+// ─── 驗證 ───────────────────────────────────────────────
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 const validate = () => {
   const errs: Record<string, string> = {}
-  if (!form.name.trim()) errs.name = '請填寫姓名'
-  if (!form.email.trim()) errs.email = '請填寫電子郵件'
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = '電子郵件格式不正確'
-  if (!form.phone.trim()) errs.phone = '請填寫聯絡電話'
-  // 驗證自定義必填欄位
-  customFields.value.forEach((f) => {
-    const required = f.is_required ?? false
-    const key = String(f.id ?? f.label)
-    if (required && !String(dynamicValues[key] ?? '').trim()) {
-      errs[`custom_${key}`] = `請填寫${f.label}`
-    }
+
+  // 1) Buyer 區塊（顯示時才驗證）
+  if (showBuyerBlock.value) {
+    if (!buyerForm.name.trim()) errs.buyer_name = '請填寫訂購人姓名'
+    if (!buyerForm.email.trim()) errs.buyer_email = '請填寫訂購人 Email'
+    else if (!EMAIL_RE.test(buyerForm.email)) errs.buyer_email = '訂購人 Email 格式不正確'
+    if (!buyerForm.phone.trim()) errs.buyer_phone = '請填寫訂購人電話'
+  }
+
+  // 2) 至少要選一張票（活動有票券設定時）
+  if (tickets.value.length > 0 && totalTicketCount.value === 0) {
+    errs.tickets = '請至少選擇一張票券'
+  }
+
+  // 3) 每位 attendee 三必填 + 自訂欄位
+  attendeeForms.value.forEach((att, idx) => {
+    const prefix = `att_${att.uid}`
+    const label = `第 ${idx + 1} 位參加人`
+
+    if (!att.data.name.trim()) errs[`${prefix}_name`] = `請填寫${label}姓名`
+    if (!att.data.email.trim()) errs[`${prefix}_email`] = `請填寫${label} Email`
+    else if (!EMAIL_RE.test(att.data.email)) errs[`${prefix}_email`] = `${label} Email 格式不正確`
+    if (!att.data.phone.trim()) errs[`${prefix}_phone`] = `請填寫${label}電話`
+
+    attendeeCustomFields.value.forEach((f) => {
+      if (!f.is_required) return
+      const key = String(f.id ?? f.label)
+      if (!String(att.data.formAnswers[key] ?? '').trim()) {
+        errs[`${prefix}_custom_${key}`] = `${label}：請填寫${f.label}`
+      }
+    })
   })
+
   formErrors.value = errs
   return Object.keys(errs).length === 0
 }
 
+// ─── 送出 ───────────────────────────────────────────────
 const handleSubmit = async () => {
   if (!validate()) return
   submitting.value = true
   try {
-    // 分離系統欄位（buyer_*/note/promo_code）vs 真正自訂欄位（form_answers）
-    const buyer: Record<string, string> = {}
-    let note = ''
-    let promoCode = ''
-    const customData: Record<string, string> = {}
+    // Buyer 來源：showBuyerBlock 為真用 buyerForm，否則沿用第一位 attendee
+    const firstAtt = attendeeForms.value[0]?.data
+    const buyer = showBuyerBlock.value
+      ? {
+          name: buyerForm.name.trim(),
+          email: buyerForm.email.trim(),
+          phone: buyerForm.phone.trim(),
+        }
+      : {
+          name: firstAtt?.name.trim() ?? '',
+          email: firstAtt?.email.trim() ?? '',
+          phone: firstAtt?.phone.trim() ?? '',
+        }
 
-    customFields.value.forEach((f) => {
-      const key = String(f.id ?? f.label)
-      const val = (dynamicValues[key] ?? '').trim()
-      if (!val) return
-
-      switch (f.field_key) {
-        case 'buyer_name':  buyer.name = val; break
-        case 'buyer_email': buyer.email = val; break
-        case 'buyer_phone': buyer.phone = val; break
-        case 'note':        note = val; break
-        case 'promo_code':  promoCode = val; break
-        default:
-          // 真正的自訂欄位（沒有 field_key 或非系統 key）
-          customData[f.label] = val
+    // 組 attendees（form_answers 用 label 為 key，與既有 store 慣例一致）
+    const attendees = attendeeForms.value.map((att) => {
+      const formAnswers: Record<string, string> = {}
+      attendeeCustomFields.value.forEach((f) => {
+        const key = String(f.id ?? f.label)
+        const v = (att.data.formAnswers[key] ?? '').trim()
+        if (v) formAnswers[f.label] = v
+      })
+      const payload: Record<string, unknown> = {
+        name: att.data.name.trim(),
+        email: att.data.email.trim(),
+        phone: att.data.phone.trim(),
+        type: att.data.type,
       }
+      if (att.data.company) payload.company = att.data.company
+      if (att.data.title) payload.title = att.data.title
+      if (att.ticketId !== null) payload.ticket = att.ticketId
+      if (Object.keys(formAnswers).length > 0) payload.form_answers = formAnswers
+      return payload
     })
 
-    // 訂購人預設沿用參加人（若主辦未開啟訂購人欄位）
-    const buyerPayload = {
-      name: buyer.name || form.name,
-      email: buyer.email || form.email,
-      phone: buyer.phone || form.phone,
-    }
+    // Order-level extras
+    const note = orderFields.value.some((f) => f.field_key === 'note')
+      ? orderExtras.note.trim()
+      : ''
+    const promoCode = orderFields.value.some((f) => f.field_key === 'promo_code')
+      ? orderExtras.promoCode.trim()
+      : ''
 
+    // 決議 6：一律送新格式
     await store.submitRegistration(shortLink, {
-      buyer: buyerPayload,
-      attendees: [{
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        company: form.company || undefined,
-        title: form.title || undefined,
-        type: form.type,
-        ...Object.keys(customData).length > 0 ? { form_answers: customData } : {},
-      }],
+      buyer,
+      attendees,
       ...(note ? { note } : {}),
       ...(promoCode ? { promo_code: promoCode } : {}),
     })
@@ -592,15 +785,6 @@ const submittedCheckInToken = computed(() => {
 // 貴賓列表
 const guests = computed(() => pageData.value?.guests || [])
 
-// 票券（之後從後端取，目前先用 pageData 中的資料或空陣列）
-const tickets = computed(() => pageData.value?.tickets || [])
-const ticketQty = reactive<Record<number, number>>({})
-const changeQty = (id: number, delta: number) => {
-  const cur = ticketQty[id] || 1
-  ticketQty[id] = Math.max(0, cur + delta)
-}
-const getQty = (id: number) => ticketQty[id] ?? 1
-
 // FAQ（之後從後端取）
 const faqs = computed(() => pageData.value?.faqs || [])
 const faqOpen = ref<number | null>(null)
@@ -623,10 +807,12 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
       <p>{{ store.error }}</p>
     </div>
 
-    <!-- Success -->
+    <!-- Success（優先讀 submittedParticipants / submittedOrder；舊欄位保留作 fallback）-->
     <SuccessState
-      v-else-if="store.submitted && store.submittedParticipant"
-      :participant-name="store.submittedParticipant.name"
+      v-else-if="store.submitted && (store.submittedParticipants.length || store.submittedParticipant)"
+      :participants="store.submittedParticipants"
+      :order="store.submittedOrder"
+      :participant-name="store.submittedParticipant?.name"
       :qr-code-url="submittedQrCodeUrl"
       :check-in-token="submittedCheckInToken"
       :rows="eventReminderRows"
@@ -796,85 +982,149 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
         </div>
         <form v-if="!isFull" @submit.prevent="handleSubmit" class="reg-form" novalidate>
 
-          <div class="form-row two-col">
-            <div class="field-group" :class="{ 'has-error': formErrors.name }">
-              <label>姓名 <span class="required">*</span></label>
-              <input v-model="form.name" type="text" placeholder="請輸入您的姓名" />
-              <span class="field-error">{{ formErrors.name }}</span>
+          <!-- 訂購人區塊（依後端 toggle 顯示）-->
+          <section v-if="showBuyerBlock" class="form-section buyer-section">
+            <h3 class="section-heading">訂購人資料</h3>
+            <div class="form-row two-col">
+              <div class="field-group" :class="{ 'has-error': formErrors.buyer_name }">
+                <label>訂購人姓名 <span class="required">*</span></label>
+                <input v-model="buyerForm.name" type="text" placeholder="請輸入訂購人姓名" />
+                <span class="field-error">{{ formErrors.buyer_name }}</span>
+              </div>
+              <div class="field-group" :class="{ 'has-error': formErrors.buyer_phone }">
+                <label>訂購人電話 <span class="required">*</span></label>
+                <input v-model="buyerForm.phone" type="tel" placeholder="例：0912-345-678" />
+                <span class="field-error">{{ formErrors.buyer_phone }}</span>
+              </div>
             </div>
-            <div class="field-group" :class="{ 'has-error': formErrors.phone }">
-              <label>聯絡電話 <span class="required">*</span></label>
-              <input v-model="form.phone" type="tel" placeholder="例：0912-345-678" />
-              <span class="field-error">{{ formErrors.phone }}</span>
+            <div class="field-group" :class="{ 'has-error': formErrors.buyer_email }">
+              <label>訂購人 Email <span class="required">*</span></label>
+              <input v-model="buyerForm.email" type="email" placeholder="example@mail.com" />
+              <span class="field-error">{{ formErrors.buyer_email }}</span>
             </div>
+          </section>
+
+          <!-- 票券數量錯誤提示 -->
+          <div v-if="formErrors.tickets" class="form-tickets-error">
+            <span class="field-error">{{ formErrors.tickets }}</span>
           </div>
 
-          <div class="field-group" :class="{ 'has-error': formErrors.email }">
-            <label>電子郵件 <span class="required">*</span></label>
-            <input v-model="form.email" type="email" placeholder="example@mail.com" />
-            <span class="field-error">{{ formErrors.email }}</span>
-          </div>
+          <!-- 參加人區塊（每張票對應 1 個）-->
+          <section
+            v-for="(att, idx) in attendeeForms"
+            :key="att.uid"
+            class="form-section attendee-section"
+          >
+            <h3 class="section-heading">
+              參加人 {{ idx + 1 }}
+              <span v-if="att.ticketName" class="attendee-ticket-tag">（{{ att.ticketName }}）</span>
+            </h3>
 
-          <div class="form-row two-col">
+            <div class="form-row two-col">
+              <div class="field-group" :class="{ 'has-error': formErrors[`att_${att.uid}_name`] }">
+                <label>姓名 <span class="required">*</span></label>
+                <input v-model="att.data.name" type="text" placeholder="請輸入姓名" />
+                <span class="field-error">{{ formErrors[`att_${att.uid}_name`] }}</span>
+              </div>
+              <div class="field-group" :class="{ 'has-error': formErrors[`att_${att.uid}_phone`] }">
+                <label>聯絡電話 <span class="required">*</span></label>
+                <input v-model="att.data.phone" type="tel" placeholder="例：0912-345-678" />
+                <span class="field-error">{{ formErrors[`att_${att.uid}_phone`] }}</span>
+              </div>
+            </div>
+
+            <div class="field-group" :class="{ 'has-error': formErrors[`att_${att.uid}_email`] }">
+              <label>電子郵件 <span class="required">*</span></label>
+              <input v-model="att.data.email" type="email" placeholder="example@mail.com" />
+              <span class="field-error">{{ formErrors[`att_${att.uid}_email`] }}</span>
+            </div>
+
+            <div class="form-row two-col">
+              <div class="field-group">
+                <label>公司／單位 <span class="optional">（選填）</span></label>
+                <input v-model="att.data.company" type="text" placeholder="請輸入公司名稱" />
+              </div>
+              <div class="field-group">
+                <label>職稱 <span class="optional">（選填）</span></label>
+                <input v-model="att.data.title" type="text" placeholder="請輸入職稱" />
+              </div>
+            </div>
+
+            <!-- 自定義欄位（每位 attendee 各自一份）-->
+            <template v-for="field in attendeeCustomFields" :key="`${att.uid}_${field.id ?? field.label}`">
+              <div class="field-group" :class="{ 'has-error': formErrors[`att_${att.uid}_custom_${String(field.id ?? field.label)}`] }">
+                <label>
+                  {{ field.label }}
+                  <span v-if="field.is_required" class="required">*</span>
+                </label>
+                <select
+                  v-if="field.field_type === 'select' || field.field_type === 'radio'"
+                  v-model="att.data.formAnswers[String(field.id ?? field.label)]"
+                  class="custom-select"
+                >
+                  <option value="">請選擇...</option>
+                  <option v-for="opt in (field.options || [])" :key="opt.order" :value="opt.text">
+                    {{ opt.text }}
+                  </option>
+                </select>
+                <textarea
+                  v-else-if="field.field_type === 'textarea'"
+                  v-model="att.data.formAnswers[String(field.id ?? field.label)]"
+                  :placeholder="`請輸入${field.label}`"
+                  class="custom-textarea"
+                  rows="3"
+                ></textarea>
+                <input
+                  v-else
+                  v-model="att.data.formAnswers[String(field.id ?? field.label)]"
+                  :type="field.field_type || 'text'"
+                  :placeholder="`請輸入${field.label}`"
+                />
+                <span class="field-error">{{ formErrors[`att_${att.uid}_custom_${String(field.id ?? field.label)}`] }}</span>
+              </div>
+            </template>
+
             <div class="field-group">
-              <label>公司／單位 <span class="optional">（選填）</span></label>
-              <input v-model="form.company" type="text" placeholder="請輸入公司名稱" />
+              <label>身份類別</label>
+              <div class="radio-group">
+                <label class="radio-item" :class="{ checked: att.data.type === '一般民眾' }">
+                  <input v-model="att.data.type" type="radio" value="一般民眾" hidden />
+                  <span class="radio-mark"></span>
+                  <span>一般民眾</span>
+                </label>
+                <label class="radio-item" :class="{ checked: att.data.type === 'VIP' }">
+                  <input v-model="att.data.type" type="radio" value="VIP" hidden />
+                  <span class="radio-mark"></span>
+                  <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> VIP</span>
+                </label>
+              </div>
             </div>
-            <div class="field-group">
-              <label>職稱 <span class="optional">（選填）</span></label>
-              <input v-model="form.title" type="text" placeholder="請輸入職稱" />
-            </div>
-          </div>
+          </section>
 
-          <!-- 自定義欄位 -->
-          <template v-for="field in customFields" :key="field.id ?? field.label">
-            <div class="field-group" :class="{ 'has-error': formErrors[`custom_${String(field.id ?? field.label)}`] }">
-              <label>
-                {{ field.label }}
-                <span v-if="field.is_required" class="required">*</span>
-              </label>
-              <select
-                v-if="field.field_type === 'select' || field.field_type === 'radio'"
-                v-model="dynamicValues[String(field.id ?? field.label)]"
-                class="custom-select"
-              >
-                <option value="">請選擇...</option>
-                <option v-for="opt in (field.options || [])" :key="opt.order" :value="opt.text">
-                  {{ opt.text }}
-                </option>
-              </select>
-              <textarea
-                v-else-if="field.field_type === 'textarea'"
-                v-model="dynamicValues[String(field.id ?? field.label)]"
-                :placeholder="`請輸入${field.label}`"
-                class="custom-textarea"
-                rows="3"
-              ></textarea>
-              <input
-                v-else
-                v-model="dynamicValues[String(field.id ?? field.label)]"
-                :type="field.field_type || 'text'"
-                :placeholder="`請輸入${field.label}`"
-              />
-              <span class="field-error">{{ formErrors[`custom_${String(field.id ?? field.label)}`] }}</span>
-            </div>
-          </template>
-
-          <div class="field-group">
-            <label>身份類別</label>
-            <div class="radio-group">
-              <label class="radio-item" :class="{ checked: form.type === '一般民眾' }">
-                <input v-model="form.type" type="radio" value="一般民眾" hidden />
-                <span class="radio-mark"></span>
-                <span>一般民眾</span>
-              </label>
-              <label class="radio-item" :class="{ checked: form.type === 'VIP' }">
-                <input v-model="form.type" type="radio" value="VIP" hidden />
-                <span class="radio-mark"></span>
-                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> VIP</span>
-              </label>
-            </div>
-          </div>
+          <!-- 訂單層欄位（note / promo_code）-->
+          <section v-if="orderFields.length" class="form-section order-section">
+            <template v-for="field in orderFields" :key="field.id ?? field.label">
+              <div class="field-group">
+                <label>
+                  {{ field.label }}
+                  <span class="optional">（選填）</span>
+                </label>
+                <textarea
+                  v-if="field.field_key === 'note'"
+                  v-model="orderExtras.note"
+                  :placeholder="`請輸入${field.label}`"
+                  class="custom-textarea"
+                  rows="3"
+                ></textarea>
+                <input
+                  v-else
+                  v-model="orderExtras.promoCode"
+                  type="text"
+                  :placeholder="`請輸入${field.label}`"
+                />
+              </div>
+            </template>
+          </section>
 
           <div class="draft-consent" :class="{ checked: draftConsent }">
             <label class="draft-consent-label">
@@ -1382,6 +1632,56 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .reg-form { display: flex; flex-direction: column; gap: 20px; }
 .form-row.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 520px) { .form-row.two-col { grid-template-columns: 1fr; } }
+
+/* 表單區塊（買家 / 各 attendee / 訂單 extras） */
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px 22px;
+  background: #fafaf8;
+  border: 1px solid #e8e8e4;
+  border-radius: 12px;
+}
+.form-section + .form-section { margin-top: 4px; }
+.form-section .section-heading {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.attendee-ticket-tag {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #337168;
+  background: #e8f5f1;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.buyer-section { background: #fff7ed; border-color: #fcd9b6; }
+.buyer-section .section-heading::before {
+  content: '';
+  width: 4px;
+  height: 18px;
+  background: #f97316;
+  border-radius: 2px;
+}
+.order-section { background: #f8fafc; border-color: #e2e8f0; }
+.form-tickets-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.form-tickets-error .field-error {
+  display: block;
+  color: #b91c1c;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
 @media (max-width: 640px) {
   .draft-banner {
     flex-direction: column;
