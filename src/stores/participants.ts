@@ -157,13 +157,24 @@ export const useParticipantsStore = defineStore('participants', () => {
 
     const importParticipants = (data: Record<string, unknown>[], eventId: number) =>
         run(async () => {
-            const res = await apiRequest('/api/participants/bulk_import/', {
+            // 改打 hybrid endpoint：支援逐筆錯誤回報、相容新舊 Excel 格式
+            // event 在 top-level 帶（後端會強制注入到每筆，不信任 row 內自帶的 event）
+            const res = await apiRequest('/api/participants/bulk_import_hybrid/', {
                 method: 'POST',
                 body: JSON.stringify({ event: eventId, participants: data }),
             })
             if (!res.ok) throw new Error(await parseApiError(res, `批量匯入失敗 (${res.status})`))
             cache.invalidate()
-            return res.json()
+            const raw = await res.json()
+            // hybrid response: { success: bool, mode, count|success_count, error_count, data, errors, message }
+            // 舊 caller 期望 { success: number, failed: number, errors, mode, ... }
+            // 統一 normalize 成舊格式，避免 List.vue 也跟著改
+            return {
+                ...raw,
+                success: raw.success_count ?? raw.count ?? (Array.isArray(raw.data) ? raw.data.length : 0),
+                failed: raw.error_count ?? (Array.isArray(raw.errors) ? raw.errors.length : 0),
+                errors: raw.errors ?? [],
+            }
         })
 
     function clear() {

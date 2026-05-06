@@ -1,0 +1,1 @@
+function e(e){let t=new FormData;return Object.entries(e).forEach(([e,n])=>{if(n!=null){if(n instanceof File){t.append(e,n);return}if(typeof n==`boolean`){t.append(e,n?`true`:`false`);return}t.append(e,String(n))}}),t}export{e as t};

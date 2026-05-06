@@ -9,6 +9,7 @@ import { useEventsStore } from "@/stores/events";
 import PageLoader from "@/components/shared/PageLoader.vue";
 import LogoSpinner from '@/components/shared/LogoSpinner.vue';
 import type { Participant } from "@/types";
+import { normalizeImportRow } from "@/utils/normalizeImportRow";
 
 const { success, warning, error: showError } = useToast();
 const { confirm } = useConfirm();
@@ -187,15 +188,29 @@ const handleImport = async (e: Event) => {
     const workbook = XLSX.read(data, { type: "array" });
     const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
-    const sanitizedData = rawData.map((item: Record<string, unknown>) => ({
-      name: (item["姓名"] as string) || (item["Name"] as string) || "",
-      company: (item["單位"] as string) || (item["公司"] as string) || "",
-      title: (item["職稱"] as string) || "",
-      phone: (item["電話"] as string) || "",
-      email: (item["Email"] as string) || "",
-      type: (item["身分"] as string) || "一般民眾",
-      status: (item["報到狀態"] as string) || "未報到",
-    }));
+    // 嘗試取當前活動的 RegistrationFormField，給 helper 做 form_answers 自動映射
+    // 拿不到（無 page / fetch 失敗）就 fallback 用原始 header 當 form_answers 的 key（不丟資料）
+    let formFields: Array<{ field_key?: string | null; label?: string; is_hidden?: boolean }> = [];
+    const eventId = eventsStore.currentEvent?.id;
+    if (eventId) {
+      try {
+        const { useRegistrationPagesStore } = await import("@/stores/registrationPages");
+        const pagesStore = useRegistrationPagesStore();
+        const page = await pagesStore.fetchByEvent(eventId);
+        formFields = (page?.formFields as Array<{ field_key?: string | null; label?: string; is_hidden?: boolean }>) || [];
+      } catch {
+        // 讀不到 form fields 不該擋住匯入流程
+        formFields = [];
+      }
+    }
+
+    // 用 helper 把 Excel row 正規化（alias mapping + type/status 值正規化 + form_answers 收集）
+    const sanitizedData = (rawData as Record<string, unknown>[]).map((item) => {
+      const row = normalizeImportRow(item, formFields);
+      // 後端 hybrid 不接受 unknown_columns 這個欄位，剔除後再送
+      const { unknown_columns: _unknown, ...payload } = row;
+      return payload;
+    });
 
     try {
       const result = await participantsStore.importParticipants(sanitizedData, eventsStore.currentEvent?.id ?? 0);
