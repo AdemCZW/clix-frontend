@@ -85,6 +85,26 @@ export interface Participant {
   qrCodeUrl: string
   createdAt: string
   updatedAt: string
+
+  // ── 訂單 / 票券 / 自訂（5/5 起加入；optional 因為早期資料 / list view 不一定全帶） ──
+  formAnswers?: Record<string, unknown>
+  orderId?: number | null
+  orderNumber?: string
+  buyerName?: string
+  buyerEmail?: string
+  buyerPhone?: string
+  paymentMethod?: string
+  paymentStatus?: string
+  paidAt?: string | null
+  cardLast4?: string
+  promoCode?: string
+  note?: string
+  ticketId?: number | null
+  ticketName?: string
+  ticketNumber?: string
+  ticketPrice?: number | string
+  validFrom?: string | null
+  validTo?: string | null
 }
 
 /** 後端回傳的原始參與者資料（snake_case） */
@@ -105,6 +125,26 @@ export interface RawParticipant {
   qr_code_url: string
   created_at: string
   updated_at: string
+
+  // 訂單 / 票券 / 自訂（後端 ParticipantSerializer 一律會回，但舊版 / 部分情境可能缺欄位）
+  form_answers?: Record<string, unknown>
+  order?: number | null
+  order_number?: string
+  buyer_name?: string
+  buyer_email?: string
+  buyer_phone?: string
+  payment_method?: string
+  payment_status?: string
+  paid_at?: string | null
+  card_last4?: string
+  promo_code?: string
+  note?: string
+  ticket?: number | null
+  ticket_name?: string
+  ticket_number?: string
+  ticket_price?: number | string
+  valid_from?: string | null
+  valid_to?: string | null
 }
 
 /**

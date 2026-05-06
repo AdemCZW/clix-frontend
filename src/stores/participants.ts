@@ -24,6 +24,25 @@ function mapParticipant(p: RawParticipant): Participant {
         qrCodeUrl: p.qr_code_url,
         createdAt: p.created_at,
         updatedAt: p.updated_at,
+        // ── 訂單 / 票券 / 自訂（5/5 schema）─────────────────────
+        formAnswers: p.form_answers ?? {},
+        orderId: p.order ?? null,
+        orderNumber: p.order_number ?? '',
+        buyerName: p.buyer_name ?? '',
+        buyerEmail: p.buyer_email ?? '',
+        buyerPhone: p.buyer_phone ?? '',
+        paymentMethod: p.payment_method ?? '',
+        paymentStatus: p.payment_status ?? '',
+        paidAt: p.paid_at ?? null,
+        cardLast4: p.card_last4 ?? '',
+        promoCode: p.promo_code ?? '',
+        note: p.note ?? '',
+        ticketId: p.ticket ?? null,
+        ticketName: p.ticket_name ?? '',
+        ticketNumber: p.ticket_number ?? '',
+        ticketPrice: p.ticket_price ?? '',
+        validFrom: p.valid_from ?? null,
+        validTo: p.valid_to ?? null,
     }
 }
 

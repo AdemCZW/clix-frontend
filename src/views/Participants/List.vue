@@ -147,16 +147,100 @@ const exportData = async (exportType: string) => {
 
   isExporting.value = true;
 
-  const exportList = dataToExport.map((p) => ({
-    編號: p.id,
-    姓名: p.name,
-    單位: p.company,
-    職稱: p.title,
-    電話: p.phone,
-    Email: p.email,
-    身分: p.type,
-    報到狀態: p.status,
-  }));
+  // ── 取當前活動的「報名表欄位」當動態 column header ──
+  // formFields 拿不到（沒 page / 失敗）就 fallback 用 form_answers 內出現過的所有 key 聯集
+  let formFields: Array<{ field_key?: string | null; label?: string; is_hidden?: boolean }> = [];
+  const eventId = eventsStore.currentEvent?.id;
+  if (eventId) {
+    try {
+      const { useRegistrationPagesStore } = await import("@/stores/registrationPages");
+      const pagesStore = useRegistrationPagesStore();
+      const page = await pagesStore.fetchByEvent(eventId);
+      formFields = (page?.formFields as Array<{ field_key?: string | null; label?: string; is_hidden?: boolean }>) || [];
+    } catch {
+      formFields = [];
+    }
+  }
+
+  // 自訂欄位 column 規則：
+  // 1. 優先用 RegistrationFormField（field_key + label，is_hidden=true 跳過，且不重複系統欄位）
+  // 2. 如果 page 拿不到，用所有 participant.formAnswers 的 key 聯集
+  const SYSTEM_FIELD_KEYS = new Set([
+    "name", "email", "phone",
+    "buyer_name", "buyer_email", "buyer_phone",
+    "note", "promo_code",
+  ]);
+  type CustomCol = { key: string; label: string };
+  let customCols: CustomCol[] = [];
+  if (formFields.length > 0) {
+    customCols = formFields
+      .filter((f) => !f.is_hidden)
+      .filter((f) => !(f.field_key && SYSTEM_FIELD_KEYS.has(f.field_key)))
+      .map((f) => ({
+        key: f.field_key || f.label || "",
+        label: f.label || f.field_key || "",
+      }))
+      .filter((c) => c.key);
+  } else {
+    const seen = new Map<string, string>();
+    for (const p of dataToExport) {
+      const fa = (p.formAnswers || {}) as Record<string, unknown>;
+      for (const k of Object.keys(fa)) {
+        if (!seen.has(k)) seen.set(k, k);
+      }
+    }
+    customCols = Array.from(seen.entries()).map(([k, l]) => ({ key: k, label: l }));
+  }
+
+  // 把 ISO datetime 簡化成「YYYY-MM-DD HH:mm」，空值回空字串
+  const fmtDateTime = (s: string | null | undefined) => {
+    if (!s) return "";
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return String(s);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const exportList = dataToExport.map((p) => {
+    const fa = (p.formAnswers || {}) as Record<string, unknown>;
+    const row: Record<string, unknown> = {
+      // ── 基本 ──
+      編號: p.id,
+      姓名: p.name,
+      單位: p.company,
+      職稱: p.title,
+      電話: p.phone,
+      Email: p.email,
+      身分: p.type,
+      報到狀態: p.status,
+      // ── 訂單 ──
+      訂單編號: p.orderNumber || "",
+      訂購人姓名: p.buyerName || "",
+      "訂購人 Email": p.buyerEmail || "",
+      訂購人電話: p.buyerPhone || "",
+      訂單備註: p.note || "",
+      優惠代碼: p.promoCode || "",
+      // ── 票券 ──
+      票種: p.ticketName || "",
+      票號: p.ticketNumber || "",
+      票價: p.ticketPrice ?? "",
+      "票券有效時間（起）": fmtDateTime(p.validFrom),
+      "票券有效時間（迄）": fmtDateTime(p.validTo),
+      // ── 付款 ──
+      付款方式: p.paymentMethod || "",
+      付款狀態: p.paymentStatus || "",
+      付款時間: fmtDateTime(p.paidAt),
+      信用卡末四碼: p.cardLast4 || "",
+      // ── 系統 ──
+      建立時間: fmtDateTime(p.createdAt),
+    };
+    // ── 自訂欄位（form_answers）──
+    for (const col of customCols) {
+      const v = fa[col.key];
+      row[col.label] = v === undefined || v === null ? "" : String(v);
+    }
+    return row;
+  });
 
   const XLSX = await loadXLSX();
   const worksheet = XLSX.utils.json_to_sheet(exportList);
