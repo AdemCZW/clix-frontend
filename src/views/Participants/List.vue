@@ -661,9 +661,18 @@ const formatDate = (isoString: string) => {
 
     <!-- 手機底部操作列 -->
     <div class="mobile-bottom-bar">
-      <button class="mb-import" @click="triggerImport">匯入</button>
-      <button class="mb-export" @click="handleExport">匯出</button>
-      <button class="mb-add" @click="addParticipant">+ 新增</button>
+      <!-- 活動 + 篩選摘要（上半部）— 讓使用者單手操作時隨時知道目前在哪個活動、看到哪些資料 -->
+      <div class="mb-context">
+        <span class="mb-ctx-event">{{ eventsStore.currentEvent?.name || '尚未選擇活動' }}</span>
+        <span class="mb-ctx-meta">
+          {{ activeTab }} · {{ filterStatus === 'All' ? '全部' : filterStatus }} · {{ filteredList.length }} 筆
+        </span>
+      </div>
+      <div class="mb-actions">
+        <button class="mb-import" @click="triggerImport">匯入</button>
+        <button class="mb-export" @click="handleExport">匯出</button>
+        <button class="mb-add" @click="addParticipant">+ 新增</button>
+      </div>
     </div>
     </template>
   </div>
@@ -1375,12 +1384,33 @@ const formatDate = (isoString: string) => {
   /* 手機底部操作列 */
   .mobile-bottom-bar {
     display:flex !important;
+    flex-direction:column;
     position:fixed; bottom:0; left:0; right:0; z-index:60;
     background:var(--bg-card); border-top:1px solid var(--border-color);
-    padding:8px 12px calc(8px + env(safe-area-inset-bottom, 12px));
-    gap:8px; box-shadow:0 -2px 10px rgba(0,0,0,.06);
+    padding:6px 12px calc(8px + env(safe-area-inset-bottom, 12px));
+    gap:6px; box-shadow:0 -2px 10px rgba(0,0,0,.06);
   }
-  .mobile-bottom-bar button {
+  /* 上半：活動名稱 + 篩選摘要 */
+  .mobile-bottom-bar .mb-context {
+    display:flex; justify-content:space-between; align-items:center;
+    gap:8px; min-height:18px;
+    font-size:.7rem; line-height:1.2;
+  }
+  .mobile-bottom-bar .mb-ctx-event {
+    font-weight:700; color:var(--text-main);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    max-width:60%;
+  }
+  .mobile-bottom-bar .mb-ctx-meta {
+    color:var(--text-muted);
+    font-size:.66rem;
+    flex-shrink:0;
+  }
+  /* 下半：按鈕列 */
+  .mobile-bottom-bar .mb-actions {
+    display:flex; gap:8px;
+  }
+  .mobile-bottom-bar .mb-actions button {
     flex:1; padding:10px 0; border-radius:10px;
     font-size:.78rem; font-weight:600; cursor:pointer; border:none;
     transition:.15s;

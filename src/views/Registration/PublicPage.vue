@@ -603,7 +603,18 @@ const validate = () => {
 
 // ─── 送出 ───────────────────────────────────────────────
 const handleSubmit = async () => {
-  if (!validate()) return
+  if (!validate()) {
+    // 驗證失敗自動捲到第一個錯欄位 + focus（手機版超長表單必要）
+    await nextTick()
+    const firstError = document.querySelector<HTMLElement>('.has-error, .form-tickets-error')
+    if (firstError) {
+      firstError.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      const input = firstError.querySelector<HTMLElement>('input, textarea, select')
+      // 等 scroll 動畫先跑（300ms 大約是 smooth scroll 完成時間）
+      if (input) setTimeout(() => input.focus({ preventScroll: true }), 350)
+    }
+    return
+  }
   submitting.value = true
   try {
     // Buyer 來源：showBuyerBlock 為真用 buyerForm，否則沿用第一位 attendee
@@ -961,7 +972,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
         <span>WEBSITE DESIGNED BY CLIX</span>
       </footer>
 
-      <MobileStickyBar :rows="eventReminderRows" :is-full="isFull" :visible="showMobileStickyBar" @open-form="openForm" />
+      <MobileStickyBar :rows="eventReminderRows" :is-full="isFull" :visible="showMobileStickyBar && !showCookieBanner" @open-form="openForm" />
 
     </template>
 
@@ -1880,7 +1891,8 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   z-index: 9999;
   background: rgba(30, 41, 59, 0.97);
   backdrop-filter: blur(8px);
-  padding: 20px 24px;
+  /* 底部 padding 補 iPhone safe-area，避免被 home indicator 遮住 */
+  padding: 20px 24px calc(20px + env(safe-area-inset-bottom, 0px));
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
 }
 
