@@ -6,6 +6,16 @@ import { useStoreRequest } from '@/utils/useStoreRequest'
 import { useCache } from '@/utils/useCache'
 import type { Participant, RawParticipant, RegistrationPage, PublicSubmittedParticipant } from '@/types'
 
+export class ImportValidationError extends Error {
+    payload: Record<string, unknown>
+
+    constructor(message: string, payload: Record<string, unknown>) {
+        super(message)
+        this.name = 'ImportValidationError'
+        this.payload = payload
+    }
+}
+
 function mapParticipant(p: RawParticipant): Participant {
     return {
         id: p.id,
@@ -180,9 +190,29 @@ export const useParticipantsStore = defineStore('participants', () => {
             // event 在 top-level 帶（後端會強制注入到每筆，不信任 row 內自帶的 event）
             const res = await apiRequest('/api/participants/bulk_import_hybrid/', {
                 method: 'POST',
-                body: JSON.stringify({ event: eventId, participants: data }),
+                body: JSON.stringify({ event: eventId, strict: true, participants: data }),
             })
-            if (!res.ok) throw new Error(await parseApiError(res, `批量匯入失敗 (${res.status})`))
+            if (!res.ok) {
+                let payload: Record<string, unknown> | null = null
+                try {
+                    payload = await res.json()
+                } catch {
+                    payload = null
+                }
+
+                if (payload && Array.isArray(payload.errors)) {
+                    throw new ImportValidationError(
+                        String(payload.message || `批量匯入失敗 (${res.status})`),
+                        payload,
+                    )
+                }
+
+                throw new Error(
+                    payload
+                        ? String(payload.detail || payload.message || `批量匯入失敗 (${res.status})`)
+                        : await parseApiError(res, `批量匯入失敗 (${res.status})`),
+                )
+            }
             cache.invalidate()
             const raw = await res.json()
             // hybrid response: { success: bool, mode, count|success_count, error_count, data, errors, message }

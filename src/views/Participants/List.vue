@@ -4,7 +4,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 const loadXLSX = () => import("xlsx");
 import { useToast } from "@/composables/useToast";
 import { useConfirm } from "@/composables/useConfirm";
-import { useParticipantsStore } from "@/stores/participants";
+import { ImportValidationError, useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import PageLoader from "@/components/shared/PageLoader.vue";
 import LogoSpinner from '@/components/shared/LogoSpinner.vue';
@@ -261,9 +261,41 @@ const handleExport = () => {
 // 匯入 Excel 邏輯
 const fileInput = ref<HTMLInputElement | null>(null);
 const triggerImport = () => fileInput.value!.click();
+
+const formatImportErrorDetails = (errors: Array<Record<string, unknown>>, maxRows = 8) => {
+  const preview = errors.slice(0, maxRows).map((err) => {
+    const errorMap = (err.errors || {}) as Record<string, string[] | string>;
+    const detail = Object.entries(errorMap)
+      .map(([field, messages]) => {
+        const text = Array.isArray(messages) ? messages.join(", ") : String(messages);
+        return `${field}: ${text}`;
+      })
+      .join("；");
+    return `第 ${err.index} 筆：${detail || "資料格式不正確"}`;
+  });
+  const more = errors.length > maxRows ? `\n…另外還有 ${errors.length - maxRows} 筆錯誤` : "";
+  return `${preview.join("\n")}${more}`;
+};
+
+const showImportBlockedDialog = async (title: string, sections: string[]) => {
+  await confirm({
+    title,
+    message: `${sections.join("\n\n")}\n\n本次未送出任何資料，請修正後重新上傳。`,
+    confirmText: "我知道了",
+    cancelText: "關閉",
+    danger: true,
+  });
+};
+
 const handleImport = async (e: Event) => {
   const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
+
+  if (!eventsStore.currentEvent?.id) {
+    await showImportBlockedDialog("無法匯入", ["請先選擇活動，再進行 Excel 匯入。"]);
+    (e.target as HTMLInputElement).value = "";
+    return;
+  }
 
   const reader = new FileReader();
   reader.onload = async (event) => {
@@ -326,7 +358,7 @@ const handleImport = async (e: Event) => {
         sections.push(
           `🔸 ${unknownHeaderToCount.size} 個欄位不在系統的固定欄位 / 報名表欄位內：\n` +
             `${headerPreview}${more}\n` +
-            `若繼續，這些欄位會被一併存進「自訂欄位」（form_answers），不會遺失資料。`,
+            `請先把這些欄位修正成系統可辨識的欄位，否則本次匯入會被中止。`,
         );
       }
 
@@ -337,36 +369,20 @@ const handleImport = async (e: Event) => {
           .map(([msg, n]) => `• (${n} 筆) ${msg}`);
         sections.push(
           `🔸 偵測到值的格式問題：\n${issueLines.join("\n")}\n` +
-            `這些欄位會被忽略（不寫入），其他欄位仍會匯入。`,
+            `請先修正這些資料值，否則本次匯入會被中止。`,
         );
       }
 
-      const ok = await confirm({
-        title: "匯入前需要您確認",
-        message:
-          `${sections.join("\n\n")}\n\n` +
-          `⚠️ 若為惡意嘗試或檔案格式錯誤，請按取消，修正 Excel 表頭/值對應系統欄位後再上傳。`,
-        confirmText: "確認繼續匯入",
-        cancelText: "取消",
-        danger: true,
-      });
-      if (!ok) {
-        warning("已取消匯入");
-        (e.target as HTMLInputElement).value = "";
-        return;
-      }
+      await showImportBlockedDialog("匯入已中止", sections);
+      warning("匯入已中止，請先修正 Excel 內容");
+      (e.target as HTMLInputElement).value = "";
+      return;
     }
 
-    // 通過確認 → 把 unknown_columns merge 進 form_answers 一起送（保留資料）
-    // 後端 hybrid 不接受 unknown_columns / validation_issues 兩個欄位，剔除後再送
+    // strict mode：前端只送合法欄位，不再把 unknown_columns 併回 form_answers
     const sanitizedData = normalized.map((row) => {
-      const { unknown_columns, validation_issues: _issues, form_answers, ...rest } = row;
-      const mergedAnswers: Record<string, string> = { ...form_answers };
-      for (const [k, v] of Object.entries(unknown_columns || {})) {
-        const sv = String(v || "").trim();
-        if (sv) mergedAnswers[k] = sv;
-      }
-      return { ...rest, form_answers: mergedAnswers };
+      const { unknown_columns: _unknown, validation_issues: _issues, form_answers, ...rest } = row;
+      return { ...rest, form_answers: { ...form_answers } };
     });
 
     try {
@@ -377,45 +393,34 @@ const handleImport = async (e: Event) => {
         // 全部成功
         success(`✅ ${result.message || `批量匯入成功！共 ${result.success} 筆`}`);
       } else if (result.mode === "partial") {
-        // 部分成功
-        if (result.success > 0) {
-          warning(
-            `⚠️ ${result.message || `部分匯入成功：成功 ${result.success} 筆，失敗 ${result.failed} 筆`}`,
-          );
-
-          // 顯示錯誤詳情
-          if (result.errors && result.errors.length > 0) {
-            console.error("匯入錯誤詳情:", result.errors);
-
-            // 格式化錯誤訊息
-            const errorDetails = result.errors
-              .slice(0, 5)
-              .map((err: Record<string, unknown>) => {
-                const errorMsg = Object.entries(err.errors as Record<string, string[]>)
-                  .map(([field, messages]: [string, string[]]) => `${field}: ${messages.join(", ")}`)
-                  .join("; ");
-                return `第 ${err.index} 筆 - ${errorMsg}`;
-              })
-              .join("\n");
-
-            console.warn("錯誤詳情（前 5 筆）：\n" + errorDetails);
-
-            // 顯示彈窗（可選）
-            if (
-              await confirm({ message: `發現 ${result.errors.length} 筆錯誤。\n\n${errorDetails}\n\n是否查看完整錯誤？`, confirmText: '查看完整錯誤', danger: false })
-            ) {
-              console.table(result.errors);
-            }
-          }
-        } else {
-          showError(`❌ 匯入失敗：全部 ${result.failed} 筆都有錯誤，請檢查資料格式`);
-        }
+        await showImportBlockedDialog("匯入未完成", [
+          result.message || `匯入結果異常：成功 ${result.success} 筆，失敗 ${result.failed} 筆。`,
+          result.errors?.length
+            ? formatImportErrorDetails(result.errors as Array<Record<string, unknown>>, 5)
+            : "請檢查資料格式後重新上傳。",
+        ]);
+        warning("系統回傳部分成功結果，請確認 strict 匯入規則是否已生效");
       } else {
         success(`成功匯入 ${result.success} 筆，失敗 ${result.failed} 筆`);
       }
     } catch (err: unknown) {
-      console.error("匯入異常:", err);
-      showError("匯入失敗：" + ((err as Error).message || "請檢查檔案格式或網路連線"));
+      if (err instanceof ImportValidationError) {
+        const payload = err.payload;
+        const errors = Array.isArray(payload.errors)
+          ? (payload.errors as Array<Record<string, unknown>>)
+          : [];
+        await showImportBlockedDialog("匯入已中止", [
+          String(payload.message || "發現不符合規則的資料，未建立任何參與者。"),
+          errors.length ? formatImportErrorDetails(errors) : "請檢查檔案格式後重試。",
+        ]);
+        warning("匯入已中止，請依彈窗內容修正後再重試");
+      } else {
+        console.error("匯入異常:", err);
+        showError("匯入失敗：" + ((err as Error).message || "請檢查檔案格式或網路連線"));
+      }
+      // store 端 useStoreRequest.run 會把 err.message 寫進 error.value，
+      // 我們已用彈窗處理過，清掉避免後續 UI 殘留
+      participantsStore.clearError();
     } finally {
       (e.target as HTMLInputElement).value = "";
     }
