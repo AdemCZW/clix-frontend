@@ -33,6 +33,13 @@ export interface NormalizedImportRow {
   ticket?: number | null
   form_answers: Record<string, string>
   unknown_columns: Record<string, string>
+  /**
+   * 「值的格式」級警告（不是 header 未知）。
+   *
+   * 例如：ticket 欄位給了非數字字串（系統第一版只支援 ticket id）。
+   * 這是純警告，**不會送 backend**，呼叫端應在 confirm 預覽顯示，讓使用者修正後重傳。
+   */
+  validation_issues: string[]
 }
 
 const FIXED_FIELDS = new Set(Object.keys(IMPORT_HEADER_ALIASES))
@@ -65,6 +72,7 @@ export function normalizeImportRow(
   const fixed: Partial<NormalizedImportRow> = {}
   const formAnswers: Record<string, string> = {}
   const unknownColumns: Record<string, string> = {}
+  const validationIssues: string[] = []
   const index = buildFormFieldIndex(formFields)
 
   for (const [header, value] of Object.entries(raw)) {
@@ -81,9 +89,23 @@ export function normalizeImportRow(
           fixed.status = normalizeStatusValue(stringValue)
           break
         case 'ticket': {
-          // 第一版只支援 ticket id（數字）。ticket name → 留空，由後端拒絕
-          const num = Number(stringValue)
-          fixed.ticket = Number.isFinite(num) && num > 0 ? num : null
+          // 第一版只支援 ticket id（數字）。
+          // 給字串（很可能是票種名稱）→ 不靜默轉 null，記到 validation_issues 讓 UI 顯示
+          if (!stringValue) {
+            fixed.ticket = null
+          } else {
+            const num = Number(stringValue)
+            if (Number.isFinite(num) && num > 0) {
+              fixed.ticket = num
+            } else {
+              fixed.ticket = null
+              validationIssues.push(
+                `「${String(header).trim()}」欄位偵測到非數字值「${stringValue}」：` +
+                  `目前匯入只支援票種 id（數字），這筆票券設定會被忽略。` +
+                  `如要保留，請改用「報名表欄位」中的票種設定，或先把 Excel 內票種名稱換成系統內的票種 id。`,
+              )
+            }
+          }
           break
         }
         default:
@@ -121,6 +143,7 @@ export function normalizeImportRow(
     ticket: fixed.ticket ?? null,
     form_answers: formAnswers,
     unknown_columns: unknownColumns,
+    validation_issues: validationIssues,
   }
 }
 

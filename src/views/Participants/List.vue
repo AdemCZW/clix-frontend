@@ -304,21 +304,48 @@ const handleImport = async (e: Event) => {
       }
     }
 
-    if (unknownHeaderToCount.size > 0) {
-      // 列出前 8 個未知 header，太多就 …等 N 個
-      const sortedHeaders = Array.from(unknownHeaderToCount.entries())
-        .sort((a, b) => b[1] - a[1])
-        .map(([h, n]) => `「${h}」(${n} 筆有值)`);
-      const headerPreview = sortedHeaders.slice(0, 8).join("、");
-      const more = sortedHeaders.length > 8 ? `…等 ${sortedHeaders.length} 個欄位` : "";
+    // 收集所有 row 的 validation_issues（例：ticket 給了非數字字串）
+    // 同樣訊息只列一次，旁邊累計筆數
+    const issueToCount = new Map<string, number>();
+    for (const row of normalized) {
+      for (const issue of row.validation_issues || []) {
+        issueToCount.set(issue, (issueToCount.get(issue) ?? 0) + 1);
+      }
+    }
+
+    if (unknownHeaderToCount.size > 0 || issueToCount.size > 0) {
+      const sections: string[] = [];
+
+      if (unknownHeaderToCount.size > 0) {
+        // 列出前 8 個未知 header，太多就 …等 N 個
+        const sortedHeaders = Array.from(unknownHeaderToCount.entries())
+          .sort((a, b) => b[1] - a[1])
+          .map(([h, n]) => `「${h}」(${n} 筆有值)`);
+        const headerPreview = sortedHeaders.slice(0, 8).join("、");
+        const more = sortedHeaders.length > 8 ? `…等 ${sortedHeaders.length} 個欄位` : "";
+        sections.push(
+          `🔸 ${unknownHeaderToCount.size} 個欄位不在系統的固定欄位 / 報名表欄位內：\n` +
+            `${headerPreview}${more}\n` +
+            `若繼續，這些欄位會被一併存進「自訂欄位」（form_answers），不會遺失資料。`,
+        );
+      }
+
+      if (issueToCount.size > 0) {
+        const issueLines = Array.from(issueToCount.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([msg, n]) => `• (${n} 筆) ${msg}`);
+        sections.push(
+          `🔸 偵測到值的格式問題：\n${issueLines.join("\n")}\n` +
+            `這些欄位會被忽略（不寫入），其他欄位仍會匯入。`,
+        );
+      }
 
       const ok = await confirm({
-        title: "偵測到無法辨識的欄位",
+        title: "匯入前需要您確認",
         message:
-          `這份 Excel 有 ${unknownHeaderToCount.size} 個欄位不在系統的固定欄位 / 報名表欄位內：\n\n` +
-          `${headerPreview}${more}\n\n` +
-          `若選擇繼續，這些欄位會被一併存進「自訂欄位」（form_answers），不會遺失資料。\n\n` +
-          `⚠️ 若這些欄位是惡意嘗試或檔案格式錯誤，請按取消，修正 Excel 表頭對應系統欄位後再上傳。`,
+          `${sections.join("\n\n")}\n\n` +
+          `⚠️ 若為惡意嘗試或檔案格式錯誤，請按取消，修正 Excel 表頭/值對應系統欄位後再上傳。`,
         confirmText: "確認繼續匯入",
         cancelText: "取消",
         danger: true,
@@ -331,9 +358,9 @@ const handleImport = async (e: Event) => {
     }
 
     // 通過確認 → 把 unknown_columns merge 進 form_answers 一起送（保留資料）
-    // 後端 hybrid 不接受 unknown_columns 這個欄位，剔除後再送
+    // 後端 hybrid 不接受 unknown_columns / validation_issues 兩個欄位，剔除後再送
     const sanitizedData = normalized.map((row) => {
-      const { unknown_columns, form_answers, ...rest } = row;
+      const { unknown_columns, validation_issues: _issues, form_answers, ...rest } = row;
       const mergedAnswers: Record<string, string> = { ...form_answers };
       for (const [k, v] of Object.entries(unknown_columns || {})) {
         const sv = String(v || "").trim();
