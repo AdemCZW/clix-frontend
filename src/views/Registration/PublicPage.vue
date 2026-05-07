@@ -2010,5 +2010,43 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
     flex: 1;
     text-align: center;
   }
+
+  /* 報名表 sticky header 瘦身：縮小 padding + back-btn icon-only + 活動名單行佔最大寬 */
+  .form-view-header {
+    padding: 8px 12px;
+    gap: 10px;
+  }
+  .back-btn {
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    /* 手機只顯示「←」icon，隱藏「返回活動介紹」文字 */
+    overflow: hidden;
+    max-width: 40px;
+    text-indent: -9999px;
+    position: relative;
+  }
+  .back-btn::before {
+    content: "←";
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    display: flex; align-items: center; justify-content: center;
+    text-indent: 0;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .form-view-ename {
+    font-size: 0.85rem;
+    flex: 1; min-width: 0;
+  }
+  /* 表單卡 padding 縮小 + 標題瘦身，省手機首屏高度 */
+  .form-wrap {
+    margin-top: 16px;
+    padding: 20px 16px 28px;
+  }
+  .form-wrap-header {
+    margin-bottom: 18px;
+  }
+  .form-embed-title { font-size: 1.15rem; margin-bottom: 4px; }
+  .form-embed-sub   { font-size: 0.78rem; }
 }
 </style>

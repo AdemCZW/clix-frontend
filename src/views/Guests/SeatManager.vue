@@ -27,6 +27,11 @@ const { success: toastSuccess, error: toastError } = useToast();
 const { confirm } = useConfirm();
 
 const panelOpen = ref(false);
+// 手機版底部 sheet 半開（50dvh）/ 全開（90dvh）切換 — 點擊把手切換
+const sheetExpanded = ref(false);
+const toggleSheetExpand = () => { sheetExpanded.value = !sheetExpanded.value; };
+// sheet 關閉時 reset 全開狀態，避免下次打開直接是全開
+watch(panelOpen, (open) => { if (!open) sheetExpanded.value = false; });
 const mobileToolsOpen = ref(false);
 const isMobile = ref(window.innerWidth <= 768);
 const getActivityKey = (eventId?: number) => eventId ? `event_${eventId}` : "act_01";
@@ -605,6 +610,8 @@ const openMonitor = () => {
 
 // ── 儲存 ──
 const savingSeats = ref(false);
+const saveJustSucceeded = ref(false);
+let saveSuccessTimer: ReturnType<typeof setTimeout> | null = null;
 const saveSeats = async () => {
   const eventId = eventsStore.currentEvent?.id;
   if (!eventId) return;
@@ -624,6 +631,10 @@ const saveSeats = async () => {
     }
     await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, { method: "POST", body: JSON.stringify({ assignments, seat_metas }) });
     toastSuccess("座位分配已儲存");
+    // 按鈕本身顯示「✓ 已儲存」3 秒（補強 toast 容易被忽略的問題）
+    saveJustSucceeded.value = true;
+    if (saveSuccessTimer) clearTimeout(saveSuccessTimer);
+    saveSuccessTimer = setTimeout(() => { saveJustSucceeded.value = false; saveSuccessTimer = null; }, 3000);
   } catch { toastError("儲存失敗"); }
   finally { savingSeats.value = false; }
 };
@@ -761,7 +772,7 @@ watch(() => participantsStore.participants.length, () => {
         <span class="sp-grid-info">{{ rows }} × {{ cols }}</span>
         <button class="sp-tb" @click="openMonitor">即時監控</button>
         <div style="flex:1"></div>
-        <button class="sp-tb save" :disabled="savingSeats" @click="saveSeats">{{ savingSeats ? '儲存中...' : '儲存座位' }}</button>
+        <button class="sp-tb save" :class="{ 'just-saved': saveJustSucceeded }" :disabled="savingSeats" @click="saveSeats">{{ savingSeats ? '儲存中...' : (saveJustSucceeded ? '✓ 已儲存' : '儲存座位') }}</button>
       </div>
 
       <!-- 工具列（手機） -->
@@ -771,7 +782,7 @@ watch(() => participantsStore.participants.length, () => {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
         </button>
         <div style="flex:1"></div>
-        <button class="sp-tb save" :disabled="savingSeats" @click="saveSeats">{{ savingSeats ? '儲存中...' : '儲存' }}</button>
+        <button class="sp-tb save" :class="{ 'just-saved': saveJustSucceeded }" :disabled="savingSeats" @click="saveSeats">{{ savingSeats ? '儲存中...' : (saveJustSucceeded ? '✓ 已儲存' : '儲存') }}</button>
       </div>
 
       <!-- 手機展開工具面板 -->
@@ -905,16 +916,20 @@ watch(() => participantsStore.participants.length, () => {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
         <span>放大</span>
       </button>
-      <button :disabled="savingSeats" @click="saveSeats" class="save-nav">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        <span>{{ savingSeats ? '...' : '儲存' }}</span>
+      <button :disabled="savingSeats" @click="saveSeats" class="save-nav" :class="{ 'just-saved': saveJustSucceeded }">
+        <svg v-if="!saveJustSucceeded" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="5 12 10 17 19 7"/></svg>
+        <span>{{ savingSeats ? '...' : (saveJustSucceeded ? '已存' : '儲存') }}</span>
       </button>
     </div>
 
     <!-- 手機底部面板（名單） -->
     <Transition name="sheet-slide">
-      <div v-if="panelOpen" class="sp-sheet">
-        <div class="sp-sheet-handle" @click="panelOpen = false"><span></span></div>
+      <div v-if="panelOpen" class="sp-sheet" :class="{ expanded: sheetExpanded }">
+        <div class="sp-sheet-handle" @click="toggleSheetExpand" :title="sheetExpanded ? '收成半屏' : '展開全屏'">
+          <span></span>
+          <button type="button" class="sp-sheet-close" @click.stop="panelOpen = false" aria-label="關閉名單">×</button>
+        </div>
         <div class="sp-sheet-tip">點擊人員 → 再點擊座位即可分配</div>
         <div class="sp-tabs">
           <button class="sp-tab" :class="{ active: activeTab === 'VIP' }" @click="activeTab = 'VIP'">VIP ({{ vipList.length }})</button>
@@ -1154,6 +1169,20 @@ watch(() => participantsStore.participants.length, () => {
 .sp-zoom button:hover { background:var(--bg-hover); }
 .sp-zoom span { font-size:.68rem; font-weight:600; color:var(--text-muted); }
 
+/* 儲存成功 badge：按鈕上閃綠 + 勾號（持續 3 秒） */
+.sp-tb.save.just-saved,
+.save-nav.just-saved {
+  background: #10b981 !important;
+  color: #fff !important;
+  border-color: #10b981 !important;
+  animation: just-saved-pulse .35s ease-out;
+}
+@keyframes just-saved-pulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.06); box-shadow: 0 0 0 6px rgba(16, 185, 129, .25); }
+  100% { transform: scale(1); }
+}
+
 /* ── 座位資訊 popover（手機版短點觸發）── */
 .seat-info-modal {
   position:fixed; inset:0; z-index:200;
@@ -1295,26 +1324,39 @@ watch(() => participantsStore.participants.length, () => {
   /* 隱藏桌機側邊面板 */
   .sp-left { display:none; }
 
-  /* 手機底部面板（名單） */
+  /* 手機底部面板（名單）— 預設半開，點 handle 切換全開 */
   .sp-sheet {
     display:flex; flex-direction:column;
     position:fixed; bottom:0; left:0; right:0; z-index:40;
     background:var(--bg-card); border-radius:16px 16px 0 0;
     box-shadow:0 -4px 20px rgba(0,0,0,.12);
-    max-height:65dvh; overflow:hidden;
+    max-height:50dvh; overflow:hidden;
     padding-bottom:calc(60px + env(safe-area-inset-bottom, 12px));
+    transition: max-height .25s ease;
   }
+  .sp-sheet.expanded { max-height: 90dvh; }
   .sp-sheet-tip {
     font-size:.72rem; color:var(--text-muted); text-align:center;
     padding:0 12px 6px; font-weight:500;
   }
   .sp-sheet .sp-tabs { margin:0 12px 8px; border-radius:8px; }
   .sp-sheet-handle {
+    position:relative;
     display:flex; justify-content:center; padding:10px 0 6px; cursor:pointer;
   }
   .sp-sheet-handle span {
     width:36px; height:4px; border-radius:2px; background:#d1d5db;
+    transition:background .15s, width .2s;
   }
+  .sp-sheet.expanded .sp-sheet-handle span { background:#9ca3af; width:48px; }
+  .sp-sheet-close {
+    position:absolute; right:8px; top:6px;
+    width:30px; height:30px; border-radius:50%;
+    background:transparent; border:none; cursor:pointer;
+    color:var(--text-muted); font-size:1.4rem; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .sp-sheet-close:active { background:var(--bg-hover); }
   .sp-sheet-list {
     flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
     padding:0 12px 8px;
