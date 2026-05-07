@@ -260,6 +260,20 @@ const selectPersonForAssign = (p: SeatPerson) => {
 
 const movingFrom = ref<{ r: number; c: number } | null>(null);
 
+// 手機版座位資訊 popover：短點 assigned 座位顯示完整姓名 / 公司 / 職稱
+const seatTooltip = ref<{ r: number; c: number; person: SeatPerson } | null>(null);
+const closeSeatTooltip = () => { seatTooltip.value = null; };
+const startMoveFromTooltip = () => {
+  if (!seatTooltip.value) return;
+  movingFrom.value = { r: seatTooltip.value.r, c: seatTooltip.value.c };
+  seatTooltip.value = null;
+};
+const removePersonFromTooltip = () => {
+  if (!seatTooltip.value) return;
+  removePerson(seatTooltip.value.r, seatTooltip.value.c);
+  seatTooltip.value = null;
+};
+
 const handleSeatClick = (r: number, c: number) => {
   const status = getSeatStatus(r, c);
 
@@ -396,6 +410,14 @@ const onTouchEnd = () => {
       }
       assignPerson(touchDragPerson.value, r, c);
     }
+  } else if (touchDragFrom.value && isMobile.value) {
+    // 短點 assigned 座位（手指沒移到其他座位）→ 顯示資訊 popover
+    // 取代既有「看不到完整姓名」的問題
+    seatTooltip.value = {
+      r: touchDragFrom.value.r,
+      c: touchDragFrom.value.c,
+      person: touchDragPerson.value,
+    };
   }
   touchDragPerson.value = null;
   touchDragFrom.value = null;
@@ -918,6 +940,42 @@ watch(() => participantsStore.participants.length, () => {
 
     <!-- 手機面板遮罩 -->
     <div v-if="panelOpen" class="sp-mobile-overlay" @click="panelOpen = false"></div>
+
+    <!-- 座位資訊 popover（手機版短點 assigned 座位顯示）-->
+    <div v-if="seatTooltip" class="seat-info-modal" @click.self="closeSeatTooltip">
+      <div class="seat-info-card">
+        <div class="seat-info-head">
+          <div class="seat-info-avatar" :class="{ vip: seatTooltip.person.type === 'VIP' }">
+            {{ (seatTooltip.person.name || '?').charAt(0) }}
+          </div>
+          <div class="seat-info-meta">
+            <div class="seat-info-name">{{ seatTooltip.person.name || '未填姓名' }}</div>
+            <div class="seat-info-type" :class="{ vip: seatTooltip.person.type === 'VIP' }">
+              {{ seatTooltip.person.type || '一般民眾' }}
+            </div>
+          </div>
+        </div>
+        <div class="seat-info-body">
+          <div v-if="(seatTooltip.person as any).company" class="seat-info-row">
+            <span class="seat-info-label">公司</span>
+            <span class="seat-info-value">{{ (seatTooltip.person as any).company }}</span>
+          </div>
+          <div v-if="(seatTooltip.person as any).title" class="seat-info-row">
+            <span class="seat-info-label">職稱</span>
+            <span class="seat-info-value">{{ (seatTooltip.person as any).title }}</span>
+          </div>
+          <div class="seat-info-row">
+            <span class="seat-info-label">座位</span>
+            <span class="seat-info-value">{{ getSeatLabel(seatTooltip.r, seatTooltip.c) }}</span>
+          </div>
+        </div>
+        <div class="seat-info-actions">
+          <button class="seat-info-btn move" @click="startMoveFromTooltip">換位</button>
+          <button class="seat-info-btn remove" @click="removePersonFromTooltip">移除</button>
+          <button class="seat-info-btn close" @click="closeSeatTooltip">關閉</button>
+        </div>
+      </div>
+    </div>
     </template>
   </div>
 </template>
@@ -1095,6 +1153,61 @@ watch(() => participantsStore.participants.length, () => {
 .sp-zoom button { width:30px; height:30px; border:none; background:transparent; border-radius:7px; cursor:pointer; font-size:1rem; font-weight:700; color: var(--text-secondary); transition:.15s; }
 .sp-zoom button:hover { background:var(--bg-hover); }
 .sp-zoom span { font-size:.68rem; font-weight:600; color:var(--text-muted); }
+
+/* ── 座位資訊 popover（手機版短點觸發）── */
+.seat-info-modal {
+  position:fixed; inset:0; z-index:200;
+  display:flex; align-items:flex-end; justify-content:center;
+  background:rgba(15,23,42,.5);
+  padding:0 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  animation: seat-info-fade .15s ease-out;
+}
+@keyframes seat-info-fade { from { opacity:0; } to { opacity:1; } }
+.seat-info-card {
+  width:100%; max-width:420px;
+  background:var(--bg-card); border-radius:16px;
+  padding:20px; margin-bottom:16px;
+  box-shadow:0 20px 50px rgba(0,0,0,.25);
+  animation: seat-info-slide .2s ease-out;
+}
+@keyframes seat-info-slide {
+  from { transform:translateY(20px); opacity:0; }
+  to { transform:translateY(0); opacity:1; }
+}
+.seat-info-head {
+  display:flex; align-items:center; gap:12px;
+  padding-bottom:14px; border-bottom:1px solid var(--border-color); margin-bottom:14px;
+}
+.seat-info-avatar {
+  width:48px; height:48px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg,#337168,#2a5c54); color:#fff;
+  font-size:1.15rem; font-weight:700;
+}
+.seat-info-avatar.vip { background:linear-gradient(135deg,#f59e0b,#d97706); }
+.seat-info-meta { flex:1; min-width:0; }
+.seat-info-name { font-size:1.05rem; font-weight:700; color:var(--text-main); }
+.seat-info-type {
+  display:inline-block; margin-top:4px;
+  font-size:.7rem; padding:2px 8px; border-radius:10px;
+  background:var(--bg-hover); color:var(--text-muted);
+}
+.seat-info-type.vip { background:#fef3c7; color:#92400e; }
+.seat-info-body { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+.seat-info-row { display:flex; gap:10px; font-size:.86rem; }
+.seat-info-label { width:48px; flex-shrink:0; color:var(--text-muted); }
+.seat-info-value { flex:1; color:var(--text-main); word-break:break-all; }
+.seat-info-actions { display:flex; gap:8px; }
+.seat-info-btn {
+  flex:1; padding:10px 0; border-radius:10px;
+  font-size:.86rem; font-weight:600; cursor:pointer; border:none;
+  transition:.15s;
+}
+.seat-info-btn.move { background:#167A67; color:#fff; }
+.seat-info-btn.move:hover { background:#0f5d4e; }
+.seat-info-btn.remove { background:#fef2f2; color:#ef4444; border:1px solid #fecaca; }
+.seat-info-btn.remove:hover { background:#fee2e2; }
+.seat-info-btn.close { background:var(--bg-hover); color:var(--text-secondary); }
 
 /* ── 手機工具面板 ── */
 .sp-toolbar-mobile { display:none; }

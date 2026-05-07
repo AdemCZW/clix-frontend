@@ -54,6 +54,8 @@ const showMobileStickyBar = ref(true)
 const draftConsent = ref(false)
 const hasSavedDraft = ref(false)
 const draftRestored = ref(false)
+const draftBannerCollapsed = ref(false)
+const toggleDraftBanner = () => { draftBannerCollapsed.value = !draftBannerCollapsed.value }
 const draftUpdatedAt = ref('')
 let mobileStickyBarRafId: number | null = null
 
@@ -987,24 +989,30 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
           <h2 class="form-embed-title">線上報名</h2>
           <p class="form-embed-sub">填寫以下資料，完成後將自動產生您的專屬 QR Code</p>
         </div>
-        <div v-if="hasSavedDraft && !draftRestored" class="draft-banner">
-          <div>
+        <div v-if="hasSavedDraft && !draftRestored" class="draft-banner" :class="{ collapsed: draftBannerCollapsed }">
+          <div class="draft-banner-main">
             <strong>偵測到上次暫存資料</strong>
-            <p>{{ draftUpdatedAt ? `上次保存時間：${draftUpdatedAt}` : '可選擇恢復剛才尚未送出的資料。' }}</p>
+            <p v-show="!draftBannerCollapsed">{{ draftUpdatedAt ? `上次保存時間：${draftUpdatedAt}` : '可選擇恢復剛才尚未送出的資料。' }}</p>
           </div>
-          <div class="draft-banner-actions">
+          <div v-show="!draftBannerCollapsed" class="draft-banner-actions">
             <button type="button" class="draft-action primary" @click="restoreSavedDraft">恢復資料</button>
             <button type="button" class="draft-action" @click="removeSavedDraft">清除草稿</button>
           </div>
+          <button type="button" class="draft-collapse-toggle" @click="toggleDraftBanner" :aria-label="draftBannerCollapsed ? '展開草稿訊息' : '收合草稿訊息'">
+            {{ draftBannerCollapsed ? '展開 ▼' : '收合 ▲' }}
+          </button>
         </div>
-        <div v-else-if="draftRestored" class="draft-banner restored">
-          <div>
+        <div v-else-if="draftRestored" class="draft-banner restored" :class="{ collapsed: draftBannerCollapsed }">
+          <div class="draft-banner-main">
             <strong>已恢復暫存資料</strong>
-            <p>你可以繼續填寫，送出後系統會自動清除本次暫存。</p>
+            <p v-show="!draftBannerCollapsed">你可以繼續填寫，送出後系統會自動清除本次暫存。</p>
           </div>
-          <div class="draft-banner-actions">
+          <div v-show="!draftBannerCollapsed" class="draft-banner-actions">
             <button type="button" class="draft-action" @click="removeSavedDraft">清除草稿</button>
           </div>
+          <button type="button" class="draft-collapse-toggle" @click="toggleDraftBanner" :aria-label="draftBannerCollapsed ? '展開草稿訊息' : '收合草稿訊息'">
+            {{ draftBannerCollapsed ? '展開 ▼' : '收合 ▲' }}
+          </button>
         </div>
         <div v-if="isFull" class="full-alert">
           <span>報名已截止，名額已滿</span>
@@ -1600,10 +1608,43 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   background: #ecfdf5;
 }
 
+.draft-banner-main {
+  flex: 1;
+  min-width: 0;
+}
+
 .draft-banner-actions {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+}
+
+/* 收合切換鍵：手機版顯示，桌機版隱藏（桌機空間夠不用收合）*/
+.draft-collapse-toggle {
+  display: none;
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.draft-collapse-toggle:hover { background: rgba(0, 0, 0, 0.04); }
+
+@media (max-width: 768px) {
+  .draft-collapse-toggle { display: inline-flex; align-items: center; }
+  /* 收合時 banner 變窄、單行：strong 與 toggle 在同一列 */
+  .draft-banner.collapsed {
+    padding: 8px 12px;
+    margin-bottom: 12px;
+  }
+  .draft-banner.collapsed strong {
+    margin-bottom: 0;
+    font-size: 0.85rem;
+  }
 }
 
 .draft-action {

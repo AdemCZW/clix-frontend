@@ -610,8 +610,8 @@ const formatDate = (isoString: string) => {
         </div>
       </div>
 
-      <!-- 右欄：編輯面板 -->
-      <div class="col-right">
+      <!-- 右欄：編輯面板（手機版開啟時變底部 drawer，儲存/刪除永遠可見）-->
+      <div class="col-right" :class="{ 'mobile-drawer': editingParticipant }">
         <div v-if="!editingParticipant" class="empty-panel">
           <p>點擊左側名單查看 / 編輯詳細資訊</p>
         </div>
@@ -658,6 +658,9 @@ const formatDate = (isoString: string) => {
         </template>
       </div>
     </div>
+
+    <!-- 手機編輯 panel 的 backdrop（手機版專用，桌機隱藏）-->
+    <div v-if="editingParticipant" class="col-right-backdrop" @click="closeEditPanel"></div>
 
     <!-- 手機底部操作列 -->
     <div class="mobile-bottom-bar">
@@ -1642,5 +1645,41 @@ select.fi { cursor:pointer; }
   .hide-sm { display:none; }
   .mobile-bottom-bar { display:flex !important; }
   .data-table th, .data-table td { padding:6px 8px; font-size:.78rem; }
+
+  /* 編輯 panel 改為底部 drawer：儲存 / 刪除永遠在底部可見
+     col-right 本身是 flex column，panel-body flex:1 + overflow-y:auto，
+     panel-footer 在 flex 末端 → fixed drawer + max-height 即自動讓 footer 黏底 */
+  .col-right.mobile-drawer {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    max-height: 85vh;
+    z-index: 80;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18);
+    border: none;
+    animation: col-right-slide-up .25s ease-out;
+  }
+  .col-right.mobile-drawer .panel-footer {
+    background: var(--bg-card);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  .col-right-backdrop {
+    display: block;
+    position: fixed; inset: 0;
+    z-index: 70;
+    background: rgba(15, 23, 42, .5);
+    animation: backdrop-fade .15s ease-out;
+  }
+}
+
+/* drawer 動畫（桌機版 col-right-backdrop 永遠隱藏）*/
+.col-right-backdrop { display: none; }
+@keyframes col-right-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes backdrop-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 </style>
