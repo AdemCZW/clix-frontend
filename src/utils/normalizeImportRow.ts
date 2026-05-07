@@ -10,11 +10,11 @@ import {
 // 流程：
 // 1. 把 Excel header 對到固定欄位（name/company/...）
 // 2. 對不到固定欄位的 header，依序嘗試對 formFields：
-//    a. 先比 RegistrationFormField.field_key（exact match）
-//    b. 再比 RegistrationFormField.label（exact match）
-//    對到就用 field_key 當 form_answers 的 key（沒 field_key 才 fallback 用 label）
-// 3. 都對不到 → 用原始 header 當 form_answers 的 key（best effort，不丟資料）
-// 4. 完全空白的欄位 → 進 unknown_columns（預覽用，不送後端）
+//    a. 先比 RegistrationFormField.field_key（exact match）→ 進 form_answers
+//    b. 再比 RegistrationFormField.label（exact match）→ 進 form_answers
+// 3. 都對不到（系統完全不認識）→ 進 unknown_columns
+//    呼叫端應該先警告使用者，使用者選擇「保留」才把 unknown_columns merge 進 form_answers 一起送
+//    （直接靜默塞 form_answers 會吃下惡意 / 錯誤格式欄位，所以改成顯式確認）
 
 export interface FormFieldRef {
   field_key?: string | null
@@ -97,12 +97,15 @@ export function normalizeImportRow(
 
     // 對不到固定欄位 → 試 formFields 映射
     const trimmedHeader = String(header).trim()
-    const mappedKey =
-      index.byKey.get(trimmedHeader) || index.byLabel.get(trimmedHeader) || trimmedHeader
+    const mappedKey = index.byKey.get(trimmedHeader) || index.byLabel.get(trimmedHeader)
 
-    if (stringValue) {
-      formAnswers[mappedKey] = stringValue
+    if (mappedKey) {
+      // 對到後台已設定的報名表欄位 → 進 form_answers
+      if (stringValue) formAnswers[mappedKey] = stringValue
+      // 對到但空值 → 不寫，避免汙染 form_answers
     } else {
+      // 系統完全不認識的欄位 → 進 unknown_columns 由呼叫端決定要保留還是擋下
+      // 空值的未知欄位也記下來，讓 UI 能顯示「有這個欄位但全空」
       unknownColumns[trimmedHeader] = stringValue
     }
   }
