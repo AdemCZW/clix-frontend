@@ -1,22 +1,16 @@
 <script setup lang="ts">
 // ════════════════════════════════════════════════════════════════════
-// 會場桌位佈局 — P1 MVP
+// 會場桌位佈局 — P1 + P2
 // ════════════════════════════════════════════════════════════════════
 //
-// 設計目標（依 REMAINING_ISSUES「會場圖拖曳新規劃」P1）：
-// - 純 SVG + Pointer Events，無第三方拖曳套件
-// - 單一 <svg> 用 viewBox 控縮放／平移（P2 才接 zoom/pan）
-// - 每張桌用 <g transform="translate(x,y)">，只改 x/y
-// - 座標吸附網格 50px
-// - touch-action: none + user-select: none
-// - 拖曳走 requestAnimationFrame 節流
-// - 桌位資料目前是 local state（mock）；P3 才接後端 API
+// 設計目標（依 REMAINING_ISSUES「會場圖拖曳新規劃」）：
+// P1 ✅ 純 SVG + Pointer Events 桌位拖曳 + 50px 網格吸附
+// P2 ✅ wheel zoom（以滑鼠位置為中心）+ 中鍵 / 空白鍵 + 拖曳 pan
 //
-// 不在 P1 範圍：
-// - viewBox zoom / pan（P2）
+// 不在範圍：
 // - 後端持久化（P3）
 // - 圓桌座位點 + drop 賓客（P4）
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 interface Table {
   id: number
@@ -49,14 +43,22 @@ const snap = (v: number) => Math.round(v / GRID) * GRID
 
 const svgRef = ref<SVGSVGElement | null>(null)
 
-// 螢幕 → SVG 內部座標（依目前 viewBox 比例換算）
+// ── viewBox 狀態（P2 zoom/pan 用） ─────────────────────────
+// 初始視角覆蓋整個 SVG 區域；wheel 縮放時只改 w/h，pan 改 x/y
+const viewBox = ref({ x: 0, y: 0, w: SVG_W, h: SVG_H })
+const ZOOM_MIN = 0.25  // 縮到原本 25%
+const ZOOM_MAX = 4     // 放大到 400%
+const zoomPercent = computed(() => Math.round((SVG_W / viewBox.value.w) * 100))
+
+// 螢幕 → SVG 內部座標（依目前 viewBox 換算，zoom/pan 後仍正確）
 const screenToSvg = (clientX: number, clientY: number) => {
   const svg = svgRef.value
   if (!svg) return { x: 0, y: 0 }
   const rect = svg.getBoundingClientRect()
+  const v = viewBox.value
   return {
-    x: ((clientX - rect.left) / rect.width) * SVG_W,
-    y: ((clientY - rect.top) / rect.height) * SVG_H,
+    x: v.x + ((clientX - rect.left) / rect.width) * v.w,
+    y: v.y + ((clientY - rect.top) / rect.height) * v.h,
   }
 }
 
@@ -123,6 +125,110 @@ const onPointerUp = (e: PointerEvent) => {
   // P3：之後在這裡呼叫後端 PATCH /api/tables/bulk-coords/
 }
 
+// ── P2：wheel zoom（以滑鼠位置為中心） ─────────────────────
+const onWheel = (e: WheelEvent) => {
+  e.preventDefault()
+  // 滾輪向上 → 放大；向下 → 縮小
+  const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15
+  const oldW = viewBox.value.w
+  const newW = oldW / factor
+  // 縮放範圍限制
+  if (newW < SVG_W / ZOOM_MAX || newW > SVG_W / ZOOM_MIN) return
+  const newH = viewBox.value.h / factor
+  // 滑鼠所在的 SVG 座標
+  const p = screenToSvg(e.clientX, e.clientY)
+  // 縮放後讓滑鼠仍對應同一個 SVG 點（zoom-to-cursor）
+  viewBox.value.x = p.x - (p.x - viewBox.value.x) * (newW / oldW)
+  viewBox.value.y = p.y - (p.y - viewBox.value.y) * (newW / oldW)
+  viewBox.value.w = newW
+  viewBox.value.h = newH
+}
+
+// ── P2：pan（中鍵或空白鍵 + 左鍵拖曳） ─────────────────────
+const isSpaceDown = ref(false)
+const isPanning = ref(false)
+let panState: {
+  startClientX: number
+  startClientY: number
+  vbStartX: number
+  vbStartY: number
+  pointerId: number
+} | null = null
+
+const onSvgPointerDown = (e: PointerEvent) => {
+  // 只接「中鍵」或「空白鍵 + 左鍵」啟動 pan，避免跟桌位拖曳衝突
+  const isMiddle = e.button === 1
+  const isSpaceLeft = e.button === 0 && isSpaceDown.value
+  if (!isMiddle && !isSpaceLeft) return
+  e.preventDefault()
+  ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
+  panState = {
+    startClientX: e.clientX,
+    startClientY: e.clientY,
+    vbStartX: viewBox.value.x,
+    vbStartY: viewBox.value.y,
+    pointerId: e.pointerId,
+  }
+  isPanning.value = true
+}
+
+const onSvgPointerMove = (e: PointerEvent) => {
+  if (!panState || panState.pointerId !== e.pointerId) return
+  const svg = svgRef.value
+  if (!svg) return
+  const rect = svg.getBoundingClientRect()
+  // 螢幕位移 → SVG 位移（依當前 viewBox 比例換算）
+  const dxSvg = (e.clientX - panState.startClientX) * (viewBox.value.w / rect.width)
+  const dySvg = (e.clientY - panState.startClientY) * (viewBox.value.h / rect.height)
+  // 滑鼠往右拖 → viewBox 往左走（讓內容跟著手指走）
+  viewBox.value.x = panState.vbStartX - dxSvg
+  viewBox.value.y = panState.vbStartY - dySvg
+}
+
+const onSvgPointerUp = (e: PointerEvent) => {
+  if (!panState || panState.pointerId !== e.pointerId) return
+  try {
+    (e.currentTarget as Element).releasePointerCapture(e.pointerId)
+  } catch { /* ignore */ }
+  panState = null
+  isPanning.value = false
+}
+
+// 空白鍵狀態（按住期間切換 cursor 並啟用左鍵 pan）
+const onKeyDown = (e: KeyboardEvent) => {
+  if (e.code === 'Space' && !isSpaceDown.value) {
+    // 只在 SVG / VenueMap 範圍內按空白才響應，避免影響其他輸入框
+    const target = e.target as HTMLElement
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+    e.preventDefault()
+    isSpaceDown.value = true
+  }
+}
+const onKeyUp = (e: KeyboardEvent) => {
+  if (e.code === 'Space') isSpaceDown.value = false
+}
+onMounted(() => {
+  window.addEventListener('keydown', onKeyDown)
+  window.addEventListener('keyup', onKeyUp)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeyDown)
+  window.removeEventListener('keyup', onKeyUp)
+})
+
+// 重置視角到初始狀態
+const resetView = () => {
+  viewBox.value = { x: 0, y: 0, w: SVG_W, h: SVG_H }
+}
+const zoomToFit = resetView  // alias 給 UI 用
+
+// SVG 容器 cursor：空白鍵按住變 grab；正在 pan 變 grabbing
+const svgCursor = computed(() => {
+  if (isPanning.value) return 'grabbing'
+  if (isSpaceDown.value) return 'grab'
+  return 'default'
+})
+
 // ── 加 / 刪桌（簡單 demo 用，P3 接 API 後改 store action） ──
 let nextId = 100
 const addRoundTable = () => {
@@ -150,7 +256,9 @@ const tableCount = computed(() => tables.value.length)
         <h2>會場桌位佈局</h2>
         <span class="vm-tag">P1 MVP</span>
       </div>
-      <p class="vm-hint">拖曳桌位移動，自動吸附 {{ GRID }}px 網格 — 共 {{ tableCount }} 張桌</p>
+      <p class="vm-hint">
+        拖曳桌位移動 / 滾輪縮放 / 空白鍵 + 拖曳平移 — 共 {{ tableCount }} 張桌
+      </p>
       <div class="vm-actions">
         <button class="vm-btn primary" @click="addRoundTable">+ 新增圓桌</button>
         <button
@@ -158,15 +266,22 @@ const tableCount = computed(() => tables.value.length)
           :disabled="!draggingTableId"
           @click="draggingTableId && removeTable(draggingTableId)"
         >刪除選中</button>
+        <button class="vm-btn" @click="zoomToFit" title="重置視角到 100%">⤢ 重置視角</button>
       </div>
     </header>
 
     <div class="vm-canvas-wrap">
       <svg
         ref="svgRef"
-        :viewBox="`0 0 ${SVG_W} ${SVG_H}`"
+        :viewBox="`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`"
         class="vm-svg"
+        :style="{ cursor: svgCursor }"
         preserveAspectRatio="xMidYMid meet"
+        @wheel="onWheel"
+        @pointerdown="onSvgPointerDown"
+        @pointermove="onSvgPointerMove"
+        @pointerup="onSvgPointerUp"
+        @pointercancel="onSvgPointerUp"
       >
         <!-- 網格背景 -->
         <defs>
@@ -223,10 +338,14 @@ const tableCount = computed(() => tables.value.length)
     </div>
 
     <div class="vm-status">
-      <span v-if="draggingTableId">拖曳中 — 桌 {{ draggingTableId }} 位置：
+      <span class="vm-zoom-info">縮放 {{ zoomPercent }}% · 視角 ({{ Math.round(viewBox.x) }}, {{ Math.round(viewBox.y) }})</span>
+      <span class="vm-divider">|</span>
+      <span v-if="isPanning" class="vm-mode-pan">平移視角中…</span>
+      <span v-else-if="isSpaceDown" class="vm-mode-pan">空白鍵按住中（拖曳即可平移視角）</span>
+      <span v-else-if="draggingTableId">拖曳桌 {{ draggingTableId }}：
         ({{ tables.find((t) => t.id === draggingTableId)?.x ?? 0 }},
-        {{ tables.find((t) => t.id === draggingTableId)?.y ?? 0 }})</span>
-      <span v-else class="muted">點擊桌位拖曳；放開後座標會自動對齊網格</span>
+         {{ tables.find((t) => t.id === draggingTableId)?.y ?? 0 }})</span>
+      <span v-else class="muted">滾輪縮放 / 空白鍵 + 拖曳平移 / 點擊桌位拖曳吸附網格</span>
     </div>
   </div>
 </template>
@@ -314,6 +433,13 @@ const tableCount = computed(() => tables.value.length)
   font-size: 0.78rem;
   color: var(--text-secondary);
   font-family: monospace;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 .vm-status .muted { color: var(--text-muted); }
+.vm-status .vm-divider { color: var(--text-muted); opacity: 0.5; }
+.vm-status .vm-zoom-info { color: #337168; font-weight: 600; }
+.vm-status .vm-mode-pan { color: #d97706; font-weight: 600; }
 </style>
