@@ -63,6 +63,7 @@ const eventMenuItems = [
   { id: 1, name: "報名頁面設定", icon: icons.settings, path: "/admin/registration-setting" },
   { id: 6, name: "參與者資訊", icon: icons.user, path: "/admin/participants" },
   { id: 3, name: "座次劃位管理", icon: icons.grid, path: "/admin/seating-plan" },
+  { id: 12, name: "會場桌位佈局 (beta)", icon: icons.grid, path: "/admin/venue-map" },
   { id: 4, name: "報名表欄位", icon: icons.list, path: "/admin/form-fields" },
   { id: 5, name: "通知信設定", icon: icons.mail, path: "/admin/notifications" },
   { id: 7, name: "現場報到紀錄", icon: icons.clipboard, path: "/admin/checkin-history" },

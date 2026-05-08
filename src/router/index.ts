@@ -67,6 +67,11 @@ const router = createRouter({
                     component: lazyLoad(() => import('../views/Guests/SeatManager.vue'))
                 },
                 {
+                    path: 'venue-map',
+                    name: 'VenueMap',
+                    component: lazyLoad(() => import('../views/Guests/VenueMap.vue'))
+                },
+                {
                     path: 'form-fields',
                     name: 'FormFields',
                     component: lazyLoad(() => import('../views/Fields/Config.vue'))
