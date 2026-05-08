@@ -1,42 +1,35 @@
 <script setup lang="ts">
 // ════════════════════════════════════════════════════════════════════
-// 會場桌位佈局 — P1 + P2
+// 會場桌位佈局 — P1 + P2 + P3 + P4 視覺
 // ════════════════════════════════════════════════════════════════════
 //
 // 設計目標（依 REMAINING_ISSUES「會場圖拖曳新規劃」）：
 // P1 ✅ 純 SVG + Pointer Events 桌位拖曳 + 50px 網格吸附
 // P2 ✅ wheel zoom（以滑鼠位置為中心）+ 中鍵 / 空白鍵 + 拖曳 pan
+// P3 ✅ 後端 Table model + bulk-coords PATCH 持久化（debounce 500ms）
+// P4 視覺 ✅ 圓桌依 capacity 用 sin/cos 環圈算座位點（顯示用）
 //
-// 不在範圍：
-// - 後端持久化（P3）
-// - 圓桌座位點 + drop 賓客（P4）
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+// P4 完整版（拖賓客到具體座位 + 衝突提示 + 自動排位）留待後續：
+// - 需要先有「未分配賓客 panel」+ cross-container drag/drop 設計
+// - 衝突提示：同座位多人、超過 capacity 等
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useEventsStore } from '@/stores/events'
+import { useTablesStore, type VenueTable } from '@/stores/tables'
 
-interface Table {
-  id: number
-  x: number
-  y: number
-  label: string
-  capacity: number
-  shape: 'round' | 'rect'
-}
+const eventsStore = useEventsStore()
+const tablesStore = useTablesStore()
 
 // ── 畫布 / 桌位常數 ──────────────────────────────────────────
 const SVG_W = 1600
 const SVG_H = 1200
 const GRID = 50          // 網格吸附單位
 const TABLE_SIZE = 80    // 桌寬高（圓桌直徑、方桌邊長）
+const SEAT_RADIUS = 6    // 座位點半徑（P4 視覺）
+const SEAT_OFFSET = 18   // 座位點離桌外緣距離
 
-// ── Mock 桌位（P3 改為從後端 fetch） ────────────────────────
-const tables = ref<Table[]>([
-  { id: 1, x: 100, y: 100, label: 'A1', capacity: 10, shape: 'round' },
-  { id: 2, x: 300, y: 100, label: 'A2', capacity: 10, shape: 'round' },
-  { id: 3, x: 500, y: 100, label: 'A3', capacity: 10, shape: 'round' },
-  { id: 4, x: 100, y: 300, label: 'B1', capacity: 8, shape: 'round' },
-  { id: 5, x: 300, y: 300, label: 'B2', capacity: 8, shape: 'round' },
-  { id: 6, x: 500, y: 300, label: 'B3', capacity: 8, shape: 'round' },
-  { id: 7, x: 100, y: 500, label: 'VIP', capacity: 12, shape: 'rect' },
-])
+// ── 桌位資料來源：store（P3 接後端） ────────────────────────
+const tables = computed(() => tablesStore.tables)
+const loading = computed(() => tablesStore.loading)
 
 // ── 工具 ─────────────────────────────────────────────────────
 const snap = (v: number) => Math.round(v / GRID) * GRID
@@ -77,7 +70,7 @@ let drag: DragState | null = null
 
 const draggingTableId = ref<number | null>(null)
 
-const onPointerDown = (e: PointerEvent, table: Table) => {
+const onPointerDown = (e: PointerEvent, table: VenueTable) => {
   e.preventDefault()
   e.stopPropagation()
   const target = e.currentTarget as Element
@@ -105,7 +98,8 @@ const onPointerMove = (e: PointerEvent) => {
   if (drag.rafId !== null) return
   drag.rafId = requestAnimationFrame(() => {
     if (!drag) return
-    const t = tables.value.find((tt) => tt.id === drag!.tableId)
+    // store 內找對應的桌（reactive）
+    const t = tablesStore.tables.find((tt) => tt.id === drag!.tableId)
     if (t) {
       // 邊界保護：避免拖出 SVG 範圍
       t.x = Math.max(0, Math.min(SVG_W - TABLE_SIZE, drag.pendingX))
@@ -120,9 +114,13 @@ const onPointerUp = (e: PointerEvent) => {
   const target = e.currentTarget as Element
   try { target.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
   if (drag.rafId !== null) cancelAnimationFrame(drag.rafId)
+  // P3：拖曳結束後 enqueue bulk-coords（store 端 debounce 500ms 合併）
+  const eventId = eventsStore.currentEvent?.id
+  if (eventId && drag.tableId) {
+    tablesStore.queueBulkCoords(eventId, drag.tableId)
+  }
   drag = null
   draggingTableId.value = null
-  // P3：之後在這裡呼叫後端 PATCH /api/tables/bulk-coords/
 }
 
 // ── P2：wheel zoom（以滑鼠位置為中心） ─────────────────────
@@ -229,11 +227,11 @@ const svgCursor = computed(() => {
   return 'default'
 })
 
-// ── 加 / 刪桌（簡單 demo 用，P3 接 API 後改 store action） ──
-let nextId = 100
-const addRoundTable = () => {
-  tables.value.push({
-    id: nextId++,
+// ── 加 / 刪桌（接後端 API） ──────────────────────────────────
+const addRoundTable = async () => {
+  const eventId = eventsStore.currentEvent?.id
+  if (!eventId) return
+  await tablesStore.createTable(eventId, {
     x: snap(SVG_W / 2 - TABLE_SIZE / 2),
     y: snap(SVG_H / 2 - TABLE_SIZE / 2),
     label: `T${tables.value.length + 1}`,
@@ -241,12 +239,54 @@ const addRoundTable = () => {
     shape: 'round',
   })
 }
-const removeTable = (id: number) => {
-  tables.value = tables.value.filter((t) => t.id !== id)
+const removeTable = async (id: number) => {
+  const eventId = eventsStore.currentEvent?.id
+  if (!eventId) return
+  await tablesStore.deleteTable(eventId, id)
 }
 
 // ── 顯示文字 ─────────────────────────────────────────────────
 const tableCount = computed(() => tables.value.length)
+
+// ── P4 視覺：圓桌座位點位（sin/cos 算 N 個座位環圈） ───────
+// 給定桌的 capacity，回傳 N 個 (sx, sy) 相對桌中心的座位點
+function getSeatPositions(t: VenueTable): Array<{ x: number; y: number }> {
+  if (t.shape !== 'round') return []
+  const n = t.capacity
+  const cx = TABLE_SIZE / 2
+  const cy = TABLE_SIZE / 2
+  // 座位點距離桌中心：桌半徑 + 偏移
+  const r = TABLE_SIZE / 2 + SEAT_OFFSET
+  const positions: Array<{ x: number; y: number }> = []
+  for (let i = 0; i < n; i++) {
+    // 從正上方（-π/2）順時針排
+    const angle = (i / n) * Math.PI * 2 - Math.PI / 2
+    positions.push({
+      x: cx + r * Math.cos(angle),
+      y: cy + r * Math.sin(angle),
+    })
+  }
+  return positions
+}
+
+// ── Lifecycle：fetch tables，切活動時重 fetch；卸載前 flush dirty ──
+onMounted(async () => {
+  const eid = eventsStore.currentEvent?.id
+  if (eid) await tablesStore.fetchTables(eid)
+})
+
+watch(() => eventsStore.currentEvent?.id, async (newId, oldId) => {
+  // 切活動前先把 pending 寫入送出（保護資料）
+  if (oldId) await tablesStore.flushNow(oldId)
+  tablesStore.clear()
+  if (newId) await tablesStore.fetchTables(newId)
+})
+
+onBeforeUnmount(() => {
+  // 元件卸載前確保 pending bulk-coords 立即送出，不要靠 timer
+  const eid = eventsStore.currentEvent?.id
+  if (eid) tablesStore.flushNow(eid)
+})
 </script>
 
 <template>
@@ -257,10 +297,16 @@ const tableCount = computed(() => tables.value.length)
         <span class="vm-tag">P1 MVP</span>
       </div>
       <p class="vm-hint">
-        拖曳桌位移動 / 滾輪縮放 / 空白鍵 + 拖曳平移 — 共 {{ tableCount }} 張桌
+        <span v-if="!eventsStore.currentEvent" class="vm-warn">⚠️ 請先選擇活動</span>
+        <span v-else-if="loading">載入中...</span>
+        <span v-else>拖曳桌位移動 / 滾輪縮放 / 空白鍵 + 拖曳平移 — 共 {{ tableCount }} 張桌</span>
       </p>
       <div class="vm-actions">
-        <button class="vm-btn primary" @click="addRoundTable">+ 新增圓桌</button>
+        <button
+          class="vm-btn primary"
+          :disabled="!eventsStore.currentEvent"
+          @click="addRoundTable"
+        >+ 新增圓桌</button>
         <button
           class="vm-btn"
           :disabled="!draggingTableId"
@@ -333,6 +379,16 @@ const tableCount = computed(() => tables.value.length)
             :y="TABLE_SIZE / 2 + 16"
             text-anchor="middle" font-size="11" class="vm-table-cap"
           >{{ t.capacity }} 位</text>
+
+          <!-- P4 視覺：圓桌座位點位（sin/cos 環圈） -->
+          <circle
+            v-for="(seat, i) in getSeatPositions(t)"
+            :key="`seat-${t.id}-${i}`"
+            :cx="seat.x"
+            :cy="seat.y"
+            :r="SEAT_RADIUS"
+            class="vm-seat"
+          />
         </g>
       </svg>
     </div>
@@ -377,6 +433,7 @@ const tableCount = computed(() => tables.value.length)
   font-size: 0.8rem; color: var(--text-muted);
   margin: 0; flex: 1;
 }
+.vm-hint .vm-warn { color: #d97706; font-weight: 600; }
 .vm-actions { display: flex; gap: 8px; }
 .vm-btn {
   padding: 6px 14px; border-radius: 8px;
@@ -427,6 +484,17 @@ const tableCount = computed(() => tables.value.length)
 .vm-table-label { fill: #337168; pointer-events: none; }
 .vm-table.rect .vm-table-label { fill: #92400e; }
 .vm-table-cap { fill: #64748b; pointer-events: none; }
+
+/* P4 視覺：座位點位 */
+.vm-seat {
+  fill: #fff;
+  stroke: #94a3b8;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+.vm-table:hover .vm-seat { stroke: #337168; }
+.vm-table.rect .vm-seat,
+.vm-table.rect:hover .vm-seat { display: none; }  /* 方桌不畫座位點（後續 P4 完整版再做矩形排列） */
 
 .vm-status {
   margin-top: 8px;
