@@ -1,23 +1,31 @@
 <script setup lang="ts">
 // ════════════════════════════════════════════════════════════════════
-// 會場桌位佈局 — P1 + P2 + P3 + P4 視覺
+// 會場桌位佈局 — P1+P2+P3+P4 完整 MVP
 // ════════════════════════════════════════════════════════════════════
 //
 // 設計目標（依 REMAINING_ISSUES「會場圖拖曳新規劃」）：
 // P1 ✅ 純 SVG + Pointer Events 桌位拖曳 + 50px 網格吸附
 // P2 ✅ wheel zoom（以滑鼠位置為中心）+ 中鍵 / 空白鍵 + 拖曳 pan
 // P3 ✅ 後端 Table model + bulk-coords PATCH 持久化（debounce 500ms）
-// P4 視覺 ✅ 圓桌依 capacity 用 sin/cos 環圈算座位點（顯示用）
+// P4 視覺 ✅ 圓桌依 capacity 用 sin/cos 環圈算座位點
+// P4 Phase B ✅ 未分配賓客 panel + drag-from-panel-to-seat + 衝突規則
+// P4 Phase C ✅ 自動排位（按姓名 round-robin）+ 預覽 + 一鍵回滾
 //
-// P4 完整版（拖賓客到具體座位 + 衝突提示 + 自動排位）留待後續：
-// - 需要先有「未分配賓客 panel」+ cross-container drag/drop 設計
-// - 衝突提示：同座位多人、超過 capacity 等
+// seat-level schema: 沿用既有 SeatAssignment（不新 model）
+// - seat_index = table_id * 100 + seat_no（seat_no 從 1 起，capacity ≤ 50 不碰撞）
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useEventsStore } from '@/stores/events'
+import { useParticipantsStore } from '@/stores/participants'
 import { useTablesStore, type VenueTable } from '@/stores/tables'
+import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
+import type { Participant } from '@/types'
 
 const eventsStore = useEventsStore()
 const tablesStore = useTablesStore()
+const participantsStore = useParticipantsStore()
+const { success: toastSuccess, warning: toastWarning, info: toastInfo } = useToast()
+const { confirm } = useConfirm()
 
 // ── 畫布 / 桌位常數 ──────────────────────────────────────────
 const SVG_W = 1600
@@ -269,17 +277,215 @@ function getSeatPositions(t: VenueTable): Array<{ x: number; y: number }> {
   return positions
 }
 
-// ── Lifecycle：fetch tables，切活動時重 fetch；卸載前 flush dirty ──
+// ════════════════════════════════════════════════════════════════════
+// Phase B：未分配賓客 panel + drag-to-seat
+// ════════════════════════════════════════════════════════════════════
+
+// 已分配 participants 的 set（給 unassigned 計算用）
+const assignedParticipantIds = computed(() => {
+  return new Set(Object.values(tablesStore.seatAssignments))
+})
+
+// 未分配賓客（該活動 participants 中尚未在任何 seat）
+const unassignedParticipants = computed<Participant[]>(() => {
+  const assigned = assignedParticipantIds.value
+  return participantsStore.participants.filter((p) => !assigned.has(p.id))
+})
+
+// 已分配人數 / 容量總和（用於 status bar）
+const totalCapacity = computed(() =>
+  tables.value.reduce((sum, t) => sum + (t.shape === 'round' ? t.capacity : 0), 0),
+)
+const assignedCount = computed(() => Object.keys(tablesStore.seatAssignments).length)
+
+// participant id → name 對照（給座位點 hover 顯示用）
+const participantById = computed(() => {
+  const map = new Map<number, Participant>()
+  for (const p of participantsStore.participants) map.set(p.id, p)
+  return map
+})
+
+// 找某 seat_index 對應的 participant（沒分配 = null）
+function getSeatParticipant(seatIndex: number): Participant | null {
+  const pid = tablesStore.seatAssignments[seatIndex]
+  if (!pid) return null
+  return participantById.value.get(pid) ?? null
+}
+
+// ── 拖曳 ghost 狀態（從 panel 拖到 SVG seat） ────────────────
+const dragGhost = ref<{
+  participant: Participant
+  x: number
+  y: number
+} | null>(null)
+let personDragState: {
+  participant: Participant
+  pointerId: number
+  el: Element
+} | null = null
+const hoveredSeatIndex = ref<number | null>(null)
+
+const onPersonPointerDown = (e: PointerEvent, p: Participant) => {
+  e.preventDefault()
+  const el = e.currentTarget as Element
+  el.setPointerCapture(e.pointerId)
+  personDragState = { participant: p, pointerId: e.pointerId, el }
+  dragGhost.value = { participant: p, x: e.clientX, y: e.clientY }
+  hoveredSeatIndex.value = null
+}
+
+const onPersonPointerMove = (e: PointerEvent) => {
+  if (!personDragState || personDragState.pointerId !== e.pointerId) return
+  if (dragGhost.value) {
+    dragGhost.value.x = e.clientX
+    dragGhost.value.y = e.clientY
+  }
+  // 偵測下方是不是 seat dot — 用 elementFromPoint
+  // 暫時隱藏 ghost 避免 elementFromPoint 取到自己
+  const ghostEl = (e.currentTarget as HTMLElement).ownerDocument.querySelector('.vm-drag-ghost') as HTMLElement | null
+  if (ghostEl) ghostEl.style.display = 'none'
+  const under = document.elementFromPoint(e.clientX, e.clientY) as Element | null
+  if (ghostEl) ghostEl.style.display = ''
+  const seatEl = under?.closest('.vm-seat') as SVGElement | null
+  if (seatEl?.dataset.seatIndex) {
+    hoveredSeatIndex.value = Number(seatEl.dataset.seatIndex)
+  } else {
+    hoveredSeatIndex.value = null
+  }
+}
+
+const onPersonPointerUp = (e: PointerEvent) => {
+  if (!personDragState || personDragState.pointerId !== e.pointerId) return
+  try { personDragState.el.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
+  const target = hoveredSeatIndex.value
+  const p = personDragState.participant
+  personDragState = null
+  dragGhost.value = null
+  hoveredSeatIndex.value = null
+
+  if (target === null) return  // 沒拖到 seat，取消
+
+  // 衝突規則處理 → store
+  const result = tablesStore.assignSeat(target, p.id)
+  if (result.overwroteParticipant) {
+    const oldP = participantById.value.get(result.overwroteParticipant)
+    toastWarning(`「${oldP?.name ?? '某人'}」原本的座位被覆蓋`)
+  }
+  if (result.movedFromSeat !== null) {
+    toastInfo(`「${p.name}」從原座位移過來`)
+  } else {
+    toastSuccess(`「${p.name}」已分配座位`)
+  }
+
+  // 同步後端
+  const eventId = eventsStore.currentEvent?.id
+  if (eventId) tablesStore.saveAssignments(eventId)
+}
+
+// 從 seat 拿掉某參與者（點 seat dot 上的 participant 圓圈）
+const onSeatClick = (seatIndex: number) => {
+  if (!tablesStore.seatAssignments[seatIndex]) return
+  tablesStore.unassignSeat(seatIndex)
+  const eventId = eventsStore.currentEvent?.id
+  if (eventId) tablesStore.saveAssignments(eventId)
+  toastInfo('已移除該座位的分配')
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Phase C：自動排位（按姓名 round-robin）
+// ════════════════════════════════════════════════════════════════════
+const lastSnapshot = ref<Record<number, number> | null>(null)  // 上次自動排位前的 assignments，給回滾用
+
+async function autoAssignSeats() {
+  const eventId = eventsStore.currentEvent?.id
+  if (!eventId) return
+  const unassigned = [...unassignedParticipants.value]
+  if (unassigned.length === 0) {
+    toastInfo('沒有待分配的賓客')
+    return
+  }
+  // 收集所有未被分配的座位（依桌 id 排序，每桌依 seatNo 1..capacity）
+  const allSeats: number[] = []
+  for (const t of tables.value) {
+    if (t.shape !== 'round') continue
+    for (let s = 1; s <= t.capacity; s++) {
+      const si = tablesStore.tableSeatIndex(t.id, s)
+      if (!tablesStore.seatAssignments[si]) allSeats.push(si)
+    }
+  }
+  if (allSeats.length === 0) {
+    toastWarning('沒有可用座位（所有圓桌都坐滿了）')
+    return
+  }
+  // 按姓名排序賓客
+  const sorted = unassigned.slice().sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'))
+  // 預覽：能分配的人數 = min(unassigned, allSeats)
+  const willAssign = Math.min(sorted.length, allSeats.length)
+  const overflow = sorted.length - willAssign
+
+  const ok = await confirm({
+    title: '自動排位預覽',
+    message:
+      `將按姓名排序，依順序填入 ${willAssign} 位賓客到 ${allSeats.length} 個空位。\n\n` +
+      (overflow > 0
+        ? `⚠️ 有 ${overflow} 位賓客無位可坐（需新增桌位或擴容）。\n\n`
+        : '') +
+      `現有手動分配的座位不會被動到，按下確認後可用「⤺ 還原自動排位」一鍵回滾。`,
+    confirmText: '執行自動排位',
+    cancelText: '取消',
+    danger: false,
+  })
+  if (!ok) return
+
+  // 暫存快照（淺 copy 即可，value 都是 number）
+  lastSnapshot.value = { ...tablesStore.seatAssignments }
+
+  // round-robin 寫入
+  for (let i = 0; i < willAssign; i++) {
+    tablesStore.assignSeat(allSeats[i], sorted[i].id)
+  }
+  await tablesStore.saveAssignments(eventId)
+  toastSuccess(`已自動分配 ${willAssign} 位賓客${overflow > 0 ? `，${overflow} 位無位` : ''}`)
+}
+
+async function rollbackAutoAssign() {
+  if (!lastSnapshot.value) return
+  const eventId = eventsStore.currentEvent?.id
+  if (!eventId) return
+  const ok = await confirm({
+    title: '還原自動排位',
+    message: '會把座位分配還原到自動排位前的狀態，已做的所有自動排位變更都會復原。',
+    confirmText: '確認還原',
+    cancelText: '取消',
+    danger: true,
+  })
+  if (!ok) return
+  tablesStore.seatAssignments = { ...lastSnapshot.value }
+  lastSnapshot.value = null
+  await tablesStore.saveAssignments(eventId)
+  toastSuccess('已還原到自動排位前的狀態')
+}
+
+// ── Lifecycle：fetch tables / participants / assignments；切活動時重 fetch；卸載前 flush dirty ──
+async function reloadAllForEvent(eid: number) {
+  await Promise.all([
+    tablesStore.fetchTables(eid),
+    tablesStore.fetchAssignments(eid),
+    participantsStore.fetchParticipants({ event: String(eid) }),
+  ])
+}
+
 onMounted(async () => {
   const eid = eventsStore.currentEvent?.id
-  if (eid) await tablesStore.fetchTables(eid)
+  if (eid) await reloadAllForEvent(eid)
 })
 
 watch(() => eventsStore.currentEvent?.id, async (newId, oldId) => {
   // 切活動前先把 pending 寫入送出（保護資料）
   if (oldId) await tablesStore.flushNow(oldId)
   tablesStore.clear()
-  if (newId) await tablesStore.fetchTables(newId)
+  lastSnapshot.value = null
+  if (newId) await reloadAllForEvent(newId)
 })
 
 onBeforeUnmount(() => {
@@ -294,12 +500,12 @@ onBeforeUnmount(() => {
     <header class="vm-header">
       <div class="vm-title">
         <h2>會場桌位佈局</h2>
-        <span class="vm-tag">P1 MVP</span>
+        <span class="vm-tag">beta</span>
       </div>
       <p class="vm-hint">
         <span v-if="!eventsStore.currentEvent" class="vm-warn">⚠️ 請先選擇活動</span>
         <span v-else-if="loading">載入中...</span>
-        <span v-else>拖曳桌位移動 / 滾輪縮放 / 空白鍵 + 拖曳平移 — 共 {{ tableCount }} 張桌</span>
+        <span v-else>桌位拖曳移動 / 滾輪縮放 / 空白鍵 + 拖曳平移 / 賓客拖到座位點分配</span>
       </p>
       <div class="vm-actions">
         <button
@@ -313,9 +519,22 @@ onBeforeUnmount(() => {
           @click="draggingTableId && removeTable(draggingTableId)"
         >刪除選中</button>
         <button class="vm-btn" @click="zoomToFit" title="重置視角到 100%">⤢ 重置視角</button>
+        <button
+          class="vm-btn auto-assign"
+          :disabled="!eventsStore.currentEvent || unassignedParticipants.length === 0"
+          @click="autoAssignSeats"
+          title="按姓名 round-robin 把未分配的賓客自動填入空座位"
+        >⚡ 自動排位</button>
+        <button
+          v-if="lastSnapshot"
+          class="vm-btn rollback"
+          @click="rollbackAutoAssign"
+          title="還原到自動排位前的狀態"
+        >⤺ 還原自動排位</button>
       </div>
     </header>
 
+    <div class="vm-body">
     <div class="vm-canvas-wrap">
       <svg
         ref="svgRef"
@@ -380,28 +599,92 @@ onBeforeUnmount(() => {
             text-anchor="middle" font-size="11" class="vm-table-cap"
           >{{ t.capacity }} 位</text>
 
-          <!-- P4 視覺：圓桌座位點位（sin/cos 環圈） -->
-          <circle
+          <!-- P4 視覺：圓桌座位點位（sin/cos 環圈） + Phase B 已分配狀態 + drop target -->
+          <g
             v-for="(seat, i) in getSeatPositions(t)"
             :key="`seat-${t.id}-${i}`"
-            :cx="seat.x"
-            :cy="seat.y"
-            :r="SEAT_RADIUS"
-            class="vm-seat"
-          />
+            class="vm-seat-slot"
+          >
+            <circle
+              :cx="seat.x"
+              :cy="seat.y"
+              :r="SEAT_RADIUS + 2"
+              :data-seat-index="tablesStore.tableSeatIndex(t.id, i + 1)"
+              class="vm-seat"
+              :class="{
+                assigned: !!getSeatParticipant(tablesStore.tableSeatIndex(t.id, i + 1)),
+                hovered: hoveredSeatIndex === tablesStore.tableSeatIndex(t.id, i + 1),
+              }"
+              @click.stop="onSeatClick(tablesStore.tableSeatIndex(t.id, i + 1))"
+            />
+            <!-- 已分配 → 顯示姓氏 -->
+            <text
+              v-if="getSeatParticipant(tablesStore.tableSeatIndex(t.id, i + 1))"
+              :x="seat.x"
+              :y="seat.y + 3"
+              text-anchor="middle"
+              font-size="9"
+              font-weight="700"
+              class="vm-seat-name"
+            >{{ getSeatParticipant(tablesStore.tableSeatIndex(t.id, i + 1))!.name.charAt(0) }}</text>
+          </g>
         </g>
       </svg>
+    </div>
+
+    <!-- 右側未分配賓客 panel -->
+    <aside class="vm-panel">
+      <div class="vm-panel-head">
+        <h3>未分配賓客</h3>
+        <span class="vm-panel-count">{{ unassignedParticipants.length }}</span>
+      </div>
+      <p class="vm-panel-hint">拖曳賓客到圓桌的座位點上分配</p>
+      <div v-if="unassignedParticipants.length === 0" class="vm-panel-empty">
+        全部已分配 ✓
+      </div>
+      <div class="vm-panel-list">
+        <div
+          v-for="p in unassignedParticipants"
+          :key="p.id"
+          class="vm-person"
+          @pointerdown="onPersonPointerDown($event, p)"
+          @pointermove="onPersonPointerMove"
+          @pointerup="onPersonPointerUp"
+          @pointercancel="onPersonPointerUp"
+        >
+          <span class="vm-person-avatar" :class="{ vip: p.type === 'VIP' }">
+            {{ p.name.charAt(0) }}
+          </span>
+          <div class="vm-person-info">
+            <div class="vm-person-name">{{ p.name }}</div>
+            <div class="vm-person-sub">{{ p.company || p.type }}</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+    </div>
+
+    <!-- Drag ghost：隨指針浮動，標示「正在拖曳」-->
+    <div
+      v-if="dragGhost"
+      class="vm-drag-ghost"
+      :style="{ left: dragGhost.x + 'px', top: dragGhost.y + 'px' }"
+    >
+      {{ dragGhost.participant.name }}
     </div>
 
     <div class="vm-status">
       <span class="vm-zoom-info">縮放 {{ zoomPercent }}% · 視角 ({{ Math.round(viewBox.x) }}, {{ Math.round(viewBox.y) }})</span>
       <span class="vm-divider">|</span>
-      <span v-if="isPanning" class="vm-mode-pan">平移視角中…</span>
+      <span class="vm-assign-info">{{ tableCount }} 桌 · 容量 {{ totalCapacity }} · 已分配 {{ assignedCount }}</span>
+      <span class="vm-divider">|</span>
+      <span v-if="dragGhost" class="vm-mode-drop">拖曳賓客到座位點放開即可分配</span>
+      <span v-else-if="isPanning" class="vm-mode-pan">平移視角中…</span>
       <span v-else-if="isSpaceDown" class="vm-mode-pan">空白鍵按住中（拖曳即可平移視角）</span>
       <span v-else-if="draggingTableId">拖曳桌 {{ draggingTableId }}：
         ({{ tables.find((t) => t.id === draggingTableId)?.x ?? 0 }},
          {{ tables.find((t) => t.id === draggingTableId)?.y ?? 0 }})</span>
-      <span v-else class="muted">滾輪縮放 / 空白鍵 + 拖曳平移 / 點擊桌位拖曳吸附網格</span>
+      <span v-else class="muted">滾輪縮放 / 空白鍵 + 拖曳平移 / 點擊桌位拖曳吸附網格 / 點座位移除分配</span>
     </div>
   </div>
 </template>
@@ -485,16 +768,137 @@ onBeforeUnmount(() => {
 .vm-table.rect .vm-table-label { fill: #92400e; }
 .vm-table-cap { fill: #64748b; pointer-events: none; }
 
-/* P4 視覺：座位點位 */
+/* P4 視覺：座位點位 + Phase B drop target */
 .vm-seat {
   fill: #fff;
   stroke: #94a3b8;
   stroke-width: 1.5;
-  pointer-events: none;
+  cursor: pointer;
+  transition: fill .15s, stroke .15s, r .15s;
 }
 .vm-table:hover .vm-seat { stroke: #337168; }
 .vm-table.rect .vm-seat,
-.vm-table.rect:hover .vm-seat { display: none; }  /* 方桌不畫座位點（後續 P4 完整版再做矩形排列） */
+.vm-table.rect:hover .vm-seat { display: none; }
+.vm-seat.assigned {
+  fill: #337168;
+  stroke: #1e3a8a;
+}
+.vm-seat.hovered {
+  fill: #fbbf24;
+  stroke: #d97706;
+  stroke-width: 2.5;
+}
+.vm-seat-name {
+  fill: #fff;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 兩欄 layout：左主畫面 + 右側 panel */
+.vm-body {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  min-height: 400px;
+}
+
+/* 右側未分配賓客 panel */
+.vm-panel {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 220px);
+}
+.vm-panel-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 4px;
+}
+.vm-panel-head h3 {
+  margin: 0; font-size: 0.92rem; font-weight: 700; color: var(--text-main);
+}
+.vm-panel-count {
+  background: #167A67; color: #fff;
+  font-size: 0.72rem; font-weight: 700;
+  padding: 2px 10px; border-radius: 999px;
+}
+.vm-panel-hint {
+  margin: 0 0 10px; font-size: 0.72rem; color: var(--text-muted);
+}
+.vm-panel-empty {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  color: #167A67; font-weight: 600; font-size: 0.86rem;
+}
+.vm-panel-list {
+  flex: 1; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 6px;
+  /* 拖曳期間禁止選取文字 */
+  user-select: none;
+  -webkit-user-select: none;
+}
+.vm-person {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: grab;
+  touch-action: none;
+  transition: background .15s, border-color .15s;
+}
+.vm-person:hover { border-color: #167A67; background: #ecfdf5; }
+.vm-person:active { cursor: grabbing; }
+.vm-person-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #337168; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; font-weight: 700;
+  flex-shrink: 0;
+}
+.vm-person-avatar.vip { background: #d97706; }
+.vm-person-info { flex: 1; min-width: 0; }
+.vm-person-name {
+  font-size: 0.84rem; font-weight: 600; color: var(--text-main);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.vm-person-sub {
+  font-size: 0.7rem; color: var(--text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Drag ghost：浮在頁面最上層跟著指針走 */
+.vm-drag-ghost {
+  position: fixed;
+  z-index: 10000;
+  transform: translate(-50%, -120%);
+  background: #167A67; color: #fff;
+  padding: 6px 14px; border-radius: 999px;
+  font-size: 0.82rem; font-weight: 700;
+  box-shadow: 0 6px 20px rgba(22, 122, 103, .5);
+  pointer-events: none;
+  white-space: nowrap; max-width: 200px;
+  overflow: hidden; text-overflow: ellipsis;
+}
+
+/* 自動排位 / 還原按鈕 */
+.vm-btn.auto-assign {
+  background: #fbbf24; color: #78350f; border-color: #fbbf24;
+}
+.vm-btn.auto-assign:hover:not(:disabled) { background: #f59e0b; }
+.vm-btn.rollback {
+  background: #fef2f2; color: #b91c1c; border-color: #fecaca;
+}
+.vm-btn.rollback:hover { background: #fee2e2; }
+
+@media (max-width: 768px) {
+  .vm-body { flex-direction: column; }
+  .vm-panel { width: 100%; max-height: 30vh; }
+}
 
 .vm-status {
   margin-top: 8px;
@@ -510,4 +914,6 @@ onBeforeUnmount(() => {
 .vm-status .vm-divider { color: var(--text-muted); opacity: 0.5; }
 .vm-status .vm-zoom-info { color: #337168; font-weight: 600; }
 .vm-status .vm-mode-pan { color: #d97706; font-weight: 600; }
+.vm-status .vm-assign-info { color: #1e40af; font-weight: 600; }
+.vm-status .vm-mode-drop { color: #b91c1c; font-weight: 600; }
 </style>

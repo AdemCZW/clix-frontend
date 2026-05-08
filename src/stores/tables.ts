@@ -110,8 +110,102 @@ export const useTablesStore = defineStore('tables', () => {
     }
   }
 
+  // ── Phase B：seat-level 分配 ────────────────────────────────
+  // 沿用既有 SeatAssignment（不新增 model），seat_index 規則：
+  //   seat_index = table_id * 100 + seat_no（seat_no 從 1 起）
+  // capacity 上限 50，乘 100 不會碰撞。
+  //
+  // seatAssignments：seat_index → participant_id（前端 source of truth）
+
+  const seatAssignments = ref<Record<number, number>>({})
+
+  function tableSeatIndex(tableId: number, seatNo: number): number {
+    return tableId * 100 + seatNo
+  }
+
+  function parseSeatIndex(seatIndex: number): { tableId: number; seatNo: number } {
+    return { tableId: Math.floor(seatIndex / 100), seatNo: seatIndex % 100 }
+  }
+
+  async function fetchAssignments(eventId: number) {
+    try {
+      const res = await apiRequest(`/api/seats/assignments/${eventId}/`)
+      if (!res.ok) return
+      const data = await res.json()
+      const map: Record<number, number> = {}
+      for (const a of data.assignments || []) {
+        // 只認 seat_index >= 100 的（table-based seat），低於 100 是舊 SeatManager 的 grid seat
+        if (a.seat_index >= 100) {
+          map[a.seat_index] = a.participant
+        }
+      }
+      seatAssignments.value = map
+    } catch (err) {
+      console.error('fetchAssignments failed', err)
+    }
+  }
+
+  async function saveAssignments(eventId: number) {
+    const assignments = Object.entries(seatAssignments.value).map(
+      ([si, pid]) => ({
+        participant_id: pid,
+        seat_index: Number(si),
+        seat_label: '',
+      }),
+    )
+    try {
+      const res = await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, {
+        method: 'POST',
+        body: JSON.stringify({ assignments }),
+      })
+      if (!res.ok) {
+        console.error('saveAssignments failed', res.status)
+        // 後端拒絕 → 重 fetch 同步回正確狀態
+        await fetchAssignments(eventId)
+      }
+    } catch (err) {
+      console.error('saveAssignments error', err)
+    }
+  }
+
+  // ── 衝突規則 ─────────────────────────────────────────────────
+  // - 同 participant 只能一席：落座新位時移除舊位
+  // - 同 seat 只能一人：新指派覆蓋舊指派
+  function assignSeat(seatIndex: number, participantId: number): {
+    movedFromSeat: number | null
+    overwroteParticipant: number | null
+  } {
+    let movedFromSeat: number | null = null
+    let overwroteParticipant: number | null = null
+
+    // 同 participant 只能一席
+    for (const [si, pid] of Object.entries(seatAssignments.value)) {
+      if (pid === participantId && Number(si) !== seatIndex) {
+        movedFromSeat = Number(si)
+        delete seatAssignments.value[Number(si)]
+      }
+    }
+    // 同 seat 只能一人（記錄被踢掉的那位）
+    if (seatAssignments.value[seatIndex] !== undefined && seatAssignments.value[seatIndex] !== participantId) {
+      overwroteParticipant = seatAssignments.value[seatIndex]
+    }
+    seatAssignments.value[seatIndex] = participantId
+    return { movedFromSeat, overwroteParticipant }
+  }
+
+  function unassignSeat(seatIndex: number) {
+    delete seatAssignments.value[seatIndex]
+  }
+
+  function unassignParticipant(participantId: number) {
+    for (const [si, pid] of Object.entries(seatAssignments.value)) {
+      if (pid === participantId) delete seatAssignments.value[Number(si)]
+    }
+  }
+
   function clear() {
     tables.value = []
+    seatAssignments.value = {}
     dirtyIds = new Set()
     if (flushTimer) clearTimeout(flushTimer)
     flushTimer = null
@@ -127,6 +221,15 @@ export const useTablesStore = defineStore('tables', () => {
     deleteTable,
     queueBulkCoords,
     flushNow,
+    // Phase B
+    seatAssignments,
+    tableSeatIndex,
+    parseSeatIndex,
+    fetchAssignments,
+    saveAssignments,
+    assignSeat,
+    unassignSeat,
+    unassignParticipant,
     clear,
     clearError,
   }
