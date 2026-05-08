@@ -162,10 +162,10 @@ let panState: {
 } | null = null
 
 const onSvgPointerDown = (e: PointerEvent) => {
-  // 只接「中鍵」或「空白鍵 + 左鍵」啟動 pan，避免跟桌位拖曳衝突
-  const isMiddle = e.button === 1
-  const isSpaceLeft = e.button === 0 && isSpaceDown.value
-  if (!isMiddle && !isSpaceLeft) return
+  // 直接點背景就能拖移視角（左鍵 / 中鍵 / 觸控都接受）
+  // 桌位 / 賓客 / seat dot 各自有 stopPropagation，不會冒泡到這裡
+  // 右鍵跳過保留瀏覽器 contextmenu
+  if (e.button === 2) return
   e.preventDefault()
   ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
   panState = {
@@ -228,11 +228,11 @@ const resetView = () => {
 }
 const zoomToFit = resetView  // alias 給 UI 用
 
-// SVG 容器 cursor：空白鍵按住變 grab；正在 pan 變 grabbing
+// SVG 背景 cursor：預設 grab（暗示可拖）；拖曳中 grabbing
+// 注意：桌位 / seat dot 自己 cursor 會覆蓋（grab / pointer），這個只在背景生效
 const svgCursor = computed(() => {
   if (isPanning.value) return 'grabbing'
-  if (isSpaceDown.value) return 'grab'
-  return 'default'
+  return 'grab'
 })
 
 // ── 加 / 刪桌（接後端 API） ──────────────────────────────────
@@ -505,7 +505,7 @@ onBeforeUnmount(() => {
       <p class="vm-hint">
         <span v-if="!eventsStore.currentEvent" class="vm-warn">⚠️ 請先選擇活動</span>
         <span v-else-if="loading">載入中...</span>
-        <span v-else>桌位拖曳移動 / 滾輪縮放 / 空白鍵 + 拖曳平移 / 賓客拖到座位點分配</span>
+        <span v-else>滾輪縮放 / 直接拖背景平移視角 / 拖桌位移動 / 拖賓客到座位點分配</span>
       </p>
       <div class="vm-actions">
         <button
@@ -615,6 +615,7 @@ onBeforeUnmount(() => {
                 assigned: !!getSeatParticipant(tablesStore.tableSeatIndex(t.id, i + 1)),
                 hovered: hoveredSeatIndex === tablesStore.tableSeatIndex(t.id, i + 1),
               }"
+              @pointerdown.stop
               @click.stop="onSeatClick(tablesStore.tableSeatIndex(t.id, i + 1))"
             />
             <!-- 已分配 → 顯示姓氏 -->
@@ -680,11 +681,10 @@ onBeforeUnmount(() => {
       <span class="vm-divider">|</span>
       <span v-if="dragGhost" class="vm-mode-drop">拖曳賓客到座位點放開即可分配</span>
       <span v-else-if="isPanning" class="vm-mode-pan">平移視角中…</span>
-      <span v-else-if="isSpaceDown" class="vm-mode-pan">空白鍵按住中（拖曳即可平移視角）</span>
       <span v-else-if="draggingTableId">拖曳桌 {{ draggingTableId }}：
         ({{ tables.find((t) => t.id === draggingTableId)?.x ?? 0 }},
          {{ tables.find((t) => t.id === draggingTableId)?.y ?? 0 }})</span>
-      <span v-else class="muted">滾輪縮放 / 空白鍵 + 拖曳平移 / 點擊桌位拖曳吸附網格 / 點座位移除分配</span>
+      <span v-else class="muted">滾輪縮放 / 拖背景平移視角 / 拖桌位定位 / 拖賓客分配 / 點座位移除分配</span>
     </div>
   </div>
 </template>
