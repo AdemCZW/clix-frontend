@@ -324,6 +324,10 @@ let personDragState: {
   el: Element
 } | null = null
 const hoveredSeatIndex = ref<number | null>(null)
+let personDragRaf: number | null = null
+let pendingGhostX = 0
+let pendingGhostY = 0
+let pendingHoveredSeatIndex: number | null = null
 
 const onPersonPointerDown = (e: PointerEvent, p: Participant) => {
   e.preventDefault()
@@ -336,27 +340,37 @@ const onPersonPointerDown = (e: PointerEvent, p: Participant) => {
 
 const onPersonPointerMove = (e: PointerEvent) => {
   if (!personDragState || personDragState.pointerId !== e.pointerId) return
-  if (dragGhost.value) {
-    dragGhost.value.x = e.clientX
-    dragGhost.value.y = e.clientY
-  }
-  // 偵測下方是不是 seat dot — 用 elementFromPoint
-  // 暫時隱藏 ghost 避免 elementFromPoint 取到自己
-  const ghostEl = (e.currentTarget as HTMLElement).ownerDocument.querySelector('.vm-drag-ghost') as HTMLElement | null
-  if (ghostEl) ghostEl.style.display = 'none'
+  pendingGhostX = e.clientX
+  pendingGhostY = e.clientY
+
+  // vm-drag-ghost 已是 pointer-events: none，不會擋 elementFromPoint
   const under = document.elementFromPoint(e.clientX, e.clientY) as Element | null
-  if (ghostEl) ghostEl.style.display = ''
   const seatEl = under?.closest('.vm-seat') as SVGElement | null
   if (seatEl?.dataset.seatIndex) {
-    hoveredSeatIndex.value = Number(seatEl.dataset.seatIndex)
+    pendingHoveredSeatIndex = Number(seatEl.dataset.seatIndex)
   } else {
-    hoveredSeatIndex.value = null
+    pendingHoveredSeatIndex = null
   }
+
+  // 拖曳更新節流：每 frame 最多更新一次 reactive 狀態
+  if (personDragRaf !== null) return
+  personDragRaf = requestAnimationFrame(() => {
+    if (dragGhost.value) {
+      dragGhost.value.x = pendingGhostX
+      dragGhost.value.y = pendingGhostY
+    }
+    hoveredSeatIndex.value = pendingHoveredSeatIndex
+    personDragRaf = null
+  })
 }
 
 const onPersonPointerUp = (e: PointerEvent) => {
   if (!personDragState || personDragState.pointerId !== e.pointerId) return
   try { personDragState.el.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
+  if (personDragRaf !== null) {
+    cancelAnimationFrame(personDragRaf)
+    personDragRaf = null
+  }
   const target = hoveredSeatIndex.value
   const p = personDragState.participant
   personDragState = null
