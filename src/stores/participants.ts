@@ -331,6 +331,7 @@ export const usePublicRegisterStore = defineStore('publicRegister', () => {
                 eventAddress: raw.event_address,
                 eventStatus: raw.event_status,
                 eventStatusText: raw.event_status_text,
+                eventContactLink: raw.event_contact_link || '',
                 formFields: raw.form_fields || [],
                 tickets: raw.tickets || [],
                 faqs: raw.faqs || [],

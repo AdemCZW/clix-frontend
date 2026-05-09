@@ -302,6 +302,7 @@ const pageData = computed(() => (store.page as {
   participants_count?: number
   max_participants?: number
   event_status_text?: string
+  eventContactLink?: string
 } | null) ?? null)
 
 // 系統 field_key 分流：每個 key 渲染到不同位置
@@ -415,6 +416,68 @@ watch(ticketSlots, (slots) => {
     return createEmptyAttendee(slot.ticketId, slot.ticketName)
   })
 }, { immediate: true })
+
+// ─── 進度條 + attendee 折疊（手機版超長表單 UX 優化） ────────
+const PROGRESS_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const isAttendeeComplete = (att: AttendeeForm): boolean => {
+  if (!att.data.name.trim()) return false
+  if (!att.data.email.trim() || !PROGRESS_EMAIL_RE.test(att.data.email)) return false
+  if (!att.data.phone.trim()) return false
+  for (const f of attendeeCustomFields.value) {
+    if (!f.is_required) continue
+    const key = String(f.id ?? f.label)
+    if (!String(att.data.formAnswers[key] ?? '').trim()) return false
+  }
+  return true
+}
+
+const requiredFieldsTotal = computed(() => {
+  let n = 0
+  if (showBuyerBlock.value) n += 3
+  if (tickets.value.length > 0) n += 1
+  attendeeForms.value.forEach(() => {
+    n += 3
+    attendeeCustomFields.value.forEach((f) => { if (f.is_required) n += 1 })
+  })
+  return n
+})
+
+const requiredFieldsFilled = computed(() => {
+  let n = 0
+  if (showBuyerBlock.value) {
+    if (buyerForm.name.trim()) n++
+    if (buyerForm.email.trim() && PROGRESS_EMAIL_RE.test(buyerForm.email)) n++
+    if (buyerForm.phone.trim()) n++
+  }
+  if (tickets.value.length > 0 && totalTicketCount.value > 0) n++
+  attendeeForms.value.forEach((att) => {
+    if (att.data.name.trim()) n++
+    if (att.data.email.trim() && PROGRESS_EMAIL_RE.test(att.data.email)) n++
+    if (att.data.phone.trim()) n++
+    attendeeCustomFields.value.forEach((f) => {
+      if (!f.is_required) return
+      const key = String(f.id ?? f.label)
+      if (String(att.data.formAnswers[key] ?? '').trim()) n++
+    })
+  })
+  return n
+})
+
+const progressPercent = computed(() => {
+  if (requiredFieldsTotal.value === 0) return 0
+  return Math.min(100, Math.round((requiredFieldsFilled.value / requiredFieldsTotal.value) * 100))
+})
+
+// 折疊狀態：使用者手動 toggle；不自動折疊以免干擾正在填的人
+const collapsedAttendeeIds = ref<Set<string>>(new Set())
+const isAttendeeCollapsed = (uid: string) => collapsedAttendeeIds.value.has(uid)
+const toggleAttendeeCollapse = (uid: string) => {
+  const next = new Set(collapsedAttendeeIds.value)
+  if (next.has(uid)) next.delete(uid)
+  else next.add(uid)
+  collapsedAttendeeIds.value = next
+}
 
 const isMobile = ref(typeof window !== 'undefined' && window.innerWidth <= 768)
 
@@ -974,7 +1037,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
         <span>WEBSITE DESIGNED BY CLIX</span>
       </footer>
 
-      <MobileStickyBar :rows="eventReminderRows" :is-full="isFull" :visible="showMobileStickyBar && !showCookieBanner" @open-form="openForm" />
+      <MobileStickyBar :rows="eventReminderRows" :is-full="isFull" :visible="showMobileStickyBar && !showCookieBanner" :contact-link="(pageData && pageData.eventContactLink) || ''" @open-form="openForm" />
 
     </template>
 
@@ -1019,6 +1082,17 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
         </div>
         <form v-if="!isFull" @submit.prevent="handleSubmit" class="reg-form" novalidate>
 
+          <!-- 進度條：超長表單填寫進度感（手機版尤其有用）-->
+          <div v-if="requiredFieldsTotal > 0" class="form-progress" role="progressbar" :aria-valuenow="progressPercent" aria-valuemin="0" aria-valuemax="100">
+            <div class="form-progress-meta">
+              <span class="form-progress-label">已填 {{ requiredFieldsFilled }} / 必填 {{ requiredFieldsTotal }}</span>
+              <span class="form-progress-pct">{{ progressPercent }}%</span>
+            </div>
+            <div class="form-progress-track">
+              <div class="form-progress-fill" :style="{ width: progressPercent + '%' }" :class="{ done: progressPercent === 100 }"></div>
+            </div>
+          </div>
+
           <!-- 訂購人區塊（依後端 toggle 顯示）-->
           <section v-if="showBuyerBlock" class="form-section buyer-section">
             <h3 class="section-heading">訂購人資料</h3>
@@ -1046,17 +1120,36 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
             <span class="field-error">{{ formErrors.tickets }}</span>
           </div>
 
-          <!-- 參加人區塊（每張票對應 1 個）-->
+          <!-- 參加人區塊（每張票對應 1 個；多人時可獨立折疊節省滾動）-->
           <section
             v-for="(att, idx) in attendeeForms"
             :key="att.uid"
             class="form-section attendee-section"
+            :class="{ 'is-collapsed': isAttendeeCollapsed(att.uid), 'is-complete': isAttendeeComplete(att) }"
           >
-            <h3 class="section-heading">
-              參加人 {{ idx + 1 }}
-              <span v-if="att.ticketName" class="attendee-ticket-tag">（{{ att.ticketName }}）</span>
-            </h3>
+            <button
+              type="button"
+              class="section-heading attendee-heading"
+              @click="toggleAttendeeCollapse(att.uid)"
+              :aria-expanded="!isAttendeeCollapsed(att.uid)"
+            >
+              <span class="attendee-heading-status" :class="{ done: isAttendeeComplete(att) }" aria-hidden="true">
+                <svg v-if="isAttendeeComplete(att)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span v-else class="attendee-dot">{{ idx + 1 }}</span>
+              </span>
+              <span class="attendee-heading-text">
+                <span class="attendee-heading-title">
+                  參加人 {{ idx + 1 }}
+                  <span v-if="att.ticketName" class="attendee-ticket-tag">（{{ att.ticketName }}）</span>
+                </span>
+                <span v-if="isAttendeeCollapsed(att.uid) && att.data.name" class="attendee-heading-name">{{ att.data.name }}</span>
+              </span>
+              <span class="attendee-heading-toggle" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </button>
 
+            <div v-show="!isAttendeeCollapsed(att.uid)" class="attendee-body">
             <div class="form-row two-col">
               <div class="field-group" :class="{ 'has-error': formErrors[`att_${att.uid}_name`] }">
                 <label>姓名 <span class="required">*</span></label>
@@ -1135,6 +1228,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
                   <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> VIP</span>
                 </label>
               </div>
+            </div>
             </div>
           </section>
 
@@ -1702,6 +1796,129 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 .reg-form { display: flex; flex-direction: column; gap: 20px; }
 .form-row.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 520px) { .form-row.two-col { grid-template-columns: 1fr; } }
+
+/* 進度條（reg-form 第一個區塊；手機版 sticky 浮在頂部） */
+.form-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+.form-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.85rem;
+  color: #475569;
+}
+.form-progress-label { font-weight: 600; }
+.form-progress-pct { font-weight: 700; color: #337168; font-variant-numeric: tabular-nums; }
+.form-progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+.form-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #337168 0%, #4a8c80 100%);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+.form-progress-fill.done {
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+}
+@media (max-width: 768px) {
+  .form-progress {
+    position: sticky;
+    top: 56px;
+    z-index: 5;
+    margin: 0 -8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+}
+
+/* Attendee 區塊可折疊（多人報名時節省滾動） */
+.attendee-section {
+  transition: padding 0.2s ease;
+}
+.attendee-section.is-collapsed {
+  padding: 12px 22px;
+  gap: 0;
+}
+.attendee-section.is-collapsed.is-complete {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.form-section .attendee-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.attendee-heading-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.attendee-heading-status.done {
+  background: #10b981;
+  color: #fff;
+}
+.attendee-heading-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.attendee-heading-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.attendee-heading-name {
+  font-size: 0.85rem;
+  color: #475569;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.attendee-heading-toggle {
+  color: #94a3b8;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+.attendee-section.is-collapsed .attendee-heading-toggle {
+  transform: rotate(-90deg);
+}
+.attendee-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
 
 /* 表單區塊（買家 / 各 attendee / 訂單 extras） */
 .form-section {

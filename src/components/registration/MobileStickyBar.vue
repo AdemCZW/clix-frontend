@@ -12,6 +12,10 @@ defineProps({
     type: Boolean,
     default: true,
   },
+  contactLink: {
+    type: String,
+    default: '',
+  },
 })
 
 const emit = defineEmits(['open-form'])
@@ -28,8 +32,8 @@ const openForm = () => emit('open-form')
         <span>{{ row.text }}</span>
       </div>
     </div>
-    <div class="msb-btns">
-      <button class="msb-btn outline">聯絡主辦單位</button>
+    <div class="msb-btns" :class="{ 'no-contact': !contactLink }">
+      <a v-if="contactLink" :href="contactLink" target="_blank" rel="noopener noreferrer" class="msb-btn outline">聯絡主辦單位</a>
       <button class="msb-btn primary" @click="openForm" :disabled="isFull">{{ isFull ? '已額滿' : '立即報名' }}</button>
     </div>
   </div>
@@ -106,12 +110,22 @@ const openForm = () => emit('open-form')
     text-align: center;
     transition: .15s;
     border: none;
+    /* a tag 也共用此 class，需要 reset text-decoration */
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .msb-btn.outline {
     background: #fff;
     color: #334155;
     border: 1.5px solid #d1d5db;
+  }
+
+  .msb-btn.outline:hover {
+    border-color: #337168;
+    color: #337168;
   }
 
   .msb-btn.primary {

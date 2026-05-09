@@ -375,11 +375,20 @@ const participantById = computed(() => {
   return map
 })
 
+// seat_index → participant 對照（template 每個 seat 會查 4-5 次，computed 化避免重複 reactive lookup）
+const seatToParticipant = computed(() => {
+  const map = new Map<number, Participant>()
+  const byId = participantById.value
+  for (const [si, pid] of Object.entries(tablesStore.seatAssignments)) {
+    const p = byId.get(pid)
+    if (p) map.set(Number(si), p)
+  }
+  return map
+})
+
 // 找某 seat_index 對應的 participant（沒分配 = null）
 function getSeatParticipant(seatIndex: number): Participant | null {
-  const pid = tablesStore.seatAssignments[seatIndex]
-  if (!pid) return null
-  return participantById.value.get(pid) ?? null
+  return seatToParticipant.value.get(seatIndex) ?? null
 }
 
 // ── 拖曳 ghost 狀態（從 panel 拖到 SVG seat） ────────────────
@@ -430,14 +439,9 @@ const cursorPos = ref<{ x: number; y: number } | null>(null)  // SVG 座標
 const suggestions = ref<Suggestion[]>([])
 let suggestionsDebounce: ReturnType<typeof setTimeout> | null = null
 
-// 從 store 拿目前的 seat → participant 對照（淺拷貝給模擬用）
+// 從 store 拿目前的 seat → participant 對照（直接 reuse computed cache，模擬時 simulateAddGuest 會自行淺拷貝）
 function getCurrentSeating(): Map<number, Participant> {
-  const map = new Map<number, Participant>()
-  for (const [si, pid] of Object.entries(tablesStore.seatAssignments)) {
-    const p = participantById.value.get(pid)
-    if (p) map.set(Number(si), p)
-  }
-  return map
+  return seatToParticipant.value
 }
 
 function getTableGuests(tableId: number, seating: Map<number, Participant>): Participant[] {
