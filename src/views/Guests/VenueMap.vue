@@ -67,16 +67,22 @@ const screenToSvg = (clientX: number, clientY: number) => {
 interface DragState {
   tableId: number
   pointerId: number
+  targetEl: Element
+  startClientX: number
+  startClientY: number
   offsetX: number
   offsetY: number
   rafId: number | null
   // pending 座標：rafId 觸發時才寫入 tables，避免每次 move 都 re-render
   pendingX: number
   pendingY: number
+  moved: boolean
 }
 let drag: DragState | null = null
 
 const draggingTableId = ref<number | null>(null)
+const selectedTableId = ref<number | null>(null)
+const TABLE_DRAG_START_PX = 5
 
 const onPointerDown = (e: PointerEvent, table: VenueTable) => {
   e.preventDefault()
@@ -87,21 +93,37 @@ const onPointerDown = (e: PointerEvent, table: VenueTable) => {
   drag = {
     tableId: table.id,
     pointerId: e.pointerId,
+    targetEl: target,
+    startClientX: e.clientX,
+    startClientY: e.clientY,
     offsetX: p.x - table.x,
     offsetY: p.y - table.y,
     rafId: null,
     pendingX: table.x,
     pendingY: table.y,
+    moved: false,
   }
-  draggingTableId.value = table.id
+  draggingTableId.value = null
 }
 
 const onPointerMove = (e: PointerEvent) => {
   if (!drag || drag.pointerId !== e.pointerId) return
   e.preventDefault()
+
+  // 先判斷是否真的要進拖曳（避免 click 被誤判）
+  if (!drag.moved) {
+    const dx = e.clientX - drag.startClientX
+    const dy = e.clientY - drag.startClientY
+    if (Math.hypot(dx, dy) < TABLE_DRAG_START_PX) return
+    drag.moved = true
+    draggingTableId.value = drag.tableId
+    selectedTableId.value = drag.tableId
+  }
+
   const p = screenToSvg(e.clientX, e.clientY)
-  drag.pendingX = snap(p.x - drag.offsetX)
-  drag.pendingY = snap(p.y - drag.offsetY)
+  // 拖曳中先走平滑移動，放手時再吸附網格
+  drag.pendingX = p.x - drag.offsetX
+  drag.pendingY = p.y - drag.offsetY
   // requestAnimationFrame 節流：每 frame 最多寫入一次 tables
   if (drag.rafId !== null) return
   drag.rafId = requestAnimationFrame(() => {
@@ -119,14 +141,26 @@ const onPointerMove = (e: PointerEvent) => {
 
 const onPointerUp = (e: PointerEvent) => {
   if (!drag || drag.pointerId !== e.pointerId) return
-  const target = e.currentTarget as Element
-  try { target.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
+  try { drag.targetEl.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
   if (drag.rafId !== null) cancelAnimationFrame(drag.rafId)
-  // P3：拖曳結束後 enqueue bulk-coords（store 端 debounce 500ms 合併）
-  const eventId = eventsStore.currentEvent?.id
-  if (eventId && drag.tableId) {
-    tablesStore.queueBulkCoords(eventId, drag.tableId)
+
+  if (drag.moved) {
+    // 放手時再做網格吸附，拖曳體感更平順
+    const t = tablesStore.tables.find((tt) => tt.id === drag!.tableId)
+    if (t) {
+      t.x = Math.max(0, Math.min(SVG_W - TABLE_SIZE, snap(t.x)))
+      t.y = Math.max(0, Math.min(SVG_H - TABLE_SIZE, snap(t.y)))
+    }
+    // P3：拖曳結束後 enqueue bulk-coords（store 端 debounce 500ms 合併）
+    const eventId = eventsStore.currentEvent?.id
+    if (eventId && drag.tableId) {
+      tablesStore.queueBulkCoords(eventId, drag.tableId)
+    }
+  } else {
+    // 沒達拖曳門檻 → 視為點選桌位
+    selectedTableId.value = drag.tableId
   }
+
   drag = null
   draggingTableId.value = null
 }
@@ -167,6 +201,7 @@ const onSvgPointerDown = (e: PointerEvent) => {
   // 右鍵跳過保留瀏覽器 contextmenu
   if (e.button === 2) return
   e.preventDefault()
+  selectedTableId.value = null
   ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
   panState = {
     startClientX: e.clientX,
@@ -250,7 +285,17 @@ const addRoundTable = async () => {
 const removeTable = async (id: number) => {
   const eventId = eventsStore.currentEvent?.id
   if (!eventId) return
+  const ok = await confirm({
+    title: '刪除桌位',
+    message: '刪除後無法復原，且此桌的座位分配將一併失效。是否繼續？',
+    confirmText: '刪除',
+    cancelText: '取消',
+    danger: true,
+  })
+  if (!ok) return
   await tablesStore.deleteTable(eventId, id)
+  if (selectedTableId.value === id) selectedTableId.value = null
+  toastInfo('已刪除桌位')
 }
 
 // ── 顯示文字 ─────────────────────────────────────────────────
@@ -707,11 +752,6 @@ onBeforeUnmount(() => {
           :disabled="!eventsStore.currentEvent"
           @click="addRoundTable"
         >+ 新增圓桌</button>
-        <button
-          class="vm-btn"
-          :disabled="!draggingTableId"
-          @click="draggingTableId && removeTable(draggingTableId)"
-        >刪除選中</button>
         <button class="vm-btn" @click="zoomToFit" title="重置視角到 100%">⤢ 重置視角</button>
         <button
           class="vm-btn auto-assign"
@@ -759,7 +799,11 @@ onBeforeUnmount(() => {
           v-for="t in tables"
           :key="t.id"
           class="vm-table"
-          :class="{ dragging: draggingTableId === t.id, rect: t.shape === 'rect' }"
+          :class="{
+            dragging: draggingTableId === t.id,
+            rect: t.shape === 'rect',
+            selected: selectedTableId === t.id,
+          }"
           :transform="`translate(${t.x},${t.y})`"
           @pointerdown="(e) => onPointerDown(e, t)"
           @pointermove="onPointerMove"
@@ -792,6 +836,18 @@ onBeforeUnmount(() => {
             :y="TABLE_SIZE / 2 + 16"
             text-anchor="middle" font-size="11" class="vm-table-cap"
           >{{ t.capacity }} 位</text>
+
+          <!-- 點選桌位後顯示右上角刪除 X（不需再去 header 點按鈕） -->
+          <g
+            v-if="selectedTableId === t.id"
+            class="vm-table-delete"
+            :transform="`translate(${(t.shape === 'rect' ? TABLE_SIZE * 1.5 : TABLE_SIZE) + 12}, -6)`"
+            @pointerdown.stop.prevent
+            @click.stop="removeTable(t.id)"
+          >
+            <circle cx="0" cy="0" r="12" />
+            <text x="0" y="1" text-anchor="middle" dominant-baseline="middle">×</text>
+          </g>
 
           <!-- 桌即時分數徽章（右上角，0 不顯示） -->
           <g
@@ -931,6 +987,7 @@ onBeforeUnmount(() => {
       <span v-else-if="draggingTableId">拖曳桌 {{ draggingTableId }}：
         ({{ tables.find((t) => t.id === draggingTableId)?.x ?? 0 }},
          {{ tables.find((t) => t.id === draggingTableId)?.y ?? 0 }})</span>
+      <span v-else-if="selectedTableId" class="vm-mode-selected">已選中桌 {{ selectedTableId }}（可點右上角 × 刪除）</span>
       <span v-else class="muted">滾輪縮放 / 拖背景平移視角 / 拖桌位定位 / 拖賓客分配 / 點座位移除分配</span>
     </div>
   </div>
@@ -1002,6 +1059,10 @@ onBeforeUnmount(() => {
 .vm-table.dragging .vm-table-shape {
   filter: drop-shadow(0 4px 12px rgba(22, 122, 103, 0.35));
 }
+.vm-table.selected .vm-table-shape {
+  stroke-width: 3;
+  filter: drop-shadow(0 0 0 rgba(22, 122, 103, 0.25)) drop-shadow(0 4px 10px rgba(22, 122, 103, 0.25));
+}
 .vm-table-shape {
   fill: #fff;
   stroke: #337168;
@@ -1014,6 +1075,29 @@ onBeforeUnmount(() => {
 .vm-table-label { fill: #337168; pointer-events: none; }
 .vm-table.rect .vm-table-label { fill: #92400e; }
 .vm-table-cap { fill: #64748b; pointer-events: none; }
+
+/* 點選桌位後出現的 X 刪除鍵 */
+.vm-table-delete {
+  cursor: pointer;
+}
+.vm-table-delete circle {
+  fill: #ef4444;
+  stroke: #fff;
+  stroke-width: 2;
+  transition: transform .12s ease, filter .12s ease, fill .12s ease;
+  filter: drop-shadow(0 2px 6px rgba(239, 68, 68, 0.45));
+}
+.vm-table-delete text {
+  fill: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  pointer-events: none;
+  user-select: none;
+}
+.vm-table-delete:hover circle {
+  fill: #dc2626;
+  transform: scale(1.08);
+}
 
 /* P4 視覺：座位點位 + Phase B drop target */
 .vm-seat {
@@ -1262,6 +1346,7 @@ onBeforeUnmount(() => {
 .vm-status .vm-divider { color: var(--text-muted); opacity: 0.5; }
 .vm-status .vm-zoom-info { color: #337168; font-weight: 600; }
 .vm-status .vm-mode-pan { color: #d97706; font-weight: 600; }
+.vm-status .vm-mode-selected { color: #dc2626; font-weight: 600; }
 .vm-status .vm-assign-info { color: #1e40af; font-weight: 600; }
 .vm-status .vm-mode-drop { color: #b91c1c; font-weight: 600; }
 </style>
