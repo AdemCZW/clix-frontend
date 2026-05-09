@@ -468,6 +468,8 @@ const deleteParticipant = async (participant: Participant | null) => {
 const saveParticipant = async () => {
   if (!editingParticipant.value) return;
   const { id, name, company, title, phone, email, type, status } = editingParticipant.value;
+  // 紀錄改之前的 type（用 store 既有資料對照，editingParticipant 是 copy）
+  const previousType = participantsStore.participants.find((p) => p.id === id)?.type;
   try {
     const updated = await participantsStore.updateParticipant(id, {
       name, company, title, phone, email, type, status,
@@ -475,6 +477,10 @@ const saveParticipant = async () => {
     // 更新 editingParticipant 以反映後端最新資料（含 qrCodeUrl）
     editingParticipant.value = { ...editingParticipant.value, ...(updated as Participant) };
     success("更新成功");
+    // 身分被改動 → 自動跳到對應 tab，避免使用者在「VIP」分頁卻看不到剛改成「一般民眾」的人
+    if (previousType && previousType !== type && (type === "VIP" || type === "一般民眾")) {
+      activeTab.value = type;
+    }
   } catch (err: unknown) {
     showError("更新失敗");
   }
