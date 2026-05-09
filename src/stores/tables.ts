@@ -58,6 +58,26 @@ export const useTablesStore = defineStore('tables', () => {
         throw new Error(await parseApiError(res, `刪除失敗 (${res.status})`))
       }
       tables.value = tables.value.filter((t) => t.id !== tableId)
+      // 後端會同步清掉該桌範圍 seat_index 的 SeatAssignment，前端也要清乾淨
+      // 直接從本地 seatAssignments 移除該桌範圍（seat_index = tableId * 100 ~ +99）
+      const lo = tableId * 100
+      const hi = lo + 100
+      let clearedCount = 0
+      for (const si of Object.keys(seatAssignments.value)) {
+        const idx = Number(si)
+        if (idx >= lo && idx < hi) {
+          delete seatAssignments.value[idx]
+          clearedCount++
+        }
+      }
+      // 解析 response 的 cleared_assignments_count（200 OK），做最後保險（理論上跟本地一致）
+      try {
+        const body = await res.json()
+        if (typeof body?.cleared_assignments_count === 'number') {
+          return { clearedCount: body.cleared_assignments_count as number }
+        }
+      } catch { /* 204 沒 body 或 parse 失敗：用 local count */ }
+      return { clearedCount }
     })
   }
 

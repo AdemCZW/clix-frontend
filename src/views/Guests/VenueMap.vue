@@ -293,9 +293,17 @@ const removeTable = async (id: number) => {
     danger: true,
   })
   if (!ok) return
-  await tablesStore.deleteTable(eventId, id)
-  if (selectedTableId.value === id) selectedTableId.value = null
-  toastInfo('已刪除桌位')
+  try {
+    const result = await tablesStore.deleteTable(eventId, id)
+    if (selectedTableId.value === id) selectedTableId.value = null
+    // 確保前端 seatAssignments map 與後端一致（store 已自清，再 fetch 一次保險）
+    await tablesStore.fetchAssignments(eventId)
+    const cleared = (result as { clearedCount?: number } | undefined)?.clearedCount ?? 0
+    toastInfo(cleared > 0 ? `已刪除桌位（同時釋放 ${cleared} 位賓客）` : '已刪除桌位')
+  } catch (err) {
+    console.error('removeTable failed', err)
+    toastWarning('刪除桌位失敗，請稍後再試')
+  }
 }
 
 // ── 顯示文字 ─────────────────────────────────────────────────
@@ -741,6 +749,8 @@ watch(() => eventsStore.currentEvent?.id, async (newId, oldId) => {
   if (oldId) await tablesStore.flushNow(oldId)
   tablesStore.clear()
   lastSnapshot.value = null
+  // P1：清掉舊活動的選中桌號，避免 status bar 顯示舊活動的桌
+  selectedTableId.value = null
   if (newId) await reloadAllForEvent(newId)
 })
 
