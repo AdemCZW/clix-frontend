@@ -329,6 +329,18 @@ let pendingGhostX = 0
 let pendingGhostY = 0
 let pendingHoveredSeatIndex: number | null = null
 
+// drop 成功的瞬間，標記哪個 seat 剛被分配 → 觸發 1 秒 bounce 動畫
+const justAssignedSeatIndex = ref<number | null>(null)
+let justAssignedTimer: ReturnType<typeof setTimeout> | null = null
+function flashJustAssigned(seatIndex: number) {
+  justAssignedSeatIndex.value = seatIndex
+  if (justAssignedTimer) clearTimeout(justAssignedTimer)
+  justAssignedTimer = setTimeout(() => {
+    justAssignedSeatIndex.value = null
+    justAssignedTimer = null
+  }, 1000)
+}
+
 const onPersonPointerDown = (e: PointerEvent, p: Participant) => {
   e.preventDefault()
   const el = e.currentTarget as Element
@@ -390,6 +402,8 @@ const onPersonPointerUp = (e: PointerEvent) => {
   } else {
     toastSuccess(`「${p.name}」已分配座位`)
   }
+  // 觸發 seat dot bounce + 綠閃動畫（1 秒）
+  flashJustAssigned(target)
 
   // 同步後端
   const eventId = eventsStore.currentEvent?.id
@@ -628,6 +642,9 @@ onBeforeUnmount(() => {
               :class="{
                 assigned: !!getSeatParticipant(tablesStore.tableSeatIndex(t.id, i + 1)),
                 hovered: hoveredSeatIndex === tablesStore.tableSeatIndex(t.id, i + 1),
+                'drop-ready': !!dragGhost && !getSeatParticipant(tablesStore.tableSeatIndex(t.id, i + 1)),
+                'drop-warn': !!dragGhost && !!getSeatParticipant(tablesStore.tableSeatIndex(t.id, i + 1)),
+                'just-assigned': justAssignedSeatIndex === tablesStore.tableSeatIndex(t.id, i + 1),
               }"
               @pointerdown.stop
               @click.stop="onSeatClick(tablesStore.tableSeatIndex(t.id, i + 1))"
@@ -662,6 +679,7 @@ onBeforeUnmount(() => {
           v-for="p in unassignedParticipants"
           :key="p.id"
           class="vm-person"
+          :class="{ dragging: dragGhost?.participant.id === p.id }"
           @pointerdown="onPersonPointerDown($event, p)"
           @pointermove="onPersonPointerMove"
           @pointerup="onPersonPointerUp"
@@ -788,7 +806,10 @@ onBeforeUnmount(() => {
   stroke: #94a3b8;
   stroke-width: 1.5;
   cursor: pointer;
-  transition: fill .15s, stroke .15s, r .15s;
+  /* transform-origin 設在自己中心，scale 才會以 cx/cy 為基準 */
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: fill .18s ease, stroke .18s ease, stroke-width .18s ease, transform .18s ease, filter .18s ease;
 }
 .vm-table:hover .vm-seat { stroke: #337168; }
 .vm-table.rect .vm-seat,
@@ -797,11 +818,49 @@ onBeforeUnmount(() => {
   fill: #337168;
   stroke: #1e3a8a;
 }
+
+/* 拖曳中：未分配 seat 脈動發光，提示「可投放」 */
+.vm-seat.drop-ready {
+  stroke: #10b981;
+  stroke-width: 2;
+  animation: vm-seat-pulse 1.4s ease-in-out infinite;
+}
+@keyframes vm-seat-pulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(16, 185, 129, 0)); }
+  50%      { transform: scale(1.25); filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.7)); }
+}
+/* 拖曳中：已分配 seat 顯示「會覆蓋」警告 — 紅色虛線 */
+.vm-seat.drop-warn {
+  stroke: #ef4444;
+  stroke-width: 2;
+  stroke-dasharray: 3 2;
+  animation: vm-seat-warn 1.4s ease-in-out infinite;
+}
+@keyframes vm-seat-warn {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.15); }
+}
+
+/* hover 在 seat 上（被拖曳對象指向）→ 強化版：放大 + 黃光暈 + 蓋過 pulse 動畫 */
 .vm-seat.hovered {
   fill: #fbbf24;
   stroke: #d97706;
-  stroke-width: 2.5;
+  stroke-width: 3;
+  transform: scale(1.6);
+  filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.85));
+  animation: none;  /* 蓋過 drop-ready / drop-warn 的 pulse */
 }
+
+/* drop 成功瞬間 → 1 秒彈跳 + 綠色光暈 */
+.vm-seat.just-assigned {
+  animation: vm-seat-bounce 0.65s cubic-bezier(.34, 1.56, .64, 1) 1;
+}
+@keyframes vm-seat-bounce {
+  0%   { transform: scale(0.4); filter: drop-shadow(0 0 0 rgba(16, 185, 129, 0)); }
+  60%  { transform: scale(1.6); filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.9)); }
+  100% { transform: scale(1);   filter: drop-shadow(0 0 0 rgba(16, 185, 129, 0)); }
+}
+
 .vm-seat-name {
   fill: #fff;
   pointer-events: none;
@@ -863,10 +922,17 @@ onBeforeUnmount(() => {
   border-radius: 8px;
   cursor: grab;
   touch-action: none;
-  transition: background .15s, border-color .15s;
+  transition: background .15s, border-color .15s, opacity .2s, transform .2s, filter .2s;
 }
 .vm-person:hover { border-color: #167A67; background: #ecfdf5; }
 .vm-person:active { cursor: grabbing; }
+/* 該位賓客正在被拖曳 → panel 內視覺上「拿走了」：半透明 + 內凹 */
+.vm-person.dragging {
+  opacity: 0.35;
+  transform: scale(0.96);
+  filter: grayscale(0.6);
+  cursor: grabbing;
+}
 .vm-person-avatar {
   width: 28px; height: 28px; border-radius: 50%;
   background: #337168; color: #fff;
@@ -890,13 +956,20 @@ onBeforeUnmount(() => {
   position: fixed;
   z-index: 10000;
   transform: translate(-50%, -120%);
-  background: #167A67; color: #fff;
-  padding: 6px 14px; border-radius: 999px;
+  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  color: #fff;
+  padding: 7px 16px; border-radius: 999px;
   font-size: 0.82rem; font-weight: 700;
-  box-shadow: 0 6px 20px rgba(22, 122, 103, .5);
+  box-shadow: 0 8px 24px rgba(22, 122, 103, .55), 0 0 0 3px rgba(22, 122, 103, .15);
   pointer-events: none;
   white-space: nowrap; max-width: 200px;
   overflow: hidden; text-overflow: ellipsis;
+  /* 出現時的微跳入動畫 */
+  animation: vm-ghost-in 0.18s ease-out;
+}
+@keyframes vm-ghost-in {
+  from { opacity: 0; transform: translate(-50%, -120%) scale(0.7); }
+  to   { opacity: 1; transform: translate(-50%, -120%) scale(1); }
 }
 
 /* 自動排位 / 還原按鈕 */
