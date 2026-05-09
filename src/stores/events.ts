@@ -37,6 +37,8 @@ export const useEventsStore = defineStore('events', () => {
         participants: e.participants_count || 0,
         status: e.status || (e.is_published ? 'active' : 'upcoming'),
         statusText: e.status_text || (e.is_published ? '進行中' : '即將開始'),
+        contactLink: e.contact_link || '',
+        maxParticipants: e.max_participants,
     })
 
     const fetchEvents = async (options: { userId?: number; isSuperAdmin?: boolean } = {}) => {

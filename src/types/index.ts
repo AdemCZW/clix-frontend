@@ -33,6 +33,8 @@ export interface Event {
   status: EventStatus
   statusText: string
   shortLink?: string
+  contactLink?: string
+  maxParticipants?: number
 }
 
 /** 後端回傳的原始活動資料（snake_case） */
@@ -62,6 +64,8 @@ export interface RawEvent {
   manager_ids?: number[]
   members?: Array<number | { id: number }>
   member_ids?: number[]
+  contact_link?: string
+  max_participants?: number
 }
 
 // ── 參與者 ─────────────────────────────────────────────

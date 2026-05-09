@@ -145,6 +145,11 @@
         <label>報名人數上限 *</label>
         <input type="number" v-model="newEvent.maxParticipants" min="1" max="9999" placeholder="預設500，可自訂" />
       </div>
+      <div class="form-group">
+        <label>聯絡主辦單位連結（選填）</label>
+        <input type="text" v-model="newEvent.contactLink" placeholder="mailto:host@example.com / tel:0912345678 / https://..." />
+        <small style="color: #94a3b8; font-size: 0.78rem;">手機版報名頁的「聯絡主辦單位」按鈕會用此連結；空白則不顯示按鈕</small>
+      </div>
       <template #footer>
         <button class="btn-cancel" @click="showCreateModal = false">取消</button>
         <button class="btn-confirm" @click="createEvent">建立活動</button>
@@ -184,6 +189,11 @@
           <label>報名人數上限 *</label>
           <input type="number" v-model="editingEvent.maxParticipants" min="1" max="9999" placeholder="預設500，可自訂" />
         </div>
+        <div class="form-group">
+          <label>聯絡主辦單位連結（選填）</label>
+          <input type="text" v-model="editingEvent.contactLink" placeholder="mailto:host@example.com / tel:0912345678 / https://..." />
+          <small style="color: #94a3b8; font-size: 0.78rem;">手機版報名頁的「聯絡主辦單位」按鈕會用此連結；空白則不顯示按鈕</small>
+        </div>
       </template>
       <template #footer>
         <button class="btn-panel-cancel" @click="closeEditPanel">取消</button>
@@ -215,6 +225,7 @@ interface EventEditForm {
   location: string;
   address: string;
   maxParticipants: number;
+  contactLink: string;
 }
 
 const router = useRouter();
@@ -261,7 +272,8 @@ const openEditPanel = (event: Event) => {
     time: event.time || "",
     location: event.location || "",
     address: event.address || "",
-    maxParticipants: (event as Event & { maxParticipants?: number }).maxParticipants || 500,
+    maxParticipants: event.maxParticipants || 500,
+    contactLink: event.contactLink || '',
   };
   editingEvent.value = data;
   originalEditSnapshot.value = JSON.stringify(data);
@@ -283,6 +295,7 @@ const saveEditEvent = async () => {
       location:         editingEvent.value.location,
       address:          editingEvent.value.address || "",
       max_participants: editingEvent.value.maxParticipants || 500,
+      contact_link:     editingEvent.value.contactLink || '',
     });
     if (eventsStore.currentEvent?.id === updated.id) {
       eventsStore.setCurrentEvent(updated, userStore.user?.id);
@@ -310,6 +323,7 @@ const newEvent = ref({
   location: "",
   address: "",
   maxParticipants: 500,
+  contactLink: "",
 });
 
 // 從 store 取得活動列表
@@ -461,10 +475,11 @@ const createEvent = async () => {
       location:         newEvent.value.location,
       address:          newEvent.value.address || "",
       max_participants: newEvent.value.maxParticipants || 500,
+      contact_link:     newEvent.value.contactLink || '',
     });
     success("活動已建立");
     showCreateModal.value = false;
-    newEvent.value = { name: "", date: "", endDate: "", time: "", location: "", address: "", maxParticipants: 500 };
+    newEvent.value = { name: "", date: "", endDate: "", time: "", location: "", address: "", maxParticipants: 500, contactLink: "" };
     // 切換到新活動並前往設定頁
     eventsStore.setCurrentEvent(created, userStore.user?.id);
     router.push("/admin/registration-setting");
