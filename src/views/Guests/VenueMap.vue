@@ -341,6 +341,156 @@ function flashJustAssigned(seatIndex: number) {
   }, 1000)
 }
 
+// ════════════════════════════════════════════════════════════════════
+// 智能建議路徑（拖曳時顯示 Top 3 建議桌位）
+// ════════════════════════════════════════════════════════════════════
+//
+// 評分公式（缺欄位回 0 分影響，不報錯）：
+//   同公司配對 +4 / pair
+//   VIP 在主桌（label 含 VIP 或「主」）+20 / 位
+//   同桌飲食衝突 -3 / 不同種類
+//   硬性違反 -10000（目前未使用）
+interface Suggestion {
+  tableId: number
+  targetX: number
+  targetY: number
+  delta: number
+}
+const cursorPos = ref<{ x: number; y: number } | null>(null)  // SVG 座標
+const suggestions = ref<Suggestion[]>([])
+let suggestionsDebounce: ReturnType<typeof setTimeout> | null = null
+
+// 從 store 拿目前的 seat → participant 對照（淺拷貝給模擬用）
+function getCurrentSeating(): Map<number, Participant> {
+  const map = new Map<number, Participant>()
+  for (const [si, pid] of Object.entries(tablesStore.seatAssignments)) {
+    const p = participantById.value.get(pid)
+    if (p) map.set(Number(si), p)
+  }
+  return map
+}
+
+function getTableGuests(tableId: number, seating: Map<number, Participant>): Participant[] {
+  const guests: Participant[] = []
+  for (const [si, g] of seating) {
+    if (Math.floor(si / 100) === tableId) guests.push(g)
+  }
+  return guests
+}
+
+function isMainTable(t: VenueTable): boolean {
+  const label = (t.label || '').toUpperCase()
+  return label.includes('VIP') || label.includes('主')
+}
+
+function getDietary(g: Participant): string {
+  const fa = (g.formAnswers ?? {}) as Record<string, unknown>
+  const v = fa.dietary ?? fa.diet
+  return v ? String(v).trim() : ''
+}
+
+function scoreTable(tableId: number, seating: Map<number, Participant>): number {
+  const guests = getTableGuests(tableId, seating)
+  if (guests.length === 0) return 0
+  let s = 0
+  // 同公司配對：每對 +4
+  for (let i = 0; i < guests.length; i++) {
+    for (let j = i + 1; j < guests.length; j++) {
+      const ci = (guests[i].company || '').trim()
+      const cj = (guests[j].company || '').trim()
+      if (ci && ci === cj) s += 4
+    }
+  }
+  // VIP 在主桌（label 含 'VIP' 或 '主' 才算）
+  const t = tables.value.find((tt) => tt.id === tableId)
+  if (t && isMainTable(t)) {
+    for (const g of guests) {
+      if (g.type === 'VIP') s += 20
+    }
+  }
+  // 同桌飲食衝突：N 種不同 dietary → -(N-1) * 3
+  const diets = new Set<string>()
+  for (const g of guests) {
+    const d = getDietary(g)
+    if (d) diets.add(d)
+  }
+  if (diets.size > 1) s -= (diets.size - 1) * 3
+  return s
+}
+
+function computeTotalScore(seating: Map<number, Participant>): number {
+  let s = 0
+  for (const t of tables.value) s += scoreTable(t.id, seating)
+  return s
+}
+
+function hasEmptySeat(t: VenueTable, seating: Map<number, Participant>): boolean {
+  let count = 0
+  for (const si of seating.keys()) {
+    if (Math.floor(si / 100) === t.id) count++
+  }
+  return count < t.capacity
+}
+
+function violatesHardConstraints(_guest: Participant, _t: VenueTable, _seating: Map<number, Participant>): boolean {
+  // 目前未定義硬性約束（性別 / 部門隔離等）—— 保留 hook 給未來
+  return false
+}
+
+function simulateAddGuest(guest: Participant, t: VenueTable, seating: Map<number, Participant>): number {
+  // 找該桌第一個空 seat
+  let nextSeatNo = 1
+  for (let s = 1; s <= t.capacity; s++) {
+    const si = t.id * 100 + s
+    if (!seating.has(si)) { nextSeatNo = s; break }
+  }
+  const newSeating = new Map(seating)
+  newSeating.set(t.id * 100 + nextSeatNo, guest)
+  return computeTotalScore(newSeating)
+}
+
+function calculateSuggestions(guestId: number): Suggestion[] {
+  const guest = participantById.value.get(guestId)
+  if (!guest) return []
+  const seating = getCurrentSeating()
+  const baseScore = computeTotalScore(seating)
+  return tables.value
+    .filter((t) => t.shape === 'round' && hasEmptySeat(t, seating))
+    .filter((t) => !violatesHardConstraints(guest, t, seating))
+    .map((t) => ({
+      tableId: t.id,
+      targetX: t.x + TABLE_SIZE / 2,
+      targetY: t.y + TABLE_SIZE / 2,
+      delta: simulateAddGuest(guest, t, seating) - baseScore,
+    }))
+    .sort((a, b) => b.delta - a.delta)
+    .slice(0, 3)
+}
+
+function queueRecalcSuggestions(guestId: number) {
+  if (suggestionsDebounce) clearTimeout(suggestionsDebounce)
+  suggestionsDebounce = setTimeout(() => {
+    suggestions.value = calculateSuggestions(guestId)
+    suggestionsDebounce = null
+  }, 50)
+}
+
+// 桌即時分數徽章（順帶實作）：每張桌目前分數
+const tableScores = computed<Map<number, number>>(() => {
+  const seating = getCurrentSeating()
+  const map = new Map<number, number>()
+  for (const t of tables.value) map.set(t.id, scoreTable(t.id, seating))
+  return map
+})
+
+// SVG 二次貝茲曲線：游標 → 桌中心
+function bezierPath(from: { x: number; y: number }, to: { x: number; y: number }): string {
+  const mx = (from.x + to.x) / 2
+  const my = (from.y + to.y) / 2
+  const ctrlY = my - Math.abs(to.x - from.x) * 0.3
+  return `M ${from.x} ${from.y} Q ${mx} ${ctrlY} ${to.x} ${to.y}`
+}
+
 const onPersonPointerDown = (e: PointerEvent, p: Participant) => {
   e.preventDefault()
   const el = e.currentTarget as Element
@@ -348,6 +498,9 @@ const onPersonPointerDown = (e: PointerEvent, p: Participant) => {
   personDragState = { participant: p, pointerId: e.pointerId, el }
   dragGhost.value = { participant: p, x: e.clientX, y: e.clientY }
   hoveredSeatIndex.value = null
+  // 智能建議：開拖時 reset，第一次 move 時才算
+  suggestions.value = []
+  cursorPos.value = screenToSvg(e.clientX, e.clientY)
 }
 
 const onPersonPointerMove = (e: PointerEvent) => {
@@ -372,6 +525,11 @@ const onPersonPointerMove = (e: PointerEvent) => {
       dragGhost.value.y = pendingGhostY
     }
     hoveredSeatIndex.value = pendingHoveredSeatIndex
+    // 智能建議：cursorPos 更新（每 frame 一次）+ debounce 重算 suggestions
+    cursorPos.value = screenToSvg(pendingGhostX, pendingGhostY)
+    if (personDragState) {
+      queueRecalcSuggestions(personDragState.participant.id)
+    }
     personDragRaf = null
   })
 }
@@ -383,6 +541,14 @@ const onPersonPointerUp = (e: PointerEvent) => {
     cancelAnimationFrame(personDragRaf)
     personDragRaf = null
   }
+  // 智能建議：清掉 debounce + 路徑
+  if (suggestionsDebounce) {
+    clearTimeout(suggestionsDebounce)
+    suggestionsDebounce = null
+  }
+  suggestions.value = []
+  cursorPos.value = null
+
   const target = hoveredSeatIndex.value
   const p = personDragState.participant
   personDragState = null
@@ -627,6 +793,22 @@ onBeforeUnmount(() => {
             text-anchor="middle" font-size="11" class="vm-table-cap"
           >{{ t.capacity }} 位</text>
 
+          <!-- 桌即時分數徽章（右上角，0 不顯示） -->
+          <g
+            v-if="(tableScores.get(t.id) ?? 0) !== 0"
+            class="vm-table-score"
+            :class="{
+              positive: (tableScores.get(t.id) ?? 0) > 0,
+              negative: (tableScores.get(t.id) ?? 0) < 0,
+            }"
+            :transform="`translate(${(t.shape === 'rect' ? TABLE_SIZE * 1.5 : TABLE_SIZE) - 4}, 4)`"
+          >
+            <rect x="-22" y="-2" width="28" height="16" rx="8" />
+            <text x="-8" y="9" text-anchor="middle" font-size="10" font-weight="700">
+              {{ (tableScores.get(t.id) ?? 0) > 0 ? `+${tableScores.get(t.id)}` : tableScores.get(t.id) }}
+            </text>
+          </g>
+
           <!-- P4 視覺：圓桌座位點位（sin/cos 環圈） + Phase B 已分配狀態 + drop target -->
           <g
             v-for="(seat, i) in getSeatPositions(t)"
@@ -659,6 +841,39 @@ onBeforeUnmount(() => {
               font-weight="700"
               class="vm-seat-name"
             >{{ getSeatParticipant(tablesStore.tableSeatIndex(t.id, i + 1))!.name.charAt(0) }}</text>
+          </g>
+        </g>
+
+        <!-- 智能建議路徑層（拖曳中且有建議才顯示） -->
+        <g v-if="dragGhost && cursorPos && suggestions.length > 0" class="vm-suggestions-layer">
+          <g v-for="(s, idx) in suggestions" :key="`sug-${s.tableId}`">
+            <!-- 二次貝茲虛線：游標 → 桌中心 -->
+            <path
+              :d="bezierPath(cursorPos, { x: s.targetX, y: s.targetY })"
+              class="vm-suggest-path"
+              :class="{
+                positive: s.delta > 0,
+                negative: s.delta < 0,
+                neutral: s.delta === 0,
+                top: idx === 0,
+              }"
+            />
+            <!-- 中點徽章：+N / -N / 0 -->
+            <g
+              :transform="`translate(${(cursorPos.x + s.targetX) / 2}, ${(cursorPos.y + s.targetY) / 2 - 22})`"
+              class="vm-suggest-badge"
+              :class="{
+                positive: s.delta > 0,
+                negative: s.delta < 0,
+                neutral: s.delta === 0,
+                top: idx === 0,
+              }"
+            >
+              <rect x="-22" y="-12" width="44" height="22" rx="11" />
+              <text text-anchor="middle" y="4" font-size="12" font-weight="700">
+                {{ s.delta > 0 ? `+${s.delta}` : s.delta }}
+              </text>
+            </g>
           </g>
         </g>
       </svg>
@@ -865,6 +1080,52 @@ onBeforeUnmount(() => {
   fill: #fff;
   pointer-events: none;
   user-select: none;
+}
+
+/* 桌即時分數徽章（右上角） */
+.vm-table-score { pointer-events: none; }
+.vm-table-score rect { fill: #f1f5f9; stroke: #cbd5e1; stroke-width: 1; }
+.vm-table-score text { fill: #475569; }
+.vm-table-score.positive rect { fill: #d1fae5; stroke: #10b981; }
+.vm-table-score.positive text { fill: #047857; }
+.vm-table-score.negative rect { fill: #fee2e2; stroke: #ef4444; }
+.vm-table-score.negative text { fill: #b91c1c; }
+
+/* 智能建議路徑層 */
+.vm-suggestions-layer { pointer-events: none; }
+
+.vm-suggest-path {
+  fill: none;
+  stroke: #94a3b8;
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  opacity: 0.6;
+  animation: vm-suggest-dash 0.8s linear infinite;
+}
+.vm-suggest-path.positive { stroke: #10b981; opacity: 0.8; }
+.vm-suggest-path.negative { stroke: #ef4444; opacity: 0.55; }
+.vm-suggest-path.top {
+  stroke-width: 3;
+  opacity: 1;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+@keyframes vm-suggest-dash {
+  to { stroke-dashoffset: -10; }
+}
+
+.vm-suggest-badge rect {
+  fill: #f1f5f9;
+  stroke: #94a3b8;
+  stroke-width: 1.5;
+}
+.vm-suggest-badge text { fill: #475569; }
+.vm-suggest-badge.positive rect { fill: #d1fae5; stroke: #10b981; }
+.vm-suggest-badge.positive text { fill: #047857; }
+.vm-suggest-badge.negative rect { fill: #fee2e2; stroke: #ef4444; }
+.vm-suggest-badge.negative text { fill: #b91c1c; }
+.vm-suggest-badge.top rect {
+  stroke-width: 2.5;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
 }
 
 /* 兩欄 layout：左主畫面 + 右側 panel */
