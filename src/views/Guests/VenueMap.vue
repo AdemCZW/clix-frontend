@@ -337,6 +337,23 @@ const unassignedParticipants = computed<Participant[]>(() => {
   return participantsStore.participants.filter((p) => !assigned.has(p.id))
 })
 
+// Panel 分頁：VIP / 民眾（預設民眾，因為通常人數較多）
+const panelTab = ref<'vip' | 'general'>('general')
+const unassignedVip = computed(() =>
+  unassignedParticipants.value.filter((p) => p.type === 'VIP'),
+)
+const unassignedGeneral = computed(() =>
+  unassignedParticipants.value.filter((p) => p.type !== 'VIP'),
+)
+const displayedUnassigned = computed(() =>
+  panelTab.value === 'vip' ? unassignedVip.value : unassignedGeneral.value,
+)
+const panelEmptyMessage = computed(() => {
+  if (unassignedParticipants.value.length === 0) return '全部已分配 ✓'
+  if (panelTab.value === 'vip') return 'VIP 都已分配 ✓'
+  return '民眾都已分配 ✓'
+})
+
 // 已分配人數 / 容量總和（用於 status bar）
 const totalCapacity = computed(() =>
   tables.value.reduce((sum, t) => sum + (t.shape === 'round' ? t.capacity : 0), 0),
@@ -941,13 +958,32 @@ onBeforeUnmount(() => {
         <h3>未分配賓客</h3>
         <span class="vm-panel-count">{{ unassignedParticipants.length }}</span>
       </div>
+      <!-- VIP / 民眾 分頁籤 -->
+      <div class="vm-panel-tabs">
+        <button
+          type="button"
+          class="vm-panel-tab"
+          :class="{ active: panelTab === 'vip', vip: true }"
+          @click="panelTab = 'vip'"
+        >
+          VIP <span class="cnt">{{ unassignedVip.length }}</span>
+        </button>
+        <button
+          type="button"
+          class="vm-panel-tab"
+          :class="{ active: panelTab === 'general' }"
+          @click="panelTab = 'general'"
+        >
+          民眾 <span class="cnt">{{ unassignedGeneral.length }}</span>
+        </button>
+      </div>
       <p class="vm-panel-hint">拖曳賓客到圓桌的座位點上分配</p>
-      <div v-if="unassignedParticipants.length === 0" class="vm-panel-empty">
-        全部已分配 ✓
+      <div v-if="displayedUnassigned.length === 0" class="vm-panel-empty">
+        {{ panelEmptyMessage }}
       </div>
       <div class="vm-panel-list">
         <div
-          v-for="p in unassignedParticipants"
+          v-for="p in displayedUnassigned"
           :key="p.id"
           class="vm-person"
           :class="{ dragging: dragGhost?.participant.id === p.id }"
@@ -1246,6 +1282,61 @@ onBeforeUnmount(() => {
 }
 .vm-panel-hint {
   margin: 0 0 10px; font-size: 0.72rem; color: var(--text-muted);
+}
+
+/* VIP / 民眾 分頁籤 */
+.vm-panel-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 6px 0 8px;
+  padding: 3px;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+.vm-panel-tab {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background .15s, color .15s;
+}
+.vm-panel-tab .cnt {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  min-width: 20px;
+  text-align: center;
+}
+.vm-panel-tab:hover { color: var(--text-main); }
+/* 民眾 tab active：綠色 */
+.vm-panel-tab.active {
+  background: #fff;
+  color: #167A67;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.vm-panel-tab.active .cnt {
+  background: #167A67;
+  color: #fff;
+}
+/* VIP tab active：橙色（跟頭像 vip 顏色一致）*/
+.vm-panel-tab.vip.active {
+  color: #d97706;
+}
+.vm-panel-tab.vip.active .cnt {
+  background: #d97706;
 }
 .vm-panel-empty {
   flex: 1;
