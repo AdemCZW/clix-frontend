@@ -132,8 +132,10 @@ const onPointerMove = (e: PointerEvent) => {
     const t = tablesStore.tables.find((tt) => tt.id === drag!.tableId)
     if (t) {
       // 邊界保護：避免拖出 SVG 範圍
-      t.x = Math.max(0, Math.min(SVG_W - TABLE_SIZE, drag.pendingX))
-      t.y = Math.max(0, Math.min(SVG_H - TABLE_SIZE, drag.pendingY))
+      t.x = Math.max(0, Math.min(SVG_W - tableWidth(t), drag.pendingX))
+      t.y = Math.max(0, Math.min(SVG_H - tableHeight(t), drag.pendingY))
+      // D3：拖曳中即時計算到最近桌的距離（給 status bar / 提示）
+      draggingNearestInfo.value = computeNearestTable(t)
     }
     drag.rafId = null
   })
@@ -145,11 +147,13 @@ const onPointerUp = (e: PointerEvent) => {
   if (drag.rafId !== null) cancelAnimationFrame(drag.rafId)
 
   if (drag.moved) {
-    // 放手時再做網格吸附，拖曳體感更平順
+    // 放手時：先 snap-to-neighbor（D2），再 grid snap，提升排版準度
     const t = tablesStore.tables.find((tt) => tt.id === drag!.tableId)
     if (t) {
-      t.x = Math.max(0, Math.min(SVG_W - TABLE_SIZE, snap(t.x)))
-      t.y = Math.max(0, Math.min(SVG_H - TABLE_SIZE, snap(t.y)))
+      const neighbor = snapToNeighbor(t)
+      // snap-to-neighbor 優先（< SNAP_THRESHOLD 才會生效），否則 grid snap
+      t.x = Math.max(0, Math.min(SVG_W - tableWidth(t), neighbor.x !== t.x ? neighbor.x : snap(t.x)))
+      t.y = Math.max(0, Math.min(SVG_H - tableHeight(t), neighbor.y !== t.y ? neighbor.y : snap(t.y)))
     }
     // P3：拖曳結束後 enqueue bulk-coords（store 端 debounce 500ms 合併）
     const eventId = eventsStore.currentEvent?.id
@@ -163,6 +167,7 @@ const onPointerUp = (e: PointerEvent) => {
 
   drag = null
   draggingTableId.value = null
+  draggingNearestInfo.value = null
 }
 
 // ── P2：wheel zoom（以滑鼠位置為中心） ─────────────────────
@@ -236,13 +241,22 @@ const onSvgPointerUp = (e: PointerEvent) => {
 }
 
 // 空白鍵狀態（按住期間切換 cursor 並啟用左鍵 pan）
+// Cmd/Ctrl+Z / Cmd/Ctrl+Shift+Z：座位分配 undo / redo（C3）
 const onKeyDown = (e: KeyboardEvent) => {
+  const target = e.target as HTMLElement
+  const inField = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
   if (e.code === 'Space' && !isSpaceDown.value) {
-    // 只在 SVG / VenueMap 範圍內按空白才響應，避免影響其他輸入框
-    const target = e.target as HTMLElement
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+    if (inField) return
     e.preventDefault()
     isSpaceDown.value = true
+    return
+  }
+  // undo / redo（只在無編輯 modal、未在輸入框時）
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+    if (inField || editingTable.value) return
+    e.preventDefault()
+    if (e.shiftKey) redo()
+    else undo()
   }
 }
 const onKeyUp = (e: KeyboardEvent) => {
@@ -309,25 +323,359 @@ const removeTable = async (id: number) => {
 // ── 顯示文字 ─────────────────────────────────────────────────
 const tableCount = computed(() => tables.value.length)
 
-// ── P4 視覺：圓桌座位點位（sin/cos 算 N 個座位環圈） ───────
-// 給定桌的 capacity，回傳 N 個 (sx, sy) 相對桌中心的座位點
+// 桌寬（依 shape 不同）— 多處要算所以抽 helper
+function tableWidth(t: VenueTable): number {
+  return t.shape === 'rect' ? TABLE_SIZE * 1.5 : TABLE_SIZE
+}
+function tableHeight(_t: VenueTable): number {
+  return TABLE_SIZE
+}
+function tableCenter(t: VenueTable): { x: number; y: number } {
+  return { x: t.x + tableWidth(t) / 2, y: t.y + tableHeight(t) / 2 }
+}
+
+// ── P4 視覺：圓桌 / 方桌座位點位 ─────────────────────────────
+// 圓桌：sin/cos 環圈
+// 方桌：top + bottom 兩排（容量平均分配，奇數時 top 多 1）
 function getSeatPositions(t: VenueTable): Array<{ x: number; y: number }> {
-  if (t.shape !== 'round') return []
   const n = t.capacity
-  const cx = TABLE_SIZE / 2
-  const cy = TABLE_SIZE / 2
-  // 座位點距離桌中心：桌半徑 + 偏移
-  const r = TABLE_SIZE / 2 + SEAT_OFFSET
+  if (n <= 0) return []
+  if (t.shape === 'round') {
+    const cx = TABLE_SIZE / 2
+    const cy = TABLE_SIZE / 2
+    const r = TABLE_SIZE / 2 + SEAT_OFFSET
+    const positions: Array<{ x: number; y: number }> = []
+    for (let i = 0; i < n; i++) {
+      const angle = (i / n) * Math.PI * 2 - Math.PI / 2
+      positions.push({
+        x: cx + r * Math.cos(angle),
+        y: cy + r * Math.sin(angle),
+      })
+    }
+    return positions
+  }
+  // rect：上下兩排平均分（C2 補座位點）
+  const w = TABLE_SIZE * 1.5
+  const h = TABLE_SIZE
+  const top = Math.ceil(n / 2)
+  const bot = n - top
   const positions: Array<{ x: number; y: number }> = []
-  for (let i = 0; i < n; i++) {
-    // 從正上方（-π/2）順時針排
-    const angle = (i / n) * Math.PI * 2 - Math.PI / 2
-    positions.push({
-      x: cx + r * Math.cos(angle),
-      y: cy + r * Math.sin(angle),
-    })
+  // top edge
+  for (let i = 0; i < top; i++) {
+    const fx = (i + 1) / (top + 1)
+    positions.push({ x: w * fx, y: -SEAT_OFFSET })
+  }
+  // bottom edge
+  for (let i = 0; i < bot; i++) {
+    const fx = (i + 1) / (bot + 1)
+    positions.push({ x: w * fx, y: h + SEAT_OFFSET })
   }
   return positions
+}
+
+// A4: 同公司同色（color hash）— 給已分配座位用，一眼分群
+// 空字串 / 無公司 → 預設綠
+function colorFromString(s: string): string {
+  if (!s) return '#337168'
+  let hash = 0
+  for (let i = 0; i < s.length; i++) {
+    hash = (hash * 31 + s.charCodeAt(i)) | 0
+  }
+  // HSL 給暖色彩盤，避免太接近背景；亮度固定中等
+  const h = Math.abs(hash) % 360
+  return `hsl(${h}, 55%, 42%)`
+}
+function seatFillColor(p: Participant | null): string {
+  if (!p) return '#fff'
+  return colorFromString((p.company || '').trim())
+}
+
+// ════════════════════════════════════════════════════════════════════
+// B：Tooltip / hover 資訊
+// ════════════════════════════════════════════════════════════════════
+
+// 桌機 hover：顯示桌資訊浮卡（手機沒這層，因為沒 hover 概念）
+const hoveredTableId = ref<number | null>(null)
+const hoveredTablePos = ref<{ x: number; y: number } | null>(null)
+const hoveredSeatForTooltip = ref<number | null>(null)
+const hoveredSeatPos = ref<{ x: number; y: number } | null>(null)
+
+function onTableMouseEnter(e: MouseEvent, t: VenueTable) {
+  if (dragGhost.value || draggingTableId.value || isPanning.value) return
+  hoveredTableId.value = t.id
+  hoveredTablePos.value = { x: e.clientX, y: e.clientY }
+}
+function onTableMouseMove(e: MouseEvent, t: VenueTable) {
+  if (hoveredTableId.value !== t.id) return
+  hoveredTablePos.value = { x: e.clientX, y: e.clientY }
+}
+function onTableMouseLeave() {
+  hoveredTableId.value = null
+  hoveredTablePos.value = null
+}
+function onSeatMouseEnter(e: MouseEvent, seatIndex: number) {
+  if (dragGhost.value) return  // 拖曳中已有 hovered 狀態，不要疊
+  hoveredSeatForTooltip.value = seatIndex
+  hoveredSeatPos.value = { x: e.clientX, y: e.clientY }
+}
+function onSeatMouseLeave() {
+  hoveredSeatForTooltip.value = null
+  hoveredSeatPos.value = null
+}
+
+// 給浮卡的：某桌已坐 / 容量 / 賓客名單 / 分數
+const hoveredTableInfo = computed(() => {
+  const id = hoveredTableId.value
+  if (id === null) return null
+  const t = tables.value.find((tt) => tt.id === id)
+  if (!t) return null
+  const seating = seatToParticipant.value
+  const seated: Participant[] = []
+  for (const [si, p] of seating) {
+    if (Math.floor(si / 100) === id) seated.push(p)
+  }
+  return {
+    table: t,
+    seated,
+    capacity: t.shape === 'round' ? t.capacity : t.capacity,
+    score: tableScores.value.get(id) ?? 0,
+  }
+})
+
+const hoveredSeatInfo = computed(() => {
+  const si = hoveredSeatForTooltip.value
+  if (si === null) return null
+  const p = seatToParticipant.value.get(si)
+  if (!p) return null
+  const { tableId, seatNo } = tablesStore.parseSeatIndex(si)
+  return { participant: p, tableId, seatNo }
+})
+
+// ════════════════════════════════════════════════════════════════════
+// C1：桌位編輯 modal（label / capacity / shape）
+// ════════════════════════════════════════════════════════════════════
+const editingTable = ref<VenueTable | null>(null)
+const editForm = ref({ label: '', capacity: 10, shape: 'round' as 'round' | 'rect' })
+
+function openEditTable(t: VenueTable) {
+  editingTable.value = t
+  editForm.value = { label: t.label, capacity: t.capacity, shape: t.shape }
+}
+function closeEditTable() {
+  editingTable.value = null
+}
+async function saveEditTable() {
+  if (!editingTable.value) return
+  const eventId = eventsStore.currentEvent?.id
+  if (!eventId) return
+  const t = editingTable.value
+  const cap = Math.max(1, Math.min(50, Number(editForm.value.capacity) || 1))
+  // capacity 變小時提示
+  if (cap < t.capacity) {
+    const overflow: string[] = []
+    for (let s = cap + 1; s <= t.capacity; s++) {
+      const si = tablesStore.tableSeatIndex(t.id, s)
+      const p = seatToParticipant.value.get(si)
+      if (p) overflow.push(p.name)
+    }
+    if (overflow.length > 0) {
+      const ok = await confirm({
+        title: '縮減容量會釋放賓客',
+        message: `將釋放 ${overflow.length} 位賓客回未分配名單：\n${overflow.slice(0, 5).join('、')}${overflow.length > 5 ? '…' : ''}`,
+        confirmText: '確認儲存',
+        cancelText: '取消',
+        danger: true,
+      })
+      if (!ok) return
+    }
+  }
+  try {
+    pushUndoSnapshot()
+    await tablesStore.updateTable(eventId, t.id, {
+      label: editForm.value.label.trim() || t.label,
+      capacity: cap,
+      shape: editForm.value.shape,
+    })
+    closeEditTable()
+    toastSuccess('桌位設定已更新')
+  } catch (err) {
+    console.error(err)
+    toastWarning((err as Error).message || '更新失敗')
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// C3：undo / redo（只針對 seatAssignments — 最常需要救回的操作）
+// ════════════════════════════════════════════════════════════════════
+type AssignmentSnapshot = Record<number, number>
+const undoStack = ref<AssignmentSnapshot[]>([])
+const redoStack = ref<AssignmentSnapshot[]>([])
+const UNDO_LIMIT = 50
+
+function snapshotEqual(a: AssignmentSnapshot, b: AssignmentSnapshot): boolean {
+  const ka = Object.keys(a)
+  const kb = Object.keys(b)
+  if (ka.length !== kb.length) return false
+  for (const k of ka) if (a[Number(k)] !== b[Number(k)]) return false
+  return true
+}
+
+function pushUndoSnapshot() {
+  const snap = { ...tablesStore.seatAssignments }
+  const top = undoStack.value[undoStack.value.length - 1]
+  if (top && snapshotEqual(snap, top)) return  // 沒變不堆
+  undoStack.value.push(snap)
+  if (undoStack.value.length > UNDO_LIMIT) undoStack.value.shift()
+  redoStack.value = []  // 新動作清掉 redo
+}
+
+async function undo() {
+  if (undoStack.value.length === 0) {
+    toastInfo('沒有可撤銷的操作')
+    return
+  }
+  const eventId = eventsStore.currentEvent?.id
+  if (!eventId) return
+  const current = { ...tablesStore.seatAssignments }
+  const prev = undoStack.value.pop()!
+  redoStack.value.push(current)
+  tablesStore.seatAssignments = prev
+  await tablesStore.saveAssignments(eventId)
+  toastInfo('已撤銷')
+}
+
+async function redo() {
+  if (redoStack.value.length === 0) {
+    toastInfo('沒有可重做的操作')
+    return
+  }
+  const eventId = eventsStore.currentEvent?.id
+  if (!eventId) return
+  const current = { ...tablesStore.seatAssignments }
+  const next = redoStack.value.pop()!
+  undoStack.value.push(current)
+  tablesStore.seatAssignments = next
+  await tablesStore.saveAssignments(eventId)
+  toastInfo('已重做')
+}
+
+// ════════════════════════════════════════════════════════════════════
+// D1：同公司賓客連線（toggle 開關）
+// ════════════════════════════════════════════════════════════════════
+const showCompanyLines = ref(false)
+
+interface CompanyLine {
+  x1: number; y1: number; x2: number; y2: number; color: string
+}
+const companyConnections = computed<CompanyLine[]>(() => {
+  if (!showCompanyLines.value) return []
+  // 收集每位已分配賓客的座位中心 + 公司
+  type Pt = { x: number; y: number; company: string; pid: number }
+  const pts: Pt[] = []
+  for (const t of tables.value) {
+    const seats = getSeatPositions(t)
+    for (let i = 0; i < seats.length; i++) {
+      const si = tablesStore.tableSeatIndex(t.id, i + 1)
+      const p = seatToParticipant.value.get(si)
+      if (!p) continue
+      const company = (p.company || '').trim()
+      if (!company) continue
+      pts.push({
+        x: t.x + seats[i].x,
+        y: t.y + seats[i].y,
+        company,
+        pid: p.id,
+      })
+    }
+  }
+  // 按公司分組，組內 pairwise 連線
+  const byCompany = new Map<string, Pt[]>()
+  for (const pt of pts) {
+    const arr = byCompany.get(pt.company) ?? []
+    arr.push(pt)
+    byCompany.set(pt.company, arr)
+  }
+  const lines: CompanyLine[] = []
+  for (const [company, arr] of byCompany) {
+    if (arr.length < 2) continue
+    const color = colorFromString(company)
+    for (let i = 0; i < arr.length; i++) {
+      for (let j = i + 1; j < arr.length; j++) {
+        lines.push({
+          x1: arr[i].x, y1: arr[i].y,
+          x2: arr[j].x, y2: arr[j].y,
+          color,
+        })
+      }
+    }
+  }
+  return lines
+})
+
+// ════════════════════════════════════════════════════════════════════
+// D2 / D3：拖曳桌位時 snap-to-neighbor + 距離顯示
+// ════════════════════════════════════════════════════════════════════
+const SNAP_THRESHOLD = 24  // 桌邊離別桌 < 24px 自動對齊
+const draggingNearestInfo = ref<{ distance: number; targetX: number; targetY: number; selfX: number; selfY: number } | null>(null)
+
+// 拖曳中找最近的「另一桌」中心，回傳距離 + 對方中心 + 自己中心
+function computeNearestTable(self: VenueTable): typeof draggingNearestInfo.value {
+  let best: typeof draggingNearestInfo.value = null
+  const sc = tableCenter(self)
+  for (const t of tables.value) {
+    if (t.id === self.id) continue
+    const tc = tableCenter(t)
+    const d = Math.hypot(sc.x - tc.x, sc.y - tc.y)
+    if (best === null || d < best.distance) {
+      best = { distance: d, targetX: tc.x, targetY: tc.y, selfX: sc.x, selfY: sc.y }
+    }
+  }
+  return best
+}
+
+// snap-to-neighbor：若拖曳結束時自己跟某桌邊距離 < threshold，對齊到該桌的 x 或 y
+function snapToNeighbor(t: VenueTable): { x: number; y: number } {
+  let bestX = t.x
+  let bestY = t.y
+  let bestDx = SNAP_THRESHOLD
+  let bestDy = SNAP_THRESHOLD
+  for (const other of tables.value) {
+    if (other.id === t.id) continue
+    const dx = Math.abs(other.x - t.x)
+    if (dx < bestDx) { bestDx = dx; bestX = other.x }
+    const dy = Math.abs(other.y - t.y)
+    if (dy < bestDy) { bestDy = dy; bestY = other.y }
+  }
+  return { x: bestX, y: bestY }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// C4：右下 Minimap
+// ════════════════════════════════════════════════════════════════════
+const MINIMAP_W = 160
+const MINIMAP_H = 120
+const minimapScaleX = MINIMAP_W / SVG_W
+const minimapScaleY = MINIMAP_H / SVG_H
+
+const minimapViewport = computed(() => ({
+  x: viewBox.value.x * minimapScaleX,
+  y: viewBox.value.y * minimapScaleY,
+  w: viewBox.value.w * minimapScaleX,
+  h: viewBox.value.h * minimapScaleY,
+}))
+
+// 點 minimap 跳轉視角中心
+function onMinimapClick(e: MouseEvent) {
+  const target = e.currentTarget as SVGElement
+  const rect = target.getBoundingClientRect()
+  const mx = e.clientX - rect.left
+  const my = e.clientY - rect.top
+  // 點到的位置是 SVG 內哪個座標
+  const svgX = (mx / MINIMAP_W) * SVG_W
+  const svgY = (my / MINIMAP_H) * SVG_H
+  // 把 viewBox 中心對齊到該點
+  viewBox.value.x = Math.max(0, Math.min(SVG_W - viewBox.value.w, svgX - viewBox.value.w / 2))
+  viewBox.value.y = Math.max(0, Math.min(SVG_H - viewBox.value.h, svgY - viewBox.value.h / 2))
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -631,7 +979,8 @@ const onPersonPointerUp = (e: PointerEvent) => {
 
   if (target === null) return  // 沒拖到 seat，取消
 
-  // 衝突規則處理 → store
+  // 衝突規則處理 → store（先存 undo snapshot）
+  pushUndoSnapshot()
   const result = tablesStore.assignSeat(target, p.id)
   if (result.overwroteParticipant) {
     const oldP = participantById.value.get(result.overwroteParticipant)
@@ -653,6 +1002,7 @@ const onPersonPointerUp = (e: PointerEvent) => {
 // 從 seat 拿掉某參與者（點 seat dot 上的 participant 圓圈）
 const onSeatClick = (seatIndex: number) => {
   if (!tablesStore.seatAssignments[seatIndex]) return
+  pushUndoSnapshot()
   tablesStore.unassignSeat(seatIndex)
   const eventId = eventsStore.currentEvent?.id
   if (eventId) tablesStore.saveAssignments(eventId)
@@ -663,6 +1013,7 @@ const onSeatClick = (seatIndex: number) => {
 // Phase C：自動排位（按姓名 round-robin）
 // ════════════════════════════════════════════════════════════════════
 const lastSnapshot = ref<Record<number, number> | null>(null)  // 上次自動排位前的 assignments，給回滾用
+const lastClearSnapshot = ref<Record<number, number> | null>(null) // 一鍵清除前的 assignments，給上一步用
 
 async function autoAssignSeats() {
   const eventId = eventsStore.currentEvent?.id
@@ -707,6 +1058,7 @@ async function autoAssignSeats() {
 
   // 暫存快照（淺 copy 即可，value 都是 number）
   lastSnapshot.value = { ...tablesStore.seatAssignments }
+  pushUndoSnapshot()
 
   // round-robin 寫入
   for (let i = 0; i < willAssign; i++) {
@@ -734,6 +1086,45 @@ async function rollbackAutoAssign() {
   toastSuccess('已還原到自動排位前的狀態')
 }
 
+async function clearAllAssignments() {
+  const eventId = eventsStore.currentEvent?.id
+  if (!eventId) return
+  const currentCount = Object.keys(tablesStore.seatAssignments).length
+  if (currentCount === 0) {
+    toastInfo('目前沒有可清除的排位')
+    return
+  }
+
+  const ok = await confirm({
+    title: '一鍵清除排位',
+    message:
+      `即將清除目前 ${currentCount} 筆座位分配。\n\n` +
+      '⚠️ 此操作會移除所有已分配座位（僅保留桌位與設定）。\n' +
+      '如需復原，可立即點擊「↶ 上一步」。',
+    confirmText: '確認清除',
+    cancelText: '取消',
+    danger: true,
+  })
+  if (!ok) return
+
+  lastClearSnapshot.value = { ...tablesStore.seatAssignments }
+  pushUndoSnapshot()
+  tablesStore.seatAssignments = {}
+  await tablesStore.saveAssignments(eventId)
+  toastSuccess('已清除全部排位，可按「↶ 上一步」復原')
+}
+
+async function undoClearAssignments() {
+  if (!lastClearSnapshot.value) return
+  const eventId = eventsStore.currentEvent?.id
+  if (!eventId) return
+
+  tablesStore.seatAssignments = { ...lastClearSnapshot.value }
+  lastClearSnapshot.value = null
+  await tablesStore.saveAssignments(eventId)
+  toastSuccess('已復原清除前的排位狀態')
+}
+
 // ── Lifecycle：fetch tables / participants / assignments；切活動時重 fetch；卸載前 flush dirty ──
 async function reloadAllForEvent(eid: number) {
   await Promise.all([
@@ -753,6 +1144,7 @@ watch(() => eventsStore.currentEvent?.id, async (newId, oldId) => {
   if (oldId) await tablesStore.flushNow(oldId)
   tablesStore.clear()
   lastSnapshot.value = null
+  lastClearSnapshot.value = null
   // P1：清掉舊活動的選中桌號，避免 status bar 顯示舊活動的桌
   selectedTableId.value = null
   if (newId) await reloadAllForEvent(newId)
@@ -784,12 +1176,44 @@ onBeforeUnmount(() => {
           @click="addRoundTable"
         >+ 新增圓桌</button>
         <button class="vm-btn" @click="zoomToFit" title="重置視角到 100%">⤢ 重置視角</button>
+        <!-- C3：undo / redo（座位分配） -->
+        <button
+          class="vm-btn"
+          :disabled="undoStack.length === 0"
+          @click="undo"
+          title="撤銷上一次座位變更（Cmd/Ctrl+Z）"
+        >↶ 撤銷</button>
+        <button
+          class="vm-btn"
+          :disabled="redoStack.length === 0"
+          @click="redo"
+          title="重做（Cmd/Ctrl+Shift+Z）"
+        >↷ 重做</button>
+        <!-- D1：同公司連線 toggle -->
+        <button
+          class="vm-btn"
+          :class="{ 'toggle-on': showCompanyLines }"
+          @click="showCompanyLines = !showCompanyLines"
+          title="顯示同公司賓客之間的連線"
+        >{{ showCompanyLines ? '🔗 同公司線：開' : '🔗 同公司線' }}</button>
         <button
           class="vm-btn auto-assign"
           :disabled="!eventsStore.currentEvent || unassignedParticipants.length === 0"
           @click="autoAssignSeats"
           title="按姓名 round-robin 把未分配的賓客自動填入空座位"
         >⚡ 自動排位</button>
+        <button
+          class="vm-btn clear-assign"
+          :disabled="!eventsStore.currentEvent || Object.keys(tablesStore.seatAssignments).length === 0"
+          @click="clearAllAssignments"
+          title="一鍵清除目前所有座位分配"
+        >🗑 一鍵清除排位</button>
+        <button
+          v-if="lastClearSnapshot"
+          class="vm-btn undo-clear"
+          @click="undoClearAssignments"
+          title="復原到清除前的排位狀態"
+        >↶ 上一步</button>
         <button
           v-if="lastSnapshot"
           class="vm-btn rollback"
@@ -825,6 +1249,20 @@ onBeforeUnmount(() => {
         <rect :width="SVG_W" :height="SVG_H" fill="url(#vm-grid)" />
         <rect :width="SVG_W" :height="SVG_H" fill="url(#vm-grid-major)" />
 
+        <!-- D1：同公司賓客連線（toggle 開才顯示，桌位下方一層） -->
+        <g v-if="companyConnections.length > 0" class="vm-company-lines" pointer-events="none">
+          <line
+            v-for="(line, idx) in companyConnections"
+            :key="`cl-${idx}`"
+            :x1="line.x1" :y1="line.y1"
+            :x2="line.x2" :y2="line.y2"
+            :stroke="line.color"
+            stroke-width="1.5"
+            stroke-dasharray="4 3"
+            opacity="0.55"
+          />
+        </g>
+
         <!-- 桌位 -->
         <g
           v-for="t in tables"
@@ -834,12 +1272,17 @@ onBeforeUnmount(() => {
             dragging: draggingTableId === t.id,
             rect: t.shape === 'rect',
             selected: selectedTableId === t.id,
+            hovered: hoveredTableId === t.id,
           }"
           :transform="`translate(${t.x},${t.y})`"
           @pointerdown="(e) => onPointerDown(e, t)"
           @pointermove="onPointerMove"
           @pointerup="onPointerUp"
           @pointercancel="onPointerUp"
+          @mouseenter="(e) => onTableMouseEnter(e, t)"
+          @mousemove="(e) => onTableMouseMove(e, t)"
+          @mouseleave="onTableMouseLeave"
+          @dblclick.stop="openEditTable(t)"
         >
           <!-- 圓桌 -->
           <circle
@@ -857,27 +1300,40 @@ onBeforeUnmount(() => {
             rx="8"
             class="vm-table-shape"
           />
+          <!-- A3：桌號圓徽章（取代純文字 label） -->
+          <g class="vm-table-badge" :transform="`translate(${tableWidth(t) / 2}, ${TABLE_SIZE / 2 - 4})`">
+            <circle r="16" />
+            <text text-anchor="middle" dominant-baseline="middle" font-weight="800" font-size="13" y="1">
+              {{ t.label }}
+            </text>
+          </g>
           <text
-            :x="(t.shape === 'rect' ? TABLE_SIZE * 1.5 : TABLE_SIZE) / 2"
-            :y="TABLE_SIZE / 2 - 2"
-            text-anchor="middle" font-weight="700" font-size="16" class="vm-table-label"
-          >{{ t.label }}</text>
-          <text
-            :x="(t.shape === 'rect' ? TABLE_SIZE * 1.5 : TABLE_SIZE) / 2"
-            :y="TABLE_SIZE / 2 + 16"
-            text-anchor="middle" font-size="11" class="vm-table-cap"
+            :x="tableWidth(t) / 2"
+            :y="TABLE_SIZE / 2 + 24"
+            text-anchor="middle" font-size="10" class="vm-table-cap"
           >{{ t.capacity }} 位</text>
 
           <!-- 點選桌位後顯示右上角刪除 X（不需再去 header 點按鈕） -->
           <g
             v-if="selectedTableId === t.id"
             class="vm-table-delete"
-            :transform="`translate(${(t.shape === 'rect' ? TABLE_SIZE * 1.5 : TABLE_SIZE) + 12}, -6)`"
+            :transform="`translate(${tableWidth(t) + 12}, -6)`"
             @pointerdown.stop.prevent
             @click.stop="removeTable(t.id)"
           >
             <circle cx="0" cy="0" r="12" />
             <text x="0" y="1" text-anchor="middle" dominant-baseline="middle">×</text>
+          </g>
+          <!-- 點選桌位後顯示左上角編輯按鈕（C1） -->
+          <g
+            v-if="selectedTableId === t.id"
+            class="vm-table-edit"
+            transform="translate(-12, -6)"
+            @pointerdown.stop.prevent
+            @click.stop="openEditTable(t)"
+          >
+            <circle cx="0" cy="0" r="12" />
+            <text x="0" y="1" text-anchor="middle" dominant-baseline="middle" font-size="11">✎</text>
           </g>
 
           <!-- 桌即時分數徽章（右上角，0 不顯示） -->
@@ -888,7 +1344,7 @@ onBeforeUnmount(() => {
               positive: (tableScores.get(t.id) ?? 0) > 0,
               negative: (tableScores.get(t.id) ?? 0) < 0,
             }"
-            :transform="`translate(${(t.shape === 'rect' ? TABLE_SIZE * 1.5 : TABLE_SIZE) - 4}, 4)`"
+            :transform="`translate(${tableWidth(t) - 4}, 4)`"
           >
             <rect x="-22" y="-2" width="28" height="16" rx="8" />
             <text x="-8" y="9" text-anchor="middle" font-size="10" font-weight="700">
@@ -896,7 +1352,7 @@ onBeforeUnmount(() => {
             </text>
           </g>
 
-          <!-- P4 視覺：圓桌座位點位（sin/cos 環圈） + Phase B 已分配狀態 + drop target -->
+          <!-- 座位點位（圓桌：sin/cos 環圈；方桌：上下兩排）+ A4 已分配 color hash -->
           <g
             v-for="(seat, i) in getSeatPositions(t)"
             :key="`seat-${t.id}-${i}`"
@@ -914,9 +1370,13 @@ onBeforeUnmount(() => {
                 'drop-ready': !!dragGhost && !getSeatParticipant(tablesStore.tableSeatIndex(t.id, i + 1)),
                 'drop-warn': !!dragGhost && !!getSeatParticipant(tablesStore.tableSeatIndex(t.id, i + 1)),
                 'just-assigned': justAssignedSeatIndex === tablesStore.tableSeatIndex(t.id, i + 1),
+                idle: !dragGhost && !getSeatParticipant(tablesStore.tableSeatIndex(t.id, i + 1)),
               }"
+              :fill="getSeatParticipant(tablesStore.tableSeatIndex(t.id, i + 1)) ? seatFillColor(getSeatParticipant(tablesStore.tableSeatIndex(t.id, i + 1))) : undefined"
               @pointerdown.stop
               @click.stop="onSeatClick(tablesStore.tableSeatIndex(t.id, i + 1))"
+              @mouseenter="(e) => onSeatMouseEnter(e, tablesStore.tableSeatIndex(t.id, i + 1))"
+              @mouseleave="onSeatMouseLeave"
             />
             <!-- 已分配 → 顯示姓氏 -->
             <text
@@ -927,7 +1387,23 @@ onBeforeUnmount(() => {
               font-size="9"
               font-weight="700"
               class="vm-seat-name"
+              pointer-events="none"
             >{{ getSeatParticipant(tablesStore.tableSeatIndex(t.id, i + 1))!.name.charAt(0) }}</text>
+          </g>
+        </g>
+
+        <!-- D3：拖曳桌位時顯示到最近桌的距離線 -->
+        <g v-if="draggingTableId !== null && draggingNearestInfo" class="vm-distance-layer" pointer-events="none">
+          <line
+            :x1="draggingNearestInfo.selfX" :y1="draggingNearestInfo.selfY"
+            :x2="draggingNearestInfo.targetX" :y2="draggingNearestInfo.targetY"
+            class="vm-distance-line"
+          />
+          <g :transform="`translate(${(draggingNearestInfo.selfX + draggingNearestInfo.targetX) / 2}, ${(draggingNearestInfo.selfY + draggingNearestInfo.targetY) / 2})`">
+            <rect x="-26" y="-10" width="52" height="20" rx="10" class="vm-distance-badge" />
+            <text text-anchor="middle" y="4" font-size="11" font-weight="700" class="vm-distance-text">
+              {{ Math.round(draggingNearestInfo.distance) }}px
+            </text>
           </g>
         </g>
 
@@ -964,6 +1440,44 @@ onBeforeUnmount(() => {
           </g>
         </g>
       </svg>
+
+      <!-- C4：右下 Minimap（顯示整體桌位 + 當前 viewport indicator） -->
+      <div class="vm-minimap" v-if="tables.length > 0">
+        <svg
+          :width="MINIMAP_W"
+          :height="MINIMAP_H"
+          :viewBox="`0 0 ${MINIMAP_W} ${MINIMAP_H}`"
+          class="vm-minimap-svg"
+          @click="onMinimapClick"
+        >
+          <rect :width="MINIMAP_W" :height="MINIMAP_H" class="vm-minimap-bg" />
+          <!-- 桌位縮影 -->
+          <g v-for="t in tables" :key="`mm-${t.id}`">
+            <circle
+              v-if="t.shape === 'round'"
+              :cx="(t.x + TABLE_SIZE / 2) * minimapScaleX"
+              :cy="(t.y + TABLE_SIZE / 2) * minimapScaleY"
+              :r="3"
+              class="vm-minimap-table"
+              :class="{ rect: false }"
+            />
+            <rect
+              v-else
+              :x="t.x * minimapScaleX"
+              :y="t.y * minimapScaleY"
+              :width="TABLE_SIZE * 1.5 * minimapScaleX"
+              :height="TABLE_SIZE * minimapScaleY"
+              class="vm-minimap-table rect"
+            />
+          </g>
+          <!-- viewport rect -->
+          <rect
+            :x="minimapViewport.x" :y="minimapViewport.y"
+            :width="minimapViewport.w" :height="minimapViewport.h"
+            class="vm-minimap-viewport"
+          />
+        </svg>
+      </div>
     </div>
 
     <!-- 右側未分配賓客 panel -->
@@ -1027,6 +1541,87 @@ onBeforeUnmount(() => {
       {{ dragGhost.participant.name }}
     </div>
 
+    <!-- B1：桌 hover 浮卡（顯示已坐 / 容量 / 分數 / 賓客名單） -->
+    <div
+      v-if="hoveredTableInfo && hoveredTablePos"
+      class="vm-table-tooltip"
+      :style="{ left: hoveredTablePos.x + 'px', top: hoveredTablePos.y + 'px' }"
+    >
+      <div class="vm-tt-head">
+        <strong>{{ hoveredTableInfo.table.label }}</strong>
+        <span class="vm-tt-shape">{{ hoveredTableInfo.table.shape === 'rect' ? '方桌' : '圓桌' }}</span>
+      </div>
+      <div class="vm-tt-stats">
+        <span class="vm-tt-occ">{{ hoveredTableInfo.seated.length }} / {{ hoveredTableInfo.capacity }} 已坐</span>
+        <span v-if="hoveredTableInfo.score !== 0" class="vm-tt-score" :class="{ pos: hoveredTableInfo.score > 0, neg: hoveredTableInfo.score < 0 }">
+          分數 {{ hoveredTableInfo.score > 0 ? '+' : '' }}{{ hoveredTableInfo.score }}
+        </span>
+      </div>
+      <ul v-if="hoveredTableInfo.seated.length > 0" class="vm-tt-list">
+        <li v-for="(g, idx) in hoveredTableInfo.seated.slice(0, 8)" :key="g.id">
+          <span class="vm-tt-dot" :style="{ background: seatFillColor(g) }"></span>
+          {{ g.name }}
+          <span v-if="g.company" class="vm-tt-co">— {{ g.company }}</span>
+          <span v-if="g.type === 'VIP'" class="vm-tt-vip">VIP</span>
+          <span v-if="idx === 7 && hoveredTableInfo.seated.length > 8" class="vm-tt-more">…還有 {{ hoveredTableInfo.seated.length - 8 }} 位</span>
+        </li>
+      </ul>
+      <div v-else class="vm-tt-empty">目前沒人坐</div>
+    </div>
+
+    <!-- B2：seat hover 浮卡（桌機才用，手機已有點擊版） -->
+    <div
+      v-if="hoveredSeatInfo && hoveredSeatPos"
+      class="vm-seat-tooltip"
+      :style="{ left: hoveredSeatPos.x + 'px', top: hoveredSeatPos.y + 'px' }"
+    >
+      <div class="vm-st-name">
+        {{ hoveredSeatInfo.participant.name }}
+        <span v-if="hoveredSeatInfo.participant.type === 'VIP'" class="vm-st-vip">VIP</span>
+      </div>
+      <div v-if="hoveredSeatInfo.participant.company || hoveredSeatInfo.participant.title" class="vm-st-meta">
+        {{ hoveredSeatInfo.participant.company }}
+        <span v-if="hoveredSeatInfo.participant.title">／{{ hoveredSeatInfo.participant.title }}</span>
+      </div>
+      <div class="vm-st-seat">座位 #{{ hoveredSeatInfo.seatNo }}</div>
+    </div>
+
+    <!-- C1：桌位編輯 modal -->
+    <div v-if="editingTable" class="vm-edit-overlay" @click.self="closeEditTable">
+      <div class="vm-edit-card">
+        <h3>編輯桌位</h3>
+        <div class="vm-edit-row">
+          <label>桌號 / 名稱</label>
+          <input v-model="editForm.label" type="text" maxlength="20" placeholder="T1 / VIP / 主桌..." />
+        </div>
+        <div class="vm-edit-row">
+          <label>容量（1–50）</label>
+          <input v-model.number="editForm.capacity" type="number" min="1" max="50" />
+        </div>
+        <div class="vm-edit-row">
+          <label>形狀</label>
+          <div class="vm-edit-shape">
+            <button
+              type="button"
+              class="vm-shape-btn"
+              :class="{ active: editForm.shape === 'round' }"
+              @click="editForm.shape = 'round'"
+            >○ 圓桌</button>
+            <button
+              type="button"
+              class="vm-shape-btn"
+              :class="{ active: editForm.shape === 'rect' }"
+              @click="editForm.shape = 'rect'"
+            >▭ 方桌</button>
+          </div>
+        </div>
+        <div class="vm-edit-actions">
+          <button class="vm-btn" @click="closeEditTable">取消</button>
+          <button class="vm-btn primary" @click="saveEditTable">儲存</button>
+        </div>
+      </div>
+    </div>
+
     <div class="vm-status">
       <span class="vm-zoom-info">縮放 {{ zoomPercent }}% · 視角 ({{ Math.round(viewBox.x) }}, {{ Math.round(viewBox.y) }})</span>
       <span class="vm-divider">|</span>
@@ -1037,8 +1632,8 @@ onBeforeUnmount(() => {
       <span v-else-if="draggingTableId">拖曳桌 {{ draggingTableId }}：
         ({{ tables.find((t) => t.id === draggingTableId)?.x ?? 0 }},
          {{ tables.find((t) => t.id === draggingTableId)?.y ?? 0 }})</span>
-      <span v-else-if="selectedTableId" class="vm-mode-selected">已選中桌 {{ selectedTableId }}（可點右上角 × 刪除）</span>
-      <span v-else class="muted">滾輪縮放 / 拖背景平移視角 / 拖桌位定位 / 拖賓客分配 / 點座位移除分配</span>
+      <span v-else-if="selectedTableId" class="vm-mode-selected">已選中桌 {{ selectedTableId }}（左上 ✎ 編輯 / 右上 × 刪除）</span>
+      <span v-else class="muted">滾輪縮放 / 拖背景平移 / 拖桌位定位 / 雙擊桌編輯 / 拖賓客分配 / Cmd+Z 撤銷</span>
     </div>
   </div>
 </template>
@@ -1431,6 +2026,14 @@ onBeforeUnmount(() => {
   background: #fef2f2; color: #b91c1c; border-color: #fecaca;
 }
 .vm-btn.rollback:hover { background: #fee2e2; }
+.vm-btn.clear-assign {
+  background: #fff7ed; color: #9a3412; border-color: #fed7aa;
+}
+.vm-btn.clear-assign:hover:not(:disabled) { background: #ffedd5; }
+.vm-btn.undo-clear {
+  background: #eef2ff; color: #3730a3; border-color: #c7d2fe;
+}
+.vm-btn.undo-clear:hover { background: #e0e7ff; }
 
 @media (max-width: 768px) {
   .vm-body { flex-direction: column; }
@@ -1454,4 +2057,329 @@ onBeforeUnmount(() => {
 .vm-status .vm-mode-selected { color: #dc2626; font-weight: 600; }
 .vm-status .vm-assign-info { color: #1e40af; font-weight: 600; }
 .vm-status .vm-mode-drop { color: #b91c1c; font-weight: 600; }
+
+/* ════════════════════════════════════════════════════════════
+   2026-05-11 視覺強化：A / B / C / D
+   ════════════════════════════════════════════════════════════ */
+
+/* A1：空座位閒置時微微呼吸（不在拖曳中才顯示，避免和 drop-ready 衝突） */
+.vm-seat.idle {
+  animation: vm-seat-idle-breath 3.2s ease-in-out infinite;
+}
+@keyframes vm-seat-idle-breath {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
+
+/* A2：桌位 hover 上提 + 加深陰影（不在拖曳 / 選中時） */
+.vm-table:not(.dragging):not(.selected).hovered .vm-table-shape {
+  filter: drop-shadow(0 6px 14px rgba(15, 93, 78, 0.35));
+}
+.vm-table.hovered .vm-table-badge circle {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25));
+}
+
+/* A3：桌號圓徽章（取代純文字） */
+.vm-table-badge { pointer-events: none; }
+.vm-table-badge circle {
+  fill: #fff;
+  stroke: #337168;
+  stroke-width: 2;
+  transition: stroke .15s, fill .15s;
+}
+.vm-table.rect .vm-table-badge circle { stroke: #d97706; }
+.vm-table.selected .vm-table-badge circle { stroke-width: 3; }
+.vm-table-badge text {
+  fill: #337168;
+  user-select: none;
+}
+.vm-table.rect .vm-table-badge text { fill: #92400e; }
+
+/* C1：點選桌位時左上角編輯鍵 */
+.vm-table-edit { cursor: pointer; }
+.vm-table-edit circle {
+  fill: #337168;
+  stroke: #fff;
+  stroke-width: 2;
+  transition: transform .12s ease, fill .12s ease;
+  filter: drop-shadow(0 2px 6px rgba(22, 122, 103, 0.45));
+}
+.vm-table-edit text {
+  fill: #fff;
+  font-weight: 700;
+  pointer-events: none;
+  user-select: none;
+}
+.vm-table-edit:hover circle {
+  fill: #0f5d4e;
+  transform: scale(1.08);
+}
+
+/* D1：同公司連線層 */
+.vm-company-lines { animation: vm-line-flow 2s linear infinite; }
+@keyframes vm-line-flow {
+  to { stroke-dashoffset: -14; }
+}
+
+/* D3：拖曳時到鄰桌的距離線 + 徽章 */
+.vm-distance-layer { pointer-events: none; }
+.vm-distance-line {
+  stroke: #6366f1;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  opacity: 0.7;
+}
+.vm-distance-badge {
+  fill: #eef2ff;
+  stroke: #6366f1;
+  stroke-width: 1.5;
+}
+.vm-distance-text { fill: #4338ca; }
+
+/* C4：minimap */
+.vm-canvas-wrap { position: relative; }
+.vm-minimap {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  z-index: 5;
+}
+.vm-minimap-svg {
+  display: block;
+  cursor: crosshair;
+  border-radius: 4px;
+}
+.vm-minimap-bg { fill: #f8fafc; }
+.vm-minimap-table { fill: #337168; opacity: 0.55; }
+.vm-minimap-table.rect { fill: #d97706; opacity: 0.55; }
+.vm-minimap-viewport {
+  fill: rgba(99, 102, 241, 0.12);
+  stroke: #6366f1;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+/* B1：桌 hover 浮卡 */
+.vm-table-tooltip {
+  position: fixed;
+  z-index: 10001;
+  transform: translate(14px, 14px);
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  padding: 10px 14px;
+  min-width: 220px;
+  max-width: 320px;
+  font-size: 0.82rem;
+  pointer-events: none;
+}
+.vm-tt-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.vm-tt-head strong {
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+.vm-tt-shape {
+  font-size: 0.7rem;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+.vm-tt-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 0.78rem;
+  color: #475569;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.vm-tt-occ { font-weight: 600; }
+.vm-tt-score { font-weight: 700; }
+.vm-tt-score.pos { color: #047857; }
+.vm-tt-score.neg { color: #b91c1c; }
+.vm-tt-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.vm-tt-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vm-tt-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.vm-tt-co { color: #64748b; }
+.vm-tt-vip {
+  margin-left: 4px;
+  background: #d97706;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.vm-tt-more {
+  font-style: italic;
+  color: #94a3b8;
+  margin-left: 6px;
+}
+.vm-tt-empty {
+  color: #94a3b8;
+  font-size: 0.78rem;
+  text-align: center;
+  padding: 4px 0;
+}
+
+/* B2：seat hover 浮卡 */
+.vm-seat-tooltip {
+  position: fixed;
+  z-index: 10001;
+  transform: translate(12px, -120%);
+  background: #1e293b;
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  pointer-events: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  max-width: 260px;
+}
+.vm-st-name {
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.vm-st-vip {
+  background: #d97706;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.vm-st-meta {
+  font-size: 0.72rem;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+.vm-st-seat {
+  font-size: 0.68rem;
+  opacity: 0.65;
+  margin-top: 2px;
+  font-family: monospace;
+}
+
+/* C1：edit modal */
+.vm-edit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 10002;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: vm-fade-in 0.18s ease-out;
+}
+@keyframes vm-fade-in { from { opacity: 0 } to { opacity: 1 } }
+.vm-edit-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 22px 24px;
+  width: 360px;
+  max-width: 92vw;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.vm-edit-card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+.vm-edit-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vm-edit-row label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+}
+.vm-edit-row input {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color .15s;
+}
+.vm-edit-row input:focus { border-color: #337168; }
+.vm-edit-shape {
+  display: flex;
+  gap: 8px;
+}
+.vm-shape-btn {
+  flex: 1;
+  padding: 10px 0;
+  border: 1.5px solid #cbd5e1;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: #475569;
+  transition: all .15s;
+}
+.vm-shape-btn.active {
+  background: #ecfdf5;
+  border-color: #337168;
+  color: #0f5d4e;
+}
+.vm-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* toggle 按鈕的「開啟」狀態 */
+.vm-btn.toggle-on {
+  background: #167A67;
+  color: #fff;
+  border-color: #167A67;
+}
+.vm-btn.toggle-on:hover:not(:disabled) { background: #0f5d4e; }
 </style>

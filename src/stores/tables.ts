@@ -49,6 +49,27 @@ export const useTablesStore = defineStore('tables', () => {
     })
   }
 
+  async function updateTable(eventId: number, tableId: number, payload: Partial<VenueTable>) {
+    return run(async () => {
+      const res = await apiRequest(`/api/events/${eventId}/tables/${tableId}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error(await parseApiError(res, `更新桌位失敗 (${res.status})`))
+      const updated: VenueTable = await res.json()
+      const idx = tables.value.findIndex((t) => t.id === tableId)
+      if (idx !== -1) tables.value[idx] = updated
+      // 若 capacity 變小，後端已清掉超出範圍的 SeatAssignment，前端也同步清乾淨
+      const lo = tableId * 100 + updated.capacity + 1
+      const hi = tableId * 100 + 100
+      for (const si of Object.keys(seatAssignments.value)) {
+        const idxNum = Number(si)
+        if (idxNum >= lo && idxNum < hi) delete seatAssignments.value[idxNum]
+      }
+      return updated
+    })
+  }
+
   async function deleteTable(eventId: number, tableId: number) {
     return run(async () => {
       const res = await apiRequest(`/api/events/${eventId}/tables/${tableId}/`, {
@@ -238,6 +259,7 @@ export const useTablesStore = defineStore('tables', () => {
     error,
     fetchTables,
     createTable,
+    updateTable,
     deleteTable,
     queueBulkCoords,
     flushNow,

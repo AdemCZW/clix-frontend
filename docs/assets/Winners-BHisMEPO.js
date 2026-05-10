@@ -1,0 +1,1 @@
+import{N as e,v as t,x as n}from"./vendor-quill-DqmlyrTK.js";import{a as r}from"./index-DoBsEMvu.js";var i={name:`LotteryWinners`},a={class:`lottery-winners`};function o(r,i,o,s,c,l){return e(),n(`div`,a,[...i[0]||=[t(`h1`,null,`Lottery Winners`,-1),t(`p`,null,`這是中獎名單管理頁面。`,-1)]])}var s=r(i,[[`render`,o],[`__scopeId`,`data-v-52033afb`]]);export{s as default};
