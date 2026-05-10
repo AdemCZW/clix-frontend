@@ -1834,10 +1834,11 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
 @media (max-width: 768px) {
   .form-progress {
     position: sticky;
-    top: 56px;
+    /* form-view-header 沒 sticky，所以這裡 top: 0 會在使用者捲動時讓進度條替代 header 黏在最頂 */
+    top: 0;
     z-index: 5;
     margin: 0 -8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
 }
 

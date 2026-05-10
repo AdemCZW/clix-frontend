@@ -920,6 +920,8 @@ const onPersonPointerDown = (e: PointerEvent, p: Participant) => {
   personDragState = { participant: p, pointerId: e.pointerId, el }
   dragGhost.value = { participant: p, x: e.clientX, y: e.clientY }
   hoveredSeatIndex.value = null
+  // P0 race-condition 修：開拖時清掉殘留 pending，避免上次拖曳的尾巴影響本次
+  pendingHoveredSeatIndex = null
   // 智能建議：開拖時 reset，第一次 move 時才算
   suggestions.value = []
   cursorPos.value = screenToSvg(e.clientX, e.clientY)
@@ -971,11 +973,26 @@ const onPersonPointerUp = (e: PointerEvent) => {
   suggestions.value = []
   cursorPos.value = null
 
-  const target = hoveredSeatIndex.value
+  // P0 race-condition 修：不靠 rAF 節流的 hoveredSeatIndex（cancelAnimationFrame 後可能是 null）
+  // 直接用 elementFromPoint 在當下指針位置重算一次 target seat。
+  // pendingHoveredSeatIndex 作為次選 fallback（rAF 已寫但 reactive state 尚未 flush 的情況）。
+  let target: number | null = null
+  // ghost 是 pointer-events: none，elementFromPoint 不會抓到它
+  const under = document.elementFromPoint(e.clientX, e.clientY) as Element | null
+  const seatEl = under?.closest('.vm-seat') as SVGElement | null
+  if (seatEl?.dataset.seatIndex) {
+    target = Number(seatEl.dataset.seatIndex)
+  } else if (pendingHoveredSeatIndex !== null) {
+    target = pendingHoveredSeatIndex
+  } else {
+    target = hoveredSeatIndex.value
+  }
+
   const p = personDragState.participant
   personDragState = null
   dragGhost.value = null
   hoveredSeatIndex.value = null
+  pendingHoveredSeatIndex = null
 
   if (target === null) return  // 沒拖到 seat，取消
 
