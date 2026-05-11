@@ -271,11 +271,52 @@ onBeforeUnmount(() => {
   window.removeEventListener('keyup', onKeyUp)
 })
 
-// 重置視角到初始狀態
-const resetView = () => {
-  viewBox.value = { x: 0, y: 0, w: SVG_W, h: SVG_H }
+// 重置視角到「貼合桌位內容」— 進頁面 / 切活動會自動執行一次（使用者不必每次手動放大）
+// 沒有桌位時 fallback 到「中心 60% 縮放」（不是全 100%，避免大量空格子）
+function fitViewToTables() {
+  const ts = tables.value
+  if (ts.length === 0) {
+    viewBox.value = {
+      x: SVG_W * 0.2,
+      y: SVG_H * 0.2,
+      w: SVG_W * 0.6,
+      h: SVG_H * 0.6,
+    }
+    return
+  }
+  // 算桌位 + 座位點 bounding box
+  const margin = SEAT_OFFSET + SEAT_RADIUS + 12  // 座位點延伸出去 + 小留白
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  for (const t of ts) {
+    minX = Math.min(minX, t.x - margin)
+    minY = Math.min(minY, t.y - margin)
+    maxX = Math.max(maxX, t.x + tableWidth(t) + margin)
+    maxY = Math.max(maxY, t.y + tableHeight(t) + margin)
+  }
+  const contentW = maxX - minX
+  const contentH = maxY - minY
+  // 維持 viewBox 比例 = SVG 比例（avoid stretching）
+  const ratio = SVG_W / SVG_H
+  let bw = contentW, bh = contentH
+  if (bw / bh > ratio) bh = bw / ratio
+  else bw = bh * ratio
+  // 中心對齊
+  const cx = (minX + maxX) / 2
+  const cy = (minY + maxY) / 2
+  let x = cx - bw / 2
+  let y = cy - bh / 2
+  // 邊界保護：viewBox 不可超出 SVG 範圍
+  x = Math.max(0, Math.min(SVG_W - bw, x))
+  y = Math.max(0, Math.min(SVG_H - bh, y))
+  // 縮放範圍 clamp（跟 wheel 一致）
+  const minW = SVG_W / ZOOM_MAX
+  const maxW = SVG_W / ZOOM_MIN
+  if (bw < minW) bw = minW
+  if (bw > maxW) bw = maxW
+  bh = bw / ratio
+  viewBox.value = { x, y, w: bw, h: bh }
 }
-const zoomToFit = resetView  // alias 給 UI 用
+const zoomToFit = fitViewToTables  // alias 給 UI 用
 
 // SVG 背景 cursor：預設 grab（暗示可拖）；拖曳中 grabbing
 // 注意：桌位 / seat dot 自己 cursor 會覆蓋（grab / pointer），這個只在背景生效
@@ -1222,6 +1263,8 @@ async function reloadAllForEvent(eid: number) {
     tablesStore.fetchAssignments(eid),
     participantsStore.fetchParticipants({ event: String(eid) }),
   ])
+  // 載入完成後自動 fit 到桌位內容（避免每次進頁都要手動放大）
+  fitViewToTables()
 }
 
 onMounted(async () => {
@@ -1272,7 +1315,7 @@ onBeforeUnmount(() => {
           :disabled="!eventsStore.currentEvent"
           @click="addRoundTable"
         >+ 新增圓桌</button>
-        <button class="vm-btn" @click="zoomToFit" title="重置視角到 100%">⤢ 重置視角</button>
+        <button class="vm-btn" @click="zoomToFit" title="自動貼合桌位內容">⤢ 貼合視角</button>
         <!-- C3：undo / redo（座位分配） -->
         <button
           class="vm-btn"
