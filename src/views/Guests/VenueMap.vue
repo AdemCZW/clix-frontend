@@ -1999,12 +1999,15 @@ onBeforeUnmount(() => {
 /* 兩欄 layout：左主畫面 + 右側 panel */
 .vm-body {
   display: flex;
+  /* row-reverse 讓 panel（DOM 在後）顯示在左側、canvas（DOM 在前）在右側
+     行動裝置改 column 維持「canvas 上、panel 下」原本順序 */
+  flex-direction: row-reverse;
   gap: 12px;
   flex: 1;
   min-height: 400px;
 }
 
-/* 右側未分配賓客 panel */
+/* 左側未分配賓客 panel */
 .vm-panel {
   width: 240px;
   flex-shrink: 0;
