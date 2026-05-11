@@ -135,21 +135,20 @@ body {
   }
 }
 
-/* === Scrollbar === */
+/* === Scrollbar：視覺隱藏但保留滾動功能（全域） === */
+/* Chromium / WebKit：scrollbar 完全不顯示 */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 0;
+  height: 0;
+  background: transparent;
 }
-
+::-webkit-scrollbar-thumb,
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+/* Firefox / Edge / IE：用 scrollbar-width 與 -ms-overflow-style 隱藏 */
+* {
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE / 舊 Edge */
 }
