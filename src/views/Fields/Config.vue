@@ -94,6 +94,27 @@ const removeField = (index: number) => fields.value.splice(index, 1);
 const addOption = (field: FormField) => field.options.push({ text: "", order: field.options.length });
 const removeOption = (field: FormField, optIndex: number) => field.options.splice(optIndex, 1);
 const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
+
+// === 依 field_key 分群顯示（對齊公開報名頁的視覺設計）===
+// 4 群：attendee（每位參加人）/ buyer（訂購人）/ order（訂單層）/ custom（其他自訂）
+const ATTENDEE_KEYS = new Set(["name", "email", "phone"]);
+const BUYER_KEYS = new Set(["buyer_name", "buyer_email", "buyer_phone"]);
+const ORDER_KEYS = new Set(["note", "promo_code"]);
+
+interface GroupedField { field: FormField; index: number }
+const groupedFields = computed(() => {
+  const groups: Record<"attendee" | "buyer" | "order" | "custom", GroupedField[]> = {
+    attendee: [], buyer: [], order: [], custom: [],
+  };
+  fields.value.forEach((field, index) => {
+    const key = field.field_key as string | undefined;
+    if (key && ATTENDEE_KEYS.has(key)) groups.attendee.push({ field, index });
+    else if (key && BUYER_KEYS.has(key)) groups.buyer.push({ field, index });
+    else if (key && ORDER_KEYS.has(key)) groups.order.push({ field, index });
+    else groups.custom.push({ field, index });
+  });
+  return groups;
+});
 </script>
 
 <template>
@@ -112,66 +133,92 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
     <div class="config-layout">
       <div class="edit-panel">
-        <div class="section-title">自定義欄位 (可拖拽排序)</div>
+        <div class="section-title">報名表欄位設定</div>
 
         <div v-show="!pageId" class="loading-placeholder">載入欄位設定中...</div>
-        <div v-show="pageId" class="field-list">
-          <div
-            v-for="(field, index) in fields"
-            :key="field.id ?? `new-${index}`"
-            class="field-card-container"
-            :class="{ 'is-hidden-field': field.is_hidden }"
-          >
-              <div class="field-card-main">
-                <div class="field-info">
-                  <span class="drag-icon-main"></span>
-                  <input
-                    v-model="field.label"
-                    :disabled="field.is_fixed"
-                    class="field-label-input"
-                  />
-                  <span class="type-badge">{{ field.field_type }}</span>
-                  <span v-if="field.is_hidden" class="hidden-badge">隱藏中</span>
-                </div>
 
-                <div class="field-ctrl">
-                  <label class="toggle-btn" :class="{ 'is-active': field.is_hidden }">
-                    <input type="checkbox" v-model="field.is_hidden" />
-                    <span>{{ field.is_hidden ? "隱藏" : "顯示" }}</span>
-                  </label>
-
-                  <label v-if="!field.is_hidden" class="req-toggle">
-                    <input type="checkbox" v-model="field.is_required" />
-                    <span>必填</span>
-                  </label>
-
-                  <button v-if="!field.is_fixed" @click="removeField(index)" class="delete-btn">
-                    ✕
-                  </button>
-                </div>
-              </div>
-
-              <div v-if="field.field_type === 'select' || field.field_type === 'radio'" class="options-editor">
-                <div class="options-header">選項內容設定</div>
-                <draggable
-                  :list="field.options"
-                  item-key="order"
-                  handle=".drag-handle"
-                  ghost-class="ghost-option"
-                  animation="150"
-                  class="options-list-wrapper"
+        <!-- 4 個分群區塊：對齊公開報名頁的視覺語言（attendee 灰 / buyer 橘 / order 藍灰 / custom 白） -->
+        <div v-show="pageId" class="field-groups">
+          <template v-for="group in [
+            { key: 'attendee', label: '參加人資訊', hint: '每位報名者填寫', items: groupedFields.attendee },
+            { key: 'buyer',    label: '訂購人資訊', hint: '代表訂購者；隱藏整組則買家區塊不顯示', items: groupedFields.buyer },
+            { key: 'order',    label: '訂單欄位',  hint: '整筆訂單共用（備註 / 優惠碼）', items: groupedFields.order },
+            { key: 'custom',   label: '自訂欄位',  hint: '每位參加人各自填寫；下方可新增', items: groupedFields.custom },
+          ]" :key="group.key">
+            <section
+              v-if="group.items.length || group.key === 'custom'"
+              class="field-group"
+              :class="`g-${group.key}`"
+            >
+              <header class="group-header">
+                <span class="group-bar"></span>
+                <h3>{{ group.label }}</h3>
+                <span class="group-hint">{{ group.hint }}</span>
+              </header>
+              <div v-if="group.items.length" class="field-list">
+                <div
+                  v-for="g in group.items"
+                  :key="g.field.id ?? `${group.key}-${g.index}`"
+                  class="field-card-container"
+                  :class="{ 'is-hidden-field': g.field.is_hidden }"
                 >
-                  <template #item="{ element: opt, index: optIdx }">
-                    <div class="opt-item">
-                      <span class="drag-handle"></span>
-                      <input v-model="opt.text" class="opt-input" />
-                      <button @click="removeOption(field, optIdx)" class="opt-del">✕</button>
+                  <div class="field-card-main">
+                    <div class="field-info">
+                      <span class="drag-icon-main"></span>
+                      <input
+                        v-model="g.field.label"
+                        :disabled="g.field.is_fixed"
+                        class="field-label-input"
+                      />
+                      <span class="type-badge" :class="`tb-${g.field.field_type}`">{{ g.field.field_type }}</span>
+                      <span v-if="g.field.is_hidden" class="hidden-badge">隱藏中</span>
                     </div>
-                  </template>
-                </draggable>
-                <button @click="addOption(field)" class="btn-add-opt">+ 新增選項</button>
+
+                    <div class="field-ctrl">
+                      <label class="req-chip" v-if="!g.field.is_hidden" :class="{ active: g.field.is_required }">
+                        <input type="checkbox" v-model="g.field.is_required" />
+                        <span>{{ g.field.is_required ? '必填' : '選填' }}</span>
+                      </label>
+
+                      <label class="visibility-switch" :class="{ off: g.field.is_hidden }">
+                        <input type="checkbox" v-model="g.field.is_hidden" />
+                        <span class="track"><span class="dot"></span></span>
+                        <span class="vs-label">{{ g.field.is_hidden ? '隱藏' : '顯示' }}</span>
+                      </label>
+
+                      <button v-if="!g.field.is_fixed" @click="removeField(g.index)" class="delete-btn" title="刪除欄位">
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+
+                  <div v-if="g.field.field_type === 'select' || g.field.field_type === 'radio'" class="options-editor">
+                    <div class="options-header">選項內容設定</div>
+                    <draggable
+                      :list="g.field.options"
+                      item-key="order"
+                      handle=".drag-handle"
+                      ghost-class="ghost-option"
+                      animation="150"
+                      class="options-list-wrapper"
+                    >
+                      <template #item="{ element: opt, index: optIdx }">
+                        <div class="opt-item">
+                          <span class="drag-handle"></span>
+                          <input v-model="opt.text" class="opt-input" />
+                          <button @click="removeOption(g.field, optIdx)" class="opt-del">✕</button>
+                        </div>
+                      </template>
+                    </draggable>
+                    <button @click="addOption(g.field)" class="btn-add-opt">+ 新增選項</button>
+                  </div>
+                </div>
               </div>
-            </div>
+              <div v-else-if="group.key === 'custom'" class="group-empty">
+                尚未新增任何自訂欄位 — 用下方表單新增
+              </div>
+            </section>
+          </template>
         </div>
 
         <div class="add-control">
@@ -308,32 +355,98 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
   border-bottom: 2px solid var(--border-light);
 }
 
+/* 4 個分群區塊：對齊公開報名頁的視覺語言 */
+.field-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field-group {
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+}
+
+.field-group.g-attendee {
+  background: #f8fafc;       /* 跟報名頁 attendee 灰底一致 */
+  border-color: #e2e8f0;
+}
+.field-group.g-buyer {
+  background: #fff7ed;       /* 跟報名頁 buyer 橘底一致 */
+  border-color: #fcd9b6;
+}
+.field-group.g-buyer .group-bar { background: #f97316; }
+.field-group.g-buyer .group-header h3 { color: #9a3412; }
+
+.field-group.g-order {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+.field-group.g-order .group-bar { background: #6366f1; }
+.field-group.g-order .group-header h3 { color: #4338ca; }
+
+.field-group.g-custom {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+.field-group.g-custom .group-bar { background: #167A67; }
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.group-bar {
+  width: 4px;
+  height: 18px;
+  background: #94a3b8;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.group-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--deep-dark);
+  letter-spacing: -0.01em;
+}
+.group-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.group-empty {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding: 14px 4px;
+  font-style: italic;
+}
+
 .field-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .field-card-container {
-  background: var(--bg-card);
+  background: #fff;
   border: 1px solid var(--border-light);
-  border-radius: 12px;
-  transition: all 0.3s;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  border-radius: 10px;
+  transition: border-color .2s, box-shadow .2s, opacity .2s;
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     border-color: #cbd5e1;
   }
 
   &.is-hidden-field {
-    background-color: var(--bg-hover);
-    border-style: dashed;
-    opacity: 0.7;
+    opacity: 0.55;
 
-    .field-label-input {
-      color: var(--text-muted);
-    }
+    .field-label-input { color: var(--text-muted); text-decoration: line-through; }
   }
 }
 
@@ -413,78 +526,100 @@ const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 }
 
 .type-badge {
-  font-size: 0.68rem;
-  color: #167A67;
-  background: rgba(22,122,103,.1);
-  padding: 3px 8px;
-  border-radius: 5px;
-  border: 1px solid rgba(22,122,103,.2);
+  font-size: 0.66rem;
+  padding: 2px 8px;
+  border-radius: 4px;
   font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
+  /* 預設灰；不同 type 用 .tb-* class 覆寫 */
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
+/* 依欄位類型上色（一眼分辨） */
+.type-badge.tb-text     { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+.type-badge.tb-email    { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
+.type-badge.tb-tel      { background: #ede9fe; color: #5b21b6; border-color: #ddd6fe; }
+.type-badge.tb-textarea { background: #fef3c7; color: #92400e; border-color: #fcd9b6; }
+.type-badge.tb-select   { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+.type-badge.tb-radio    { background: #fce7f3; color: #9d174d; border-color: #fbcfe8; }
 
 .hidden-badge {
   background: #f59e0b;
   color: white;
-  font-size: 0.7rem;
-  padding: 4px 10px;
-  border-radius: 6px;
+  font-size: 0.66rem;
+  padding: 2px 8px;
+  border-radius: 4px;
   font-weight: 700;
-  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
 }
 
 .field-ctrl {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.toggle-btn {
-  font-size: 0.8rem;
-  padding: 6px 14px;
-  border-radius: 20px;
-  border: 1px solid var(--border-light);
+/* 必填 / 選填 chip — 點擊 toggle，視覺更明確 */
+.req-chip {
+  font-size: 0.74rem;
+  padding: 4px 11px;
+  border-radius: 999px;
   cursor: pointer;
-  background: var(--bg-card);
-  color: var(--text-gray);
-  font-weight: 600;
-  transition: all 0.3s;
+  font-weight: 700;
+  transition: all .15s;
+  border: 1.5px solid #cbd5e1;
+  background: #fff;
+  color: #64748b;
+  user-select: none;
 
-  input {
-    display: none;
-  }
+  input { display: none; }
 
-  &:hover {
-    border-color: #cbd5e1;
-    background: var(--bg-soft);
-  }
-
-  &.is-active {
-    background: #167A67;
-    color: white;
-    border-color: #167A67;
+  &:hover { border-color: #94a3b8; }
+  &.active {
+    background: #fee2e2;
+    color: #b91c1c;
+    border-color: #fca5a5;
   }
 }
 
-.req-toggle {
-  font-size: 0.85rem;
-  color: var(--text-gray);
-  display: flex;
+/* 顯示 / 隱藏 — iOS 風 switch */
+.visibility-switch {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
+  font-size: 0.78rem;
   font-weight: 600;
-  transition: color 0.3s;
+  user-select: none;
+  color: #167A67;
 
-  input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: #167A67;
+  input { display: none; }
+
+  .track {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    border-radius: 999px;
+    background: #167A67;
+    transition: background .2s;
+  }
+  .dot {
+    position: absolute;
+    top: 2px;
+    left: 18px;       /* 顯示中 = dot 在右 */
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   }
 
-  &:hover {
-    color: var(--deep-dark);
+  &.off {
+    color: #94a3b8;
+    .track { background: #cbd5e1; }
+    .dot   { left: 2px; }
   }
 }
 

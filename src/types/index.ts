@@ -242,6 +242,7 @@ export interface FormField {
   id: number | null
   label: string
   field_type: FieldType
+  field_key?: string  // 系統預設欄位有 key（name/email/phone/buyer_*/note/promo_code）；自訂欄位無
   is_required: boolean
   is_hidden: boolean
   is_fixed: boolean
