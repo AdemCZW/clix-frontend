@@ -171,7 +171,7 @@ const groupedFields = computed(() => {
                         :disabled="g.field.is_fixed"
                         class="field-label-input"
                       />
-                      <span class="type-badge" :class="`tb-${g.field.field_type}`">{{ g.field.field_type }}</span>
+                      <span class="type-badge">{{ g.field.field_type }}</span>
                       <span v-if="g.field.is_hidden" class="hidden-badge">隱藏中</span>
                     </div>
 
@@ -370,23 +370,27 @@ const groupedFields = computed(() => {
   background: var(--bg-card);
 }
 
+/* 配色限定品牌綠 #167A67 + 品牌黃 #E0A800；其他用中性灰 */
 .field-group.g-attendee {
-  background: #f8fafc;       /* 跟報名頁 attendee 灰底一致 */
-  border-color: #e2e8f0;
+  background: #e8f5f1;       /* 品牌綠淺底 */
+  border-color: #c8e3da;
 }
+.field-group.g-attendee .group-bar { background: #167A67; }
+.field-group.g-attendee .group-header h3 { color: #0f5d4e; }
+
 .field-group.g-buyer {
-  background: #fff7ed;       /* 跟報名頁 buyer 橘底一致 */
-  border-color: #fcd9b6;
+  background: #fefce8;       /* 品牌黃淺底 */
+  border-color: #fde68a;
 }
-.field-group.g-buyer .group-bar { background: #f97316; }
-.field-group.g-buyer .group-header h3 { color: #9a3412; }
+.field-group.g-buyer .group-bar { background: #E0A800; }
+.field-group.g-buyer .group-header h3 { color: #92400e; }
 
 .field-group.g-order {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
+  background: var(--bg-card);
+  border-color: var(--border-light);
 }
-.field-group.g-order .group-bar { background: #6366f1; }
-.field-group.g-order .group-header h3 { color: #4338ca; }
+.field-group.g-order .group-bar { background: #94a3b8; }   /* 中性灰，次要群 */
+.field-group.g-order .group-header h3 { color: #475569; }
 
 .field-group.g-custom {
   background: var(--bg-card);
@@ -498,6 +502,7 @@ const groupedFields = computed(() => {
   }
 }
 
+/* type-badge 統一中性灰，不再每種類型一個顏色（依品牌色約束） */
 .type-badge {
   font-size: 0.66rem;
   padding: 2px 8px;
@@ -505,21 +510,14 @@ const groupedFields = computed(() => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  /* 預設灰；不同 type 用 .tb-* class 覆寫 */
   background: #f1f5f9;
   color: #475569;
   border: 1px solid #e2e8f0;
 }
-/* 依欄位類型上色（一眼分辨） */
-.type-badge.tb-text     { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
-.type-badge.tb-email    { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
-.type-badge.tb-tel      { background: #ede9fe; color: #5b21b6; border-color: #ddd6fe; }
-.type-badge.tb-textarea { background: #fef3c7; color: #92400e; border-color: #fcd9b6; }
-.type-badge.tb-select   { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
-.type-badge.tb-radio    { background: #fce7f3; color: #9d174d; border-color: #fbcfe8; }
 
+/* 隱藏中標籤：用品牌黃 #E0A800 */
 .hidden-badge {
-  background: #f59e0b;
+  background: #E0A800;
   color: white;
   font-size: 0.66rem;
   padding: 2px 8px;
@@ -533,7 +531,7 @@ const groupedFields = computed(() => {
   gap: 10px;
 }
 
-/* 必填 / 選填 chip — 點擊 toggle，視覺更明確 */
+/* 必填 / 選填 chip — 點擊 toggle，active 用品牌黃（強調語意） */
 .req-chip {
   font-size: 0.74rem;
   padding: 4px 11px;
@@ -550,9 +548,9 @@ const groupedFields = computed(() => {
 
   &:hover { border-color: #94a3b8; }
   &.active {
-    background: #fee2e2;
-    color: #b91c1c;
-    border-color: #fca5a5;
+    background: #fefce8;       /* 品牌黃淺底 */
+    color: #92400e;
+    border-color: #E0A800;     /* 品牌黃 */
   }
 }
 
