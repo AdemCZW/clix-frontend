@@ -1379,27 +1379,27 @@ onBeforeUnmount(() => {
           >{{ t.capacity }} 位</text>
 
           <!-- 點選桌位後顯示右上角刪除 X
-               位置上提到 y=-32（topmost seat 邊緣 y=-26 + 6px 縫），避免跟座位重疊 -->
+               位置上提到 y=-36（topmost seat 邊緣 y=-26 + 缝），避免跟座位重疊 -->
           <g
             v-if="selectedTableId === t.id"
             class="vm-table-delete"
-            :transform="`translate(${tableWidth(t) - 8}, -32)`"
+            :transform="`translate(${tableWidth(t) - 10}, -36)`"
             @pointerdown.stop.prevent
             @click.stop="removeTable(t.id)"
           >
-            <circle cx="0" cy="0" r="12" />
+            <circle cx="0" cy="0" r="16" />
             <text x="0" y="1" text-anchor="middle" dominant-baseline="middle">×</text>
           </g>
           <!-- 點選桌位後顯示左上角編輯按鈕（C1）— 同樣上提避開座位 -->
           <g
             v-if="selectedTableId === t.id"
             class="vm-table-edit"
-            transform="translate(8, -32)"
+            transform="translate(10, -36)"
             @pointerdown.stop.prevent
             @click.stop="openEditTable(t)"
           >
-            <circle cx="0" cy="0" r="12" />
-            <text x="0" y="1" text-anchor="middle" dominant-baseline="middle" font-size="11">✎</text>
+            <circle cx="0" cy="0" r="16" />
+            <text x="0" y="1" text-anchor="middle" dominant-baseline="middle" font-size="14">✎</text>
           </g>
 
           <!-- 桌即時分數徽章（右上角，0 不顯示） -->
@@ -1800,7 +1800,7 @@ onBeforeUnmount(() => {
 }
 .vm-table-delete text {
   fill: #fff;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 800;
   pointer-events: none;
   user-select: none;
@@ -2159,23 +2159,23 @@ onBeforeUnmount(() => {
 }
 .vm-table.rect .vm-table-badge text { fill: #92400e; }
 
-/* C1：點選桌位時左上角編輯鍵 */
+/* C1：點選桌位時左上角編輯鍵（標準黃 #facc15） */
 .vm-table-edit { cursor: pointer; }
 .vm-table-edit circle {
-  fill: #337168;
+  fill: #facc15;
   stroke: #fff;
   stroke-width: 2;
   transition: transform .12s ease, fill .12s ease;
-  filter: drop-shadow(0 2px 6px rgba(22, 122, 103, 0.45));
+  filter: drop-shadow(0 2px 6px rgba(250, 204, 21, 0.55));
 }
 .vm-table-edit text {
-  fill: #fff;
-  font-weight: 700;
+  fill: #78350f;
+  font-weight: 800;
   pointer-events: none;
   user-select: none;
 }
 .vm-table-edit:hover circle {
-  fill: #0f5d4e;
+  fill: #eab308;
   transform: scale(1.08);
 }
 
