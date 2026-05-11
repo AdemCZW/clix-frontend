@@ -115,6 +115,17 @@ const groupedFields = computed(() => {
   });
   return groups;
 });
+
+// 預覽用：只顯示未隱藏的欄位、按報名頁實際分群順序 buyer → attendee+custom → order
+// 對應 PublicPage：訂購人 → 參加人（含自訂） → 訂單
+const previewGroups = computed(() => {
+  const visible = (g: GroupedField[]) => g.filter(({ field }) => !field.is_hidden).map(({ field }) => field);
+  return [
+    { key: "buyer",    label: "訂購人資料", fields: visible(groupedFields.value.buyer) },
+    { key: "attendee", label: "參加人 1",   fields: [...visible(groupedFields.value.attendee), ...visible(groupedFields.value.custom)] },
+    { key: "order",    label: "訂單",       fields: visible(groupedFields.value.order) },
+  ];
+});
 </script>
 
 <template>
@@ -246,19 +257,25 @@ const groupedFields = computed(() => {
           <div class="phone-screen">
             <div class="phone-header">活動報名表</div>
             <div class="phone-content">
-              <div v-for="field in visibleFields" :key="field.id ?? field.label" class="preview-item">
-                <label class="preview-label">
-                  {{ field.label }}
-                  <span v-if="field.is_required" class="star">*</span>
-                </label>
-                <select v-if="field.field_type === 'select' || field.field_type === 'radio'" class="dummy-select">
-                  <option v-for="opt in field.options" :key="opt.order">{{ opt.text }}</option>
-                </select>
-                <div v-else-if="field.field_type === 'textarea'" class="dummy-input" style="height:60px;"></div>
-                <div v-else class="dummy-input"></div>
-              </div>
+              <!-- 預覽用 PublicPage 真實分群結構：buyer 黃 / attendee 灰 / order 藍灰 / 自訂在 attendee 內 -->
+              <template v-for="(group, gi) in previewGroups" :key="gi">
+                <section v-if="group.fields.length" class="pv-section" :class="`pv-${group.key}`">
+                  <h4 class="pv-heading">{{ group.label }}</h4>
+                  <div v-for="field in group.fields" :key="field.id ?? field.label" class="pv-item">
+                    <label class="pv-label">
+                      {{ field.label }}
+                      <span v-if="field.is_required" class="star">*</span>
+                    </label>
+                    <select v-if="field.field_type === 'select' || field.field_type === 'radio'" class="pv-input pv-select">
+                      <option v-for="opt in field.options" :key="opt.order">{{ opt.text }}</option>
+                    </select>
+                    <div v-else-if="field.field_type === 'textarea'" class="pv-input pv-textarea"></div>
+                    <div v-else class="pv-input"></div>
+                  </div>
+                </section>
+              </template>
               <div v-if="visibleFields.length === 0" class="empty-hint">尚未設定顯示欄位</div>
-              <button class="dummy-submit">確認報名</button>
+              <button v-else class="pv-submit">確認報名</button>
             </div>
           </div>
         </div>
@@ -816,9 +833,10 @@ const groupedFields = computed(() => {
   top: 76px;
 }
 
+/* === 預覽：強制 light 主題，模擬 PublicPage 實際畫面 === */
 .phone-frame {
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
+  background: #fff;            /* PublicPage 永遠 light */
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
   overflow: hidden;
 }
@@ -834,52 +852,99 @@ const groupedFields = computed(() => {
   text-align: center;
   font-weight: 700;
   font-size: .92rem;
-  color: var(--text-main);
-  border-bottom: 1px solid var(--border-light);
+  color: #0f172a;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .phone-content {
   padding: 14px;
+  background: #fff;
   flex: 1;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.preview-item {
-  margin-bottom: 20px;
+/* 預覽分群：對應 PublicPage 的 buyer / attendee / order section */
+.pv-section {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #e8e8e4;
+  background: #fafaf8;        /* 預設 attendee 灰 */
 }
+.pv-section.pv-buyer {
+  background: #fefce8;        /* 品牌黃淺底（跟 PublicPage 一致） */
+  border-color: #fde68a;
+}
+.pv-section.pv-order {
+  background: #f8fafc;        /* 訂單藍灰 */
+  border-color: #e2e8f0;
+}
+.pv-heading {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  padding-left: 10px;
+}
+.pv-heading::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: #94a3b8;
+}
+.pv-section.pv-buyer .pv-heading::before { background: #E0A800; }
+.pv-section.pv-attendee .pv-heading::before { background: #167A67; }
+.pv-section.pv-order .pv-heading::before { background: #94a3b8; }
 
-.preview-label {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--deep-dark);
+.pv-item {
+  margin-bottom: 10px;
+  &:last-child { margin-bottom: 0; }
+}
+.pv-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1e293b;
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 
-  .star {
-    color: #ef4444;
-    margin-left: 2px;
-  }
+  .star { color: #ef4444; margin-left: 2px; }
+}
+.pv-input {
+  width: 100%;
+  height: 34px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+}
+.pv-input.pv-textarea { height: 54px; }
+.pv-input.pv-select {
+  appearance: none;
+  padding: 0 10px;
+  font-size: 0.78rem;
+  color: #475569;
 }
 
-.dummy-input,
-.dummy-select {
+.pv-submit {
   width: 100%;
-  height: 42px;
-  background: var(--bg-soft);
-  border-radius: 10px;
-  border: 1px solid var(--border-light);
-}
-
-.dummy-submit {
-  width: 100%;
-  padding: 14px;
+  padding: 12px;
   background: #167A67;
   color: white;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   font-weight: 700;
-  margin-top: 12px;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
+  cursor: default;
   box-shadow: 0 4px 12px rgba(22, 122, 103, 0.25);
 }
 
@@ -893,9 +958,8 @@ const groupedFields = computed(() => {
 
 .empty-hint {
   text-align: center;
-  color: #cbd5e1;
-  margin-top: 80px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  color: #94a3b8;
+  margin-top: 40px;
+  font-size: 0.85rem;
 }
 </style>

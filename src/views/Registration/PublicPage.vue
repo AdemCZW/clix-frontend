@@ -1994,12 +1994,13 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
   padding: 3px 10px;
   border-radius: 999px;
 }
-.buyer-section { background: #fff7ed; border-color: #fcd9b6; }
+/* buyer 區塊改用品牌黃（原本橘色 #f97316 → 品牌黃 #E0A800） */
+.buyer-section { background: #fefce8; border-color: #fde68a; }
 .buyer-section .section-heading::before {
   content: '';
   width: 4px;
   height: 18px;
-  background: #f97316;
+  background: #E0A800;
   border-radius: 2px;
 }
 .order-section { background: #f8fafc; border-color: #e2e8f0; }
