@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, reactive, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import draggable from "vuedraggable";
 import { useRegistrationFormFieldsStore } from "@/stores/registrationFormFields";
@@ -95,35 +95,74 @@ const addOption = (field: FormField) => field.options.push({ text: "", order: fi
 const removeOption = (field: FormField, optIndex: number) => field.options.splice(optIndex, 1);
 const visibleFields = computed(() => fields.value.filter((f) => !f.is_hidden));
 
-// === 依 field_key 分群顯示（對齊公開報名頁的視覺設計）===
+// === 依 field_key 分群（對齊公開報名頁的視覺設計）+ Phase 2.5 群內拖曳排序 ===
 // 4 群：attendee（每位參加人）/ buyer（訂購人）/ order（訂單層）/ custom（其他自訂）
 const ATTENDEE_KEYS = new Set(["name", "email", "phone"]);
 const BUYER_KEYS = new Set(["buyer_name", "buyer_email", "buyer_phone"]);
 const ORDER_KEYS = new Set(["note", "promo_code"]);
 
-interface GroupedField { field: FormField; index: number }
-const groupedFields = computed(() => {
-  const groups: Record<"attendee" | "buyer" | "order" | "custom", GroupedField[]> = {
-    attendee: [], buyer: [], order: [], custom: [],
-  };
-  fields.value.forEach((field, index) => {
-    const key = field.field_key as string | undefined;
-    if (key && ATTENDEE_KEYS.has(key)) groups.attendee.push({ field, index });
-    else if (key && BUYER_KEYS.has(key)) groups.buyer.push({ field, index });
-    else if (key && ORDER_KEYS.has(key)) groups.order.push({ field, index });
-    else groups.custom.push({ field, index });
-  });
-  return groups;
+type GroupKey = "attendee" | "buyer" | "order" | "custom";
+
+function groupKeyOf(field: FormField): GroupKey {
+  const key = field.field_key as string | undefined;
+  if (key && ATTENDEE_KEYS.has(key)) return "attendee";
+  if (key && BUYER_KEYS.has(key)) return "buyer";
+  if (key && ORDER_KEYS.has(key)) return "order";
+  return "custom";
+}
+
+// splitFields：fields 拆成 4 個 reactive arrays，給 vuedraggable 各自 v-model
+// 每個 element 是 fields 陣列內物件的 reference（mutate label / is_hidden 會雙向反映）
+const splitFields = reactive<Record<GroupKey, FormField[]>>({
+  attendee: [],
+  buyer: [],
+  order: [],
+  custom: [],
 });
 
+let syncingSplit = false;
+
+function rebuildSplit() {
+  syncingSplit = true;
+  splitFields.attendee = [];
+  splitFields.buyer = [];
+  splitFields.order = [];
+  splitFields.custom = [];
+  fields.value.forEach((f) => {
+    splitFields[groupKeyOf(f)].push(f);
+  });
+  syncingSplit = false;
+}
+
+// fields → splitFields 同步（fetch 後 / addField / removeField 都會觸發）
+watch(fields, () => {
+  if (syncingSplit) return;
+  rebuildSplit();
+}, { immediate: true, deep: false });
+
+// 拖曳結束：把 4 個 split 合併回 fields，重算 order
+// 跨群禁止：draggable group prop 設 pull/put false（同 key 才允許），UI 不會發生跨群拖曳
+function onGroupReorder() {
+  syncingSplit = true;
+  const merged = [
+    ...splitFields.attendee,
+    ...splitFields.buyer,
+    ...splitFields.order,
+    ...splitFields.custom,
+  ];
+  merged.forEach((f, idx) => { f.order = idx; });
+  fields.value = merged;
+  // 下個 tick 再恢復同步監聽
+  setTimeout(() => { syncingSplit = false; }, 0);
+}
+
 // 預覽用：只顯示未隱藏的欄位、按報名頁實際分群順序 buyer → attendee+custom → order
-// 對應 PublicPage：訂購人 → 參加人（含自訂） → 訂單
 const previewGroups = computed(() => {
-  const visible = (g: GroupedField[]) => g.filter(({ field }) => !field.is_hidden).map(({ field }) => field);
+  const visible = (arr: FormField[]) => arr.filter((f) => !f.is_hidden);
   return [
-    { key: "buyer",    label: "訂購人資料", fields: visible(groupedFields.value.buyer) },
-    { key: "attendee", label: "參加人 1",   fields: [...visible(groupedFields.value.attendee), ...visible(groupedFields.value.custom)] },
-    { key: "order",    label: "訂單",       fields: visible(groupedFields.value.order) },
+    { key: "buyer",    label: "訂購人資料", fields: visible(splitFields.buyer) },
+    { key: "attendee", label: "參加人 1",   fields: [...visible(splitFields.attendee), ...visible(splitFields.custom)] },
+    { key: "order",    label: "訂單",       fields: visible(splitFields.order) },
   ];
 });
 </script>
@@ -148,16 +187,16 @@ const previewGroups = computed(() => {
 
         <div v-show="!pageId" class="loading-placeholder">載入欄位設定中...</div>
 
-        <!-- 4 個分群區塊：對齊公開報名頁的視覺語言（attendee 灰 / buyer 橘 / order 藍灰 / custom 白） -->
+        <!-- 4 個分群區塊：每群獨立 vuedraggable，禁止跨群拖曳（Phase 2.5）-->
         <div v-show="pageId" class="field-groups">
           <template v-for="group in [
-            { key: 'attendee', label: '參加人資訊', hint: '每位報名者填寫', items: groupedFields.attendee },
-            { key: 'buyer',    label: '訂購人資訊', hint: '代表訂購者；隱藏整組則買家區塊不顯示', items: groupedFields.buyer },
-            { key: 'order',    label: '訂單欄位',  hint: '整筆訂單共用（備註 / 優惠碼）', items: groupedFields.order },
-            { key: 'custom',   label: '自訂欄位',  hint: '每位參加人各自填寫；下方可新增', items: groupedFields.custom },
+            { key: 'attendee' as const, label: '參加人資訊', hint: '每位報名者填寫（群內可拖曳排序）' },
+            { key: 'buyer'    as const, label: '訂購人資訊', hint: '代表訂購者；隱藏整組則買家區塊不顯示' },
+            { key: 'order'    as const, label: '訂單欄位',  hint: '整筆訂單共用（備註 / 優惠碼）' },
+            { key: 'custom'   as const, label: '自訂欄位',  hint: '每位參加人各自填寫；下方可新增' },
           ]" :key="group.key">
             <section
-              v-if="group.items.length || group.key === 'custom'"
+              v-if="splitFields[group.key].length || group.key === 'custom'"
               class="field-group"
               :class="`g-${group.key}`"
             >
@@ -166,66 +205,75 @@ const previewGroups = computed(() => {
                 <h3>{{ group.label }}</h3>
                 <span class="group-hint">{{ group.hint }}</span>
               </header>
-              <div v-if="group.items.length" class="field-list">
-                <div
-                  v-for="g in group.items"
-                  :key="g.field.id ?? `${group.key}-${g.index}`"
-                  class="field-card-container"
-                  :class="{ 'is-hidden-field': g.field.is_hidden }"
-                >
-                  <div class="field-card-main">
-                    <div class="field-info">
-                      <!-- drag-icon-main 已移除：外層欄位列尚未接 vuedraggable，
-                           留圖示會誤導使用者；Phase 2.5 接拖曳後再恢復 -->
-                      <input
-                        v-model="g.field.label"
-                        :disabled="g.field.is_fixed"
-                        class="field-label-input"
-                      />
-                      <span class="type-badge">{{ g.field.field_type }}</span>
-                      <span v-if="g.field.is_hidden" class="hidden-badge">隱藏中</span>
+              <draggable
+                v-if="splitFields[group.key].length"
+                v-model="splitFields[group.key]"
+                :group="{ name: group.key, pull: false, put: false }"
+                item-key="id"
+                handle=".drag-handle-field"
+                ghost-class="ghost-field"
+                animation="150"
+                class="field-list"
+                @end="onGroupReorder"
+              >
+                <template #item="{ element: field }">
+                  <div
+                    class="field-card-container"
+                    :class="{ 'is-hidden-field': field.is_hidden }"
+                  >
+                    <div class="field-card-main">
+                      <div class="field-info">
+                        <span class="drag-handle-field" title="拖曳排序" aria-hidden="true"></span>
+                        <input
+                          v-model="field.label"
+                          :disabled="field.is_fixed"
+                          class="field-label-input"
+                        />
+                        <span class="type-badge">{{ field.field_type }}</span>
+                        <span v-if="field.is_hidden" class="hidden-badge">隱藏中</span>
+                      </div>
+
+                      <div class="field-ctrl">
+                        <label class="req-chip" v-if="!field.is_hidden" :class="{ active: field.is_required }">
+                          <input type="checkbox" v-model="field.is_required" />
+                          <span>{{ field.is_required ? '必填' : '選填' }}</span>
+                        </label>
+
+                        <label class="visibility-switch" :class="{ off: field.is_hidden }">
+                          <input type="checkbox" v-model="field.is_hidden" />
+                          <span class="track"><span class="dot"></span></span>
+                          <span class="vs-label">{{ field.is_hidden ? '隱藏' : '顯示' }}</span>
+                        </label>
+
+                        <button v-if="!field.is_fixed" @click="removeField(fields.indexOf(field))" class="delete-btn" title="刪除欄位">
+                          ✕
+                        </button>
+                      </div>
                     </div>
 
-                    <div class="field-ctrl">
-                      <label class="req-chip" v-if="!g.field.is_hidden" :class="{ active: g.field.is_required }">
-                        <input type="checkbox" v-model="g.field.is_required" />
-                        <span>{{ g.field.is_required ? '必填' : '選填' }}</span>
-                      </label>
-
-                      <label class="visibility-switch" :class="{ off: g.field.is_hidden }">
-                        <input type="checkbox" v-model="g.field.is_hidden" />
-                        <span class="track"><span class="dot"></span></span>
-                        <span class="vs-label">{{ g.field.is_hidden ? '隱藏' : '顯示' }}</span>
-                      </label>
-
-                      <button v-if="!g.field.is_fixed" @click="removeField(g.index)" class="delete-btn" title="刪除欄位">
-                        ✕
-                      </button>
+                    <div v-if="field.field_type === 'select' || field.field_type === 'radio'" class="options-editor">
+                      <div class="options-header">選項內容設定</div>
+                      <draggable
+                        :list="field.options"
+                        item-key="order"
+                        handle=".drag-handle"
+                        ghost-class="ghost-option"
+                        animation="150"
+                        class="options-list-wrapper"
+                      >
+                        <template #item="{ element: opt, index: optIdx }">
+                          <div class="opt-item">
+                            <span class="drag-handle"></span>
+                            <input v-model="opt.text" class="opt-input" />
+                            <button @click="removeOption(field, optIdx)" class="opt-del">✕</button>
+                          </div>
+                        </template>
+                      </draggable>
+                      <button @click="addOption(field)" class="btn-add-opt">+ 新增選項</button>
                     </div>
                   </div>
-
-                  <div v-if="g.field.field_type === 'select' || g.field.field_type === 'radio'" class="options-editor">
-                    <div class="options-header">選項內容設定</div>
-                    <draggable
-                      :list="g.field.options"
-                      item-key="order"
-                      handle=".drag-handle"
-                      ghost-class="ghost-option"
-                      animation="150"
-                      class="options-list-wrapper"
-                    >
-                      <template #item="{ element: opt, index: optIdx }">
-                        <div class="opt-item">
-                          <span class="drag-handle"></span>
-                          <input v-model="opt.text" class="opt-input" />
-                          <button @click="removeOption(g.field, optIdx)" class="opt-del">✕</button>
-                        </div>
-                      </template>
-                    </draggable>
-                    <button @click="addOption(g.field)" class="btn-add-opt">+ 新增選項</button>
-                  </div>
-                </div>
-              </div>
+                </template>
+              </draggable>
               <div v-else-if="group.key === 'custom'" class="group-empty">
                 尚未新增任何自訂欄位 — 用下方表單新增
               </div>
@@ -463,6 +511,8 @@ const previewGroups = computed(() => {
   &:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     border-color: #cbd5e1;
+
+    .drag-handle-field { color: #167A67; }
   }
 
   &.is-hidden-field {
@@ -470,6 +520,33 @@ const previewGroups = computed(() => {
 
     .field-label-input { color: var(--text-muted); text-decoration: line-through; }
   }
+}
+
+/* Phase 2.5：每張欄位卡的拖曳 handle（真實接 vuedraggable） */
+.drag-handle-field {
+  cursor: grab;
+  color: #cbd5e1;
+  font-size: 1.1rem;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 24px;
+  transition: color .15s;
+
+  &::before {
+    content: "⋮⋮";
+    font-weight: bold;
+    letter-spacing: -2px;
+  }
+  &:active { cursor: grabbing; color: #167A67; }
+}
+
+/* 拖曳中的 ghost：半透明 + 邊框強調 */
+.ghost-field {
+  opacity: 0.5;
+  border: 2px dashed #167A67 !important;
 }
 
 .ghost-card {
