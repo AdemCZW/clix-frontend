@@ -147,8 +147,15 @@
       </div>
       <div class="form-group">
         <label>聯絡主辦單位連結（選填）</label>
-        <input type="text" v-model="newEvent.contactLink" placeholder="mailto:host@example.com / tel:0912345678 / https://..." />
-        <small style="color: #94a3b8; font-size: 0.78rem;">手機版報名頁的「聯絡主辦單位」按鈕會用此連結；空白則不顯示按鈕</small>
+        <input
+          type="text"
+          v-model="newEvent.contactLink"
+          placeholder="mailto:host@example.com / tel:0912345678 / https://..."
+          @blur="newEventContactLinkError = validateContactLink(newEvent.contactLink)"
+          @focus="newEventContactLinkError = ''"
+        />
+        <small v-if="newEventContactLinkError" style="color: #dc2626; font-size: 0.78rem;">{{ newEventContactLinkError }}</small>
+        <small v-else style="color: #94a3b8; font-size: 0.78rem;">手機版報名頁的「聯絡主辦單位」按鈕會用此連結；空白則不顯示按鈕</small>
       </div>
       <template #footer>
         <button class="btn-cancel" @click="showCreateModal = false">取消</button>
@@ -191,8 +198,15 @@
         </div>
         <div class="form-group">
           <label>聯絡主辦單位連結（選填）</label>
-          <input type="text" v-model="editingEvent.contactLink" placeholder="mailto:host@example.com / tel:0912345678 / https://..." />
-          <small style="color: #94a3b8; font-size: 0.78rem;">手機版報名頁的「聯絡主辦單位」按鈕會用此連結；空白則不顯示按鈕</small>
+          <input
+            type="text"
+            v-model="editingEvent.contactLink"
+            placeholder="mailto:host@example.com / tel:0912345678 / https://..."
+            @blur="editEventContactLinkError = validateContactLink(editingEvent.contactLink)"
+            @focus="editEventContactLinkError = ''"
+          />
+          <small v-if="editEventContactLinkError" style="color: #dc2626; font-size: 0.78rem;">{{ editEventContactLinkError }}</small>
+          <small v-else style="color: #94a3b8; font-size: 0.78rem;">手機版報名頁的「聯絡主辦單位」按鈕會用此連結；空白則不顯示按鈕</small>
         </div>
       </template>
       <template #footer>
@@ -325,6 +339,20 @@ const newEvent = ref({
   maxParticipants: 500,
   contactLink: "",
 });
+
+// contact_link 即時驗證（@blur 顯示提示，不擋 submit；後端為單一真實來源）
+// 規則跟後端 EventSerializer.validate_contact_link 一致
+const newEventContactLinkError = ref("");
+const editEventContactLinkError = ref("");
+const validateContactLink = (value: string): string => {
+  const v = (value || "").trim();
+  if (!v) return ""; // 空字串視為清除
+  const allowed = ["http://", "https://", "mailto:", "tel:"];
+  if (!allowed.some((p) => v.toLowerCase().startsWith(p))) {
+    return "只允許 http://、https://、mailto:、tel: 開頭的連結";
+  }
+  return "";
+};
 
 // 從 store 取得活動列表
 const filteredEvents = computed(() => {
