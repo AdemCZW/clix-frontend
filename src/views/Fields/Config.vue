@@ -164,7 +164,8 @@ const groupedFields = computed(() => {
                 >
                   <div class="field-card-main">
                     <div class="field-info">
-                      <span class="drag-icon-main"></span>
+                      <!-- drag-icon-main 已移除：外層欄位列尚未接 vuedraggable，
+                           留圖示會誤導使用者；Phase 2.5 接拖曳後再恢復 -->
                       <input
                         v-model="g.field.label"
                         :disabled="g.field.is_fixed"
@@ -472,34 +473,6 @@ const groupedFields = computed(() => {
   align-items: center;
   gap: 12px;
   flex: 1;
-}
-
-.drag-icon-main {
-  cursor: grab;
-  color: var(--text-muted);
-  font-size: 1.2rem;
-  user-select: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  transition: color 0.3s;
-
-  &::before {
-    content: "⋮⋮";
-    font-weight: bold;
-    letter-spacing: -2px;
-  }
-
-  &:hover {
-    color: #167A67;
-  }
-
-  &:active {
-    cursor: grabbing;
-    color: #167A67;
-  }
 }
 
 .field-label-input {
