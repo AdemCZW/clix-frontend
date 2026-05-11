@@ -555,18 +555,30 @@ function pushUndoSnapshot() {
   redoStack.value = []  // 新動作清掉 redo
 }
 
+// 統一座位分配落地入口：取 eventId、call store.saveAssignments、共用錯誤提示
+// 不負責 push undo snapshot — 那是 caller 的責任（mutation 前先 push）
+async function commitSeatChanges() {
+  const eventId = eventsStore.currentEvent?.id
+  if (!eventId) return
+  try {
+    await tablesStore.saveAssignments(eventId)
+  } catch (err) {
+    console.error('commitSeatChanges failed', err)
+    toastWarning('座位儲存失敗，請稍後再試')
+  }
+}
+
 async function undo() {
   if (undoStack.value.length === 0) {
     toastInfo('沒有可撤銷的操作')
     return
   }
-  const eventId = eventsStore.currentEvent?.id
-  if (!eventId) return
+  if (!eventsStore.currentEvent?.id) return
   const current = { ...tablesStore.seatAssignments }
   const prev = undoStack.value.pop()!
   redoStack.value.push(current)
   tablesStore.seatAssignments = prev
-  await tablesStore.saveAssignments(eventId)
+  await commitSeatChanges()
   toastInfo('已撤銷')
 }
 
@@ -575,13 +587,12 @@ async function redo() {
     toastInfo('沒有可重做的操作')
     return
   }
-  const eventId = eventsStore.currentEvent?.id
-  if (!eventId) return
+  if (!eventsStore.currentEvent?.id) return
   const current = { ...tablesStore.seatAssignments }
   const next = redoStack.value.pop()!
   undoStack.value.push(current)
   tablesStore.seatAssignments = next
-  await tablesStore.saveAssignments(eventId)
+  await commitSeatChanges()
   toastInfo('已重做')
 }
 
@@ -1069,8 +1080,7 @@ const onPersonPointerUp = (e: PointerEvent) => {
   flashJustAssigned(target)
 
   // 同步後端
-  const eventId = eventsStore.currentEvent?.id
-  if (eventId) tablesStore.saveAssignments(eventId)
+  commitSeatChanges()
 }
 
 const onWindowPointerUp = (e: PointerEvent) => {
@@ -1088,8 +1098,7 @@ const onSeatClick = (seatIndex: number) => {
   if (!tablesStore.seatAssignments[seatIndex]) return
   pushUndoSnapshot()
   tablesStore.unassignSeat(seatIndex)
-  const eventId = eventsStore.currentEvent?.id
-  if (eventId) tablesStore.saveAssignments(eventId)
+  commitSeatChanges()
   toastInfo('已移除該座位的分配')
 }
 
@@ -1148,14 +1157,13 @@ async function autoAssignSeats() {
   for (let i = 0; i < willAssign; i++) {
     tablesStore.assignSeat(allSeats[i], sorted[i].id)
   }
-  await tablesStore.saveAssignments(eventId)
+  await commitSeatChanges()
   toastSuccess(`已自動分配 ${willAssign} 位賓客${overflow > 0 ? `，${overflow} 位無位` : ''}`)
 }
 
 async function rollbackAutoAssign() {
   if (!lastSnapshot.value) return
-  const eventId = eventsStore.currentEvent?.id
-  if (!eventId) return
+  if (!eventsStore.currentEvent?.id) return
   const ok = await confirm({
     title: '還原自動排位',
     message: '會把座位分配還原到自動排位前的狀態，已做的所有自動排位變更都會復原。',
@@ -1166,13 +1174,12 @@ async function rollbackAutoAssign() {
   if (!ok) return
   tablesStore.seatAssignments = { ...lastSnapshot.value }
   lastSnapshot.value = null
-  await tablesStore.saveAssignments(eventId)
+  await commitSeatChanges()
   toastSuccess('已還原到自動排位前的狀態')
 }
 
 async function clearAllAssignments() {
-  const eventId = eventsStore.currentEvent?.id
-  if (!eventId) return
+  if (!eventsStore.currentEvent?.id) return
   const currentCount = Object.keys(tablesStore.seatAssignments).length
   if (currentCount === 0) {
     toastInfo('目前沒有可清除的排位')
@@ -1194,18 +1201,17 @@ async function clearAllAssignments() {
   lastClearSnapshot.value = { ...tablesStore.seatAssignments }
   pushUndoSnapshot()
   tablesStore.seatAssignments = {}
-  await tablesStore.saveAssignments(eventId)
+  await commitSeatChanges()
   toastSuccess('已清除全部排位，可按「↶ 上一步」復原')
 }
 
 async function undoClearAssignments() {
   if (!lastClearSnapshot.value) return
-  const eventId = eventsStore.currentEvent?.id
-  if (!eventId) return
+  if (!eventsStore.currentEvent?.id) return
 
   tablesStore.seatAssignments = { ...lastClearSnapshot.value }
   lastClearSnapshot.value = null
-  await tablesStore.saveAssignments(eventId)
+  await commitSeatChanges()
   toastSuccess('已復原清除前的排位狀態')
 }
 

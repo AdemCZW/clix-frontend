@@ -9,6 +9,7 @@ import { useEventScopedLoader } from "@/composables/useEventScopedLoader";
 import { apiRequest } from "@/utils/api";
 import PageLoader from "@/components/shared/PageLoader.vue";
 import type { ParticipantType } from "@/types";
+import { SEAT_SAVE_MODE } from "@/stores/tables";
 import type { Seat } from "@/types";
 import type { SeatAttendee } from "@/types";
 
@@ -630,8 +631,8 @@ const saveSeats = async () => {
       }
     }
     // mode=replace_all：舊版 SeatManager 維持「整個 event 清空後寫入」行為（後端預設也是這個）
-    // 明確帶出來，避免未來改後端預設值時影響本頁
-    await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, { method: "POST", body: JSON.stringify({ assignments, seat_metas, mode: 'replace_all' }) });
+    // 明確帶出來，避免未來改後端預設值時影響本頁；常數從 tablesStore 共用
+    await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, { method: "POST", body: JSON.stringify({ assignments, seat_metas, mode: SEAT_SAVE_MODE.REPLACE_ALL }) });
     toastSuccess("座位分配已儲存");
     // 按鈕本身顯示「✓ 已儲存」3 秒（補強 toast 容易被忽略的問題）
     saveJustSucceeded.value = true;

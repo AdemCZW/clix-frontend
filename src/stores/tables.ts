@@ -23,6 +23,14 @@ export interface VenueTable {
   shape: 'round' | 'rect'
 }
 
+// 後端 SeatBulkSaveView 接受的 mode 值；export 給兩個 caller (tablesStore + SeatManager) 共用
+// 避免未來改後端字串時前端漏改
+export const SEAT_SAVE_MODE = {
+  REPLACE_ALL: 'replace_all',         // 舊版 SeatManager：清整個 event 後寫入
+  TABLE_ONLY_MERGE: 'table_only_merge', // 新版 VenueMap：只動 seat_index >= 100 的 table 區段
+} as const
+export type SeatSaveMode = typeof SEAT_SAVE_MODE[keyof typeof SEAT_SAVE_MODE]
+
 export const useTablesStore = defineStore('tables', () => {
   const tables = ref<VenueTable[]>([])
   const { loading, error, run, clearError } = useStoreRequest()
@@ -199,7 +207,7 @@ export const useTablesStore = defineStore('tables', () => {
       // 不動舊 SeatManager 的 grid 區段（< 100），也不會誤清 seat_metas
       const res = await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, {
         method: 'POST',
-        body: JSON.stringify({ assignments, mode: 'table_only_merge' }),
+        body: JSON.stringify({ assignments, mode: SEAT_SAVE_MODE.TABLE_ONLY_MERGE }),
       })
       if (!res.ok) {
         console.error('saveAssignments failed', res.status)
