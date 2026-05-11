@@ -629,7 +629,9 @@ const saveSeats = async () => {
         seat_metas.push({ seat_index: idx, status: seatsStore.seatMetasMap[key] });
       }
     }
-    await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, { method: "POST", body: JSON.stringify({ assignments, seat_metas }) });
+    // mode=replace_all：舊版 SeatManager 維持「整個 event 清空後寫入」行為（後端預設也是這個）
+    // 明確帶出來，避免未來改後端預設值時影響本頁
+    await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, { method: "POST", body: JSON.stringify({ assignments, seat_metas, mode: 'replace_all' }) });
     toastSuccess("座位分配已儲存");
     // 按鈕本身顯示「✓ 已儲存」3 秒（補強 toast 容易被忽略的問題）
     saveJustSucceeded.value = true;

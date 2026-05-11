@@ -469,15 +469,60 @@ const progressPercent = computed(() => {
   return Math.min(100, Math.round((requiredFieldsFilled.value / requiredFieldsTotal.value) * 100))
 })
 
-// 折疊狀態：使用者手動 toggle；不自動折疊以免干擾正在填的人
+// 折疊狀態：半自動 — 使用者可手動 toggle；attendee 從「不完整 → 完整」transition 時自動折疊一次
+//
+// 規則（依尤達決策）：
+// 1. attendee N 從不完整變完整 + 後面還有未完整的 attendee → auto-fold N（讓使用者注意力轉到下一位）
+// 2. 使用者手動展開過的 attendee（manuallyExpandedUids）永遠不再 auto-fold（防止干擾「填完想回頭改」）
+// 3. mount / reload / fetch 不觸發 auto-fold（用 firstWatchSync flag）
 const collapsedAttendeeIds = ref<Set<string>>(new Set())
+const manuallyExpandedUids = ref<Set<string>>(new Set())
+const attendeePrevComplete = new Map<string, boolean>()
+let attendeeAutoFoldReady = false  // 第一次 watch 觸發完才允許 auto-fold（避免 mount/draft 載入時誤折）
+
 const isAttendeeCollapsed = (uid: string) => collapsedAttendeeIds.value.has(uid)
 const toggleAttendeeCollapse = (uid: string) => {
+  const wasCollapsed = collapsedAttendeeIds.value.has(uid)
   const next = new Set(collapsedAttendeeIds.value)
-  if (next.has(uid)) next.delete(uid)
-  else next.add(uid)
+  if (wasCollapsed) {
+    next.delete(uid)
+    // 使用者手動展開 → 鎖住，之後 transition 不再 auto-fold
+    const expanded = new Set(manuallyExpandedUids.value)
+    expanded.add(uid)
+    manuallyExpandedUids.value = expanded
+  } else {
+    next.add(uid)
+  }
   collapsedAttendeeIds.value = next
 }
+
+// 監聽每位 attendee 的「完成」狀態，做半自動折疊
+watch(
+  () => attendeeForms.value.map((a) => ({ uid: a.uid, complete: isAttendeeComplete(a) })),
+  (curr) => {
+    if (!attendeeAutoFoldReady) {
+      // 第一次 sync：只記狀態，不 fold（避免 draft 恢復成完整時誤折）
+      curr.forEach((c) => attendeePrevComplete.set(c.uid, c.complete))
+      attendeeAutoFoldReady = true
+      return
+    }
+    let nextCollapsed: Set<string> | null = null
+    curr.forEach((c, idx) => {
+      const prev = attendeePrevComplete.get(c.uid) ?? false
+      // 不完整 → 完整 transition + 還沒手動展開過 + 後面還有未完成的 attendee
+      if (!prev && c.complete && !manuallyExpandedUids.value.has(c.uid)) {
+        const hasNextIncomplete = curr.slice(idx + 1).some((cc) => !cc.complete)
+        if (hasNextIncomplete && !collapsedAttendeeIds.value.has(c.uid)) {
+          if (!nextCollapsed) nextCollapsed = new Set(collapsedAttendeeIds.value)
+          nextCollapsed.add(c.uid)
+        }
+      }
+      attendeePrevComplete.set(c.uid, c.complete)
+    })
+    if (nextCollapsed) collapsedAttendeeIds.value = nextCollapsed
+  },
+  { deep: false }
+)
 
 const isMobile = ref(typeof window !== 'undefined' && window.innerWidth <= 768)
 

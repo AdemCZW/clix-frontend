@@ -195,9 +195,11 @@ export const useTablesStore = defineStore('tables', () => {
       }),
     )
     try {
+      // mode=table_only_merge：後端只動 seat_index >= 100 的 table 區段，
+      // 不動舊 SeatManager 的 grid 區段（< 100），也不會誤清 seat_metas
       const res = await apiRequest(`/api/seats/assignments/${eventId}/bulk/`, {
         method: 'POST',
-        body: JSON.stringify({ assignments }),
+        body: JSON.stringify({ assignments, mode: 'table_only_merge' }),
       })
       if (!res.ok) {
         console.error('saveAssignments failed', res.status)
