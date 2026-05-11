@@ -563,7 +563,7 @@ const selectEvent = (event: any) => {
 /* ===== VIEW PORT ===== */
 .view-port {
   flex: 1;
-  padding: 16px 16px 24px;
+  padding: 0;
   overflow-y: auto;
   background: #f0f2f5;
 }
@@ -634,7 +634,7 @@ const selectEvent = (event: any) => {
   .event-switcher { display: none; }
 
   .view-port {
-    padding: 16px;
+    padding: 0;
   }
 }
 
