@@ -756,6 +756,30 @@ let pendingGhostX = 0
 let pendingGhostY = 0
 let pendingHoveredSeatIndex: number | null = null
 
+function resetPersonDragState() {
+  if (personDragRaf !== null) {
+    cancelAnimationFrame(personDragRaf)
+    personDragRaf = null
+  }
+  if (suggestionsDebounce) {
+    clearTimeout(suggestionsDebounce)
+    suggestionsDebounce = null
+  }
+  try {
+    if (personDragState) {
+      personDragState.el.releasePointerCapture(personDragState.pointerId)
+    }
+  } catch {
+    // ignore
+  }
+  personDragState = null
+  dragGhost.value = null
+  hoveredSeatIndex.value = null
+  pendingHoveredSeatIndex = null
+  suggestions.value = []
+  cursorPos.value = null
+}
+
 // drop 成功的瞬間，標記哪個 seat 剛被分配 → 觸發 1 秒 bounce 動畫
 const justAssignedSeatIndex = ref<number | null>(null)
 let justAssignedTimer: ReturnType<typeof setTimeout> | null = null
@@ -915,6 +939,8 @@ function bezierPath(from: { x: number; y: number }, to: { x: number; y: number }
 
 const onPersonPointerDown = (e: PointerEvent, p: Participant) => {
   e.preventDefault()
+  // 若前一次拖曳因瀏覽器失焦等原因未正常收尾，先強制清理
+  if (personDragState) resetPersonDragState()
   const el = e.currentTarget as Element
   el.setPointerCapture(e.pointerId)
   personDragState = { participant: p, pointerId: e.pointerId, el }
@@ -929,6 +955,11 @@ const onPersonPointerDown = (e: PointerEvent, p: Participant) => {
 
 const onPersonPointerMove = (e: PointerEvent) => {
   if (!personDragState || personDragState.pointerId !== e.pointerId) return
+  // 兜底：若按鍵已放開卻沒收到 pointerup（偶發），直接取消卡住狀態
+  if (e.pointerType === 'mouse' && e.buttons === 0) {
+    resetPersonDragState()
+    return
+  }
   pendingGhostX = e.clientX
   pendingGhostY = e.clientY
 
@@ -1014,6 +1045,16 @@ const onPersonPointerUp = (e: PointerEvent) => {
   // 同步後端
   const eventId = eventsStore.currentEvent?.id
   if (eventId) tablesStore.saveAssignments(eventId)
+}
+
+const onWindowPointerUp = (e: PointerEvent) => {
+  if (!personDragState || personDragState.pointerId !== e.pointerId) return
+  onPersonPointerUp(e)
+}
+
+const onWindowBlur = () => {
+  if (!personDragState) return
+  resetPersonDragState()
 }
 
 // 從 seat 拿掉某參與者（點 seat dot 上的 participant 圓圈）
@@ -1152,6 +1193,9 @@ async function reloadAllForEvent(eid: number) {
 }
 
 onMounted(async () => {
+  window.addEventListener('pointerup', onWindowPointerUp, true)
+  window.addEventListener('pointercancel', onWindowPointerUp, true)
+  window.addEventListener('blur', onWindowBlur)
   const eid = eventsStore.currentEvent?.id
   if (eid) await reloadAllForEvent(eid)
 })
@@ -1168,6 +1212,10 @@ watch(() => eventsStore.currentEvent?.id, async (newId, oldId) => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('pointerup', onWindowPointerUp, true)
+  window.removeEventListener('pointercancel', onWindowPointerUp, true)
+  window.removeEventListener('blur', onWindowBlur)
+  resetPersonDragState()
   // 元件卸載前確保 pending bulk-coords 立即送出，不要靠 timer
   const eid = eventsStore.currentEvent?.id
   if (eid) tablesStore.flushNow(eid)
@@ -1330,22 +1378,23 @@ onBeforeUnmount(() => {
             text-anchor="middle" font-size="10" class="vm-table-cap"
           >{{ t.capacity }} 位</text>
 
-          <!-- 點選桌位後顯示右上角刪除 X（不需再去 header 點按鈕） -->
+          <!-- 點選桌位後顯示右上角刪除 X
+               位置上提到 y=-32（topmost seat 邊緣 y=-26 + 6px 縫），避免跟座位重疊 -->
           <g
             v-if="selectedTableId === t.id"
             class="vm-table-delete"
-            :transform="`translate(${tableWidth(t) + 12}, -6)`"
+            :transform="`translate(${tableWidth(t) - 8}, -32)`"
             @pointerdown.stop.prevent
             @click.stop="removeTable(t.id)"
           >
             <circle cx="0" cy="0" r="12" />
             <text x="0" y="1" text-anchor="middle" dominant-baseline="middle">×</text>
           </g>
-          <!-- 點選桌位後顯示左上角編輯按鈕（C1） -->
+          <!-- 點選桌位後顯示左上角編輯按鈕（C1）— 同樣上提避開座位 -->
           <g
             v-if="selectedTableId === t.id"
             class="vm-table-edit"
-            transform="translate(-12, -6)"
+            transform="translate(8, -32)"
             @pointerdown.stop.prevent
             @click.stop="openEditTable(t)"
           >
@@ -1773,8 +1822,6 @@ onBeforeUnmount(() => {
   transition: fill .18s ease, stroke .18s ease, stroke-width .18s ease, transform .18s ease, filter .18s ease;
 }
 .vm-table:hover .vm-seat { stroke: #337168; }
-.vm-table.rect .vm-seat,
-.vm-table.rect:hover .vm-seat { display: none; }
 .vm-seat.assigned {
   fill: #337168;
   stroke: #1e3a8a;
