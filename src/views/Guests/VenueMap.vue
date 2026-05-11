@@ -336,7 +336,7 @@ function tableCenter(t: VenueTable): { x: number; y: number } {
 
 // ── P4 視覺：圓桌 / 方桌座位點位 ─────────────────────────────
 // 圓桌：sin/cos 環圈
-// 方桌：top + bottom 兩排（容量平均分配，奇數時 top 多 1）
+// 方桌：四邊均分（依邊長比例分配，例如 capacity 10 → 上下各 3、左右各 2）
 function getSeatPositions(t: VenueTable): Array<{ x: number; y: number }> {
   const n = t.capacity
   if (n <= 0) return []
@@ -354,21 +354,47 @@ function getSeatPositions(t: VenueTable): Array<{ x: number; y: number }> {
     }
     return positions
   }
-  // rect：上下兩排平均分（C2 補座位點）
+  // rect：四邊均分（按邊長比例 — capacity 10 / w:h = 1.5:1 → 上下各 3、左右各 2）
   const w = TABLE_SIZE * 1.5
   const h = TABLE_SIZE
-  const top = Math.ceil(n / 2)
-  const bot = n - top
-  const positions: Array<{ x: number; y: number }> = []
-  // top edge
-  for (let i = 0; i < top; i++) {
-    const fx = (i + 1) / (top + 1)
-    positions.push({ x: w * fx, y: -SEAT_OFFSET })
+  const sumLen = 2 * (w + h)
+  const fTop = (n * w) / sumLen
+  const fBot = (n * w) / sumLen
+  const fLeft = (n * h) / sumLen
+  const fRight = (n * h) / sumLen
+  let top = Math.floor(fTop)
+  let bot = Math.floor(fBot)
+  let left = Math.floor(fLeft)
+  let right = Math.floor(fRight)
+  // 把剩餘配額按小數大小依序補到各邊（同序為長邊優先）
+  const remainder = n - (top + bot + left + right)
+  const fracs = [
+    { side: 'top', frac: fTop - top },
+    { side: 'bot', frac: fBot - bot },
+    { side: 'left', frac: fLeft - left },
+    { side: 'right', frac: fRight - right },
+  ].sort((a, b) => b.frac - a.frac)
+  for (let i = 0; i < remainder; i++) {
+    const s = fracs[i % 4].side
+    if (s === 'top') top++
+    else if (s === 'bot') bot++
+    else if (s === 'left') left++
+    else right++
   }
-  // bottom edge
+  const positions: Array<{ x: number; y: number }> = []
+  // 順序：top L→R, right T→B, bottom L→R, left T→B
+  // （順序固定才能讓 seat_no 與分配對應穩定）
+  for (let i = 0; i < top; i++) {
+    positions.push({ x: w * ((i + 1) / (top + 1)), y: -SEAT_OFFSET })
+  }
+  for (let i = 0; i < right; i++) {
+    positions.push({ x: w + SEAT_OFFSET, y: h * ((i + 1) / (right + 1)) })
+  }
   for (let i = 0; i < bot; i++) {
-    const fx = (i + 1) / (bot + 1)
-    positions.push({ x: w * fx, y: h + SEAT_OFFSET })
+    positions.push({ x: w * ((i + 1) / (bot + 1)), y: h + SEAT_OFFSET })
+  }
+  for (let i = 0; i < left; i++) {
+    positions.push({ x: -SEAT_OFFSET, y: h * ((i + 1) / (left + 1)) })
   }
   return positions
 }
