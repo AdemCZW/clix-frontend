@@ -357,6 +357,22 @@ const exportData = async (exportType: string) => {
     return row;
   });
 
+  // P0.11 第 41 次稽核：Excel 公式注入防護
+  // 任何儲存格值若以 = + - @ 開頭，Excel/Numbers 開啟時會嘗試當公式執行
+  // 例：`=cmd|' /C calc'!A0` 可觸發外部執行（CVE 級風險）
+  // 修法：對字串型 cell 統一加單引號前綴（Excel 會視為文字不執行）
+  const FORMULA_PREFIXES = ['=', '+', '-', '@', '\t', '\r'];
+  const sanitizeCell = (v: unknown) => {
+    if (typeof v !== 'string') return v;
+    if (v.length === 0) return v;
+    return FORMULA_PREFIXES.includes(v[0]) ? "'" + v : v;
+  };
+  for (const row of exportList) {
+    for (const k of Object.keys(row)) {
+      row[k] = sanitizeCell(row[k]);
+    }
+  }
+
   const XLSX = await loadXLSX();
   const worksheet = XLSX.utils.json_to_sheet(exportList);
   const workbook = XLSX.utils.book_new();
