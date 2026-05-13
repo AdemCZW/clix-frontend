@@ -15,6 +15,9 @@ export const IMPORT_HEADER_ALIASES: Record<string, string[]> = {
   type: ['身分', '類型', '參加身份', '身份別', 'VIP類型', 'Type'],
   status: ['報到狀態', '狀態', '簽到狀態', '報名狀態', 'Status'],
   ticket: ['票種ID', '票種名稱', '票券', '票種', 'Ticket'],
+  // 外部票號（第 40 次）：對應 Participant.external_ticket_id
+  // QR Code 內容用此值取代內部 UUID；掃描報到端會雙軌 lookup
+  external_ticket_id: ['票號', '外部票號', 'External Ticket ID', 'Ticket ID', 'ticket_id'],
 }
 
 // `type` 值正規化（Excel 寫什麼 → 系統值）

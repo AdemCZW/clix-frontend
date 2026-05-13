@@ -37,6 +37,7 @@ function mapParticipant(p: RawParticipant): Participant {
         // ── 訂單 / 票券 / 自訂（5/5 schema）─────────────────────
         formAnswers: p.form_answers ?? {},
         extraImportData: p.extra_import_data ?? {},
+        externalTicketId: p.external_ticket_id ?? '',
         orderId: p.order ?? null,
         orderNumber: p.order_number ?? '',
         buyerName: p.buyer_name ?? '',

@@ -136,6 +136,25 @@ const customAnswerRows = computed<CustomAnswerRow[]>(() => {
     }));
 });
 
+// 匯入 loading 進度（第 40 次）
+type ImportStage = "" | "reading" | "validating" | "uploading";
+const importStage = ref<ImportStage>("");
+const importProgress = ref<{ current: number; total: number }>({ current: 0, total: 0 });
+const isImporting = computed(() => importStage.value !== "");
+const importStageLabel = computed(() => {
+  switch (importStage.value) {
+    case "reading": return "讀取 Excel 檔案…";
+    case "validating": return "驗證資料中…";
+    case "uploading": return "上傳到伺服器…";
+    default: return "";
+  }
+});
+const importProgressPct = computed(() => {
+  const { current, total } = importProgress.value;
+  if (importStage.value !== "validating" || total === 0) return null;
+  return Math.min(100, Math.round((current / total) * 100));
+});
+
 // Excel 額外資料（P1.8 第 39 次：改存到 Participant.extra_import_data 直屬欄位）
 // 相容舊資料：若新欄位空但 formAnswers.__extra_import 有，仍能讀出來
 const extraImportRows = computed<Array<{ key: string; value: string }>>(() => {
@@ -366,6 +385,9 @@ const handleImport = async (e: Event) => {
     return;
   }
 
+  importStage.value = "reading";
+  importProgress.value = { current: 0, total: 0 };
+
   const reader = new FileReader();
   reader.onload = async (event) => {
     const data = new Uint8Array((event.target as FileReader).result as ArrayBuffer);
@@ -389,10 +411,20 @@ const handleImport = async (e: Event) => {
       }
     }
 
-    // 用 helper 把 Excel row 正規化（alias mapping + type/status 值正規化 + form_answers 收集）
-    const normalized = (rawData as Record<string, unknown>[]).map((item) =>
-      normalizeImportRow(item, formFields),
-    );
+    // 切到「驗證資料」階段，顯示真實 row count 進度（chunked + yield 讓 UI 能更新）
+    importStage.value = "validating";
+    const rows = rawData as Record<string, unknown>[];
+    importProgress.value = { current: 0, total: rows.length };
+
+    const normalized: ReturnType<typeof normalizeImportRow>[] = [];
+    const CHUNK = 50;
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const slice = rows.slice(i, i + CHUNK).map((item) => normalizeImportRow(item, formFields));
+      normalized.push(...slice);
+      importProgress.value = { current: normalized.length, total: rows.length };
+      // 讓給瀏覽器 repaint progress bar（不 yield 的話 JS single-thread 看不到更新）
+      await new Promise((r) => setTimeout(r, 0));
+    }
 
     // ── 未知欄位預覽（B 階段防呆）──
     // 聯集所有 row 的 unknown_columns header（過濾全空欄位 — 全空通常是 Excel 多餘欄位，不需要警告）
@@ -492,6 +524,7 @@ const handleImport = async (e: Event) => {
       return payload;
     });
 
+    importStage.value = "uploading";
     try {
       const result = await participantsStore.importParticipants(sanitizedData, eventsStore.currentEvent?.id ?? 0);
 
@@ -530,6 +563,9 @@ const handleImport = async (e: Event) => {
       participantsStore.clearError();
     } finally {
       (e.target as HTMLInputElement).value = "";
+      // 重置匯入 loading 狀態
+      importStage.value = "";
+      importProgress.value = { current: 0, total: 0 };
     }
   };
   reader.readAsArrayBuffer(file);
@@ -640,6 +676,25 @@ const formatDate = (isoString: string) => {
     <div v-if="participantsStore.loading" class="loading-overlay">
       <LogoSpinner :size="40" />
       <p>載入中...</p>
+    </div>
+
+    <!-- 匯入 Loading 進度遮罩（第 40 次）-->
+    <div v-if="isImporting" class="import-overlay">
+      <div class="import-card">
+        <div class="import-spinner" :class="{ 'pct-mode': importProgressPct !== null }">
+          <svg v-if="importProgressPct === null" viewBox="0 0 50 50" class="spin">
+            <circle cx="25" cy="25" r="20" fill="none" stroke="#167A67" stroke-width="4" stroke-linecap="round" stroke-dasharray="80 200" />
+          </svg>
+          <div v-else class="pct-text">{{ importProgressPct }}%</div>
+        </div>
+        <div class="import-stage-text">{{ importStageLabel }}</div>
+        <div v-if="importProgress.total > 0" class="import-count">
+          {{ importProgress.current }} / {{ importProgress.total }} 筆
+        </div>
+        <div v-if="importProgressPct !== null" class="import-bar">
+          <div class="import-bar-fill" :style="{ width: importProgressPct + '%' }"></div>
+        </div>
+      </div>
     </div>
 
     <!-- 頂部操作列 -->
@@ -1817,6 +1872,77 @@ const formatDate = (isoString: string) => {
   background: #fef3c7;
   color: #92400e;
   font-weight: 700;
+}
+
+/* 匯入 loading 遮罩（第 40 次） */
+.import-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: io-fade-in 0.18s ease-out;
+}
+@keyframes io-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.import-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px 36px;
+  min-width: 320px;
+  max-width: 90vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.import-spinner {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.import-spinner.pct-mode {
+  background: #e8f5f1;
+  border-radius: 50%;
+  border: 3px solid #167A67;
+}
+.import-spinner .spin {
+  width: 100%;
+  height: 100%;
+  animation: io-spin 1s linear infinite;
+}
+@keyframes io-spin { to { transform: rotate(360deg); } }
+.pct-text {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #167A67;
+  font-variant-numeric: tabular-nums;
+}
+.import-stage-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+.import-count {
+  font-size: 0.82rem;
+  color: #475569;
+  font-variant-numeric: tabular-nums;
+}
+.import-bar {
+  width: 240px;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.import-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #167A67 0%, #0f5d4e 100%);
+  transition: width 0.15s ease;
 }
 
 /* P1.8 B+：Excel 額外資料隔離區 */
