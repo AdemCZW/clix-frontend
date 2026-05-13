@@ -9,11 +9,15 @@ const slot = computed(() => String(route.params.slot || "1"));
 const eventId = computed(() => String(route.query.event || ""));
 
 // QR Code 圖片生成
+// QR 內容優先用外部票號（external_ticket_id），fallback 用內部 check_in_token UUID。
+// checkInToken 仍保留作 stable identifier（後端推過來不會變的 UUID）。
 const qrDataUrls = ref<Record<string, string>>({});
 async function ensureQr(token: string) {
   if (!token || qrDataUrls.value[token]) return;
   qrDataUrls.value[token] = await QRCodeLib.toDataURL(token, { width: 80, margin: 1 });
 }
+const qrTokenOf = (p: { externalTicketId?: string; checkInToken: string }) =>
+  (p.externalTicketId || "").trim() || p.checkInToken;
 
 // 預覽用：保留最後一筆列印資料（列印後不清空，方便確認）
 interface PrintData {
@@ -22,6 +26,7 @@ interface PrintData {
   company: string;
   title: string;
   checkInToken: string;
+  externalTicketId: string;
 }
 
 const lastPrint = ref<PrintData | null>(null);
@@ -113,8 +118,9 @@ async function handleWsPrint(raw: Record<string, unknown>) {
     company: (raw.company as string) || "",
     title: (raw.title as string) || "",
     checkInToken: raw.check_in_token as string,
+    externalTicketId: (raw.external_ticket_id as string) || "",
   };
-  await ensureQr(p.checkInToken);
+  await ensureQr(qrTokenOf(p));
   lastPrint.value = p;
   wsCurrentPrint.value = p;
   wsLog.value.unshift({
@@ -219,8 +225,8 @@ onUnmounted(() => disconnectWebSocket());
                   {{ lastPrint ? lastPrint.company : '[單位]' }}
                 </template>
                 <template v-else-if="el.key === 'code'">
-                  <img v-if="lastPrint && qrDataUrls[lastPrint.checkInToken]"
-                    :src="qrDataUrls[lastPrint.checkInToken]" width="80" height="80" />
+                  <img v-if="lastPrint && qrDataUrls[qrTokenOf(lastPrint)]"
+                    :src="qrDataUrls[qrTokenOf(lastPrint)]" width="80" height="80" />
                   <div v-else style="width:80px;height:80px;background:#1e293b;border-radius:4px;border:1px solid #334155;"></div>
                 </template>
               </div>

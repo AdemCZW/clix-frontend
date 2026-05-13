@@ -155,14 +155,18 @@ const toggleAll = () => {
 };
 
 // QR Code 圖片生成
+// QR 內容優先用外部票號（external_ticket_id，匯入 Excel 的票號），fallback 用內部 check_in_token UUID。
+// 注意：checkInToken 仍是參與者「身分比對」用的 stable id，不要替換成 externalTicketId（票號可能重複/可改）。
 const qrDataUrls = ref<Record<string, string>>({});
+const qrTokenOf = (p: { externalTicketId?: string; checkInToken: string }) =>
+  (p.externalTicketId || "").trim() || p.checkInToken;
 async function ensureQr(token: string) {
   if (!token || qrDataUrls.value[token]) return;
   qrDataUrls.value[token] = await QRCodeLib.toDataURL(token, { width: 80, margin: 1 });
 }
 watch(
   selectedParticipants,
-  (participants) => participants.forEach((p) => ensureQr(p.checkInToken)),
+  (participants) => participants.forEach((p) => ensureQr(qrTokenOf(p))),
   { immediate: true }
 );
 
@@ -540,8 +544,8 @@ watch(logoUrl, (val) => {
           >
             <template v-if="el.label === 'QR編碼'">
               <img
-                v-if="qrDataUrls[selectedParticipants[0]?.checkInToken]"
-                :src="qrDataUrls[selectedParticipants[0]?.checkInToken]"
+                v-if="selectedParticipants[0] && qrDataUrls[qrTokenOf(selectedParticipants[0])]"
+                :src="qrDataUrls[qrTokenOf(selectedParticipants[0])]"
                 width="80"
                 height="80"
               />
@@ -606,8 +610,8 @@ watch(logoUrl, (val) => {
           <template v-else-if="el.key === 'company'">{{ p.company }}</template>
           <template v-else-if="el.key === 'code'">
             <img
-              v-if="qrDataUrls[p.checkInToken]"
-              :src="qrDataUrls[p.checkInToken]"
+              v-if="qrDataUrls[qrTokenOf(p)]"
+              :src="qrDataUrls[qrTokenOf(p)]"
               width="80"
               height="80"
             />
