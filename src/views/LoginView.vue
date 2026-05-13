@@ -1,12 +1,25 @@
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { reactive, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { useToast } from "@/composables/useToast";
 
 const router = useRouter();
 const userStore = useUserStore();
-const { success, error } = useToast();
+const { success, error, warning } = useToast();
+
+// P1.7：api.ts 在 401 / refresh 失敗時設這個旗標，這裡接力顯示 toast
+// 用 sessionStorage 是因為 api.ts 在 Vue setup context 外無法直接呼 useToast
+onMounted(() => {
+  try {
+    if (sessionStorage.getItem("auth_expired_toast") === "1") {
+      warning("登入已過期，請重新登入");
+      sessionStorage.removeItem("auth_expired_toast");
+    }
+  } catch {
+    // 隱私模式可能擋下 sessionStorage — 靜默忽略
+  }
+});
 
 const loginForm = reactive({
   username: "",

@@ -17,9 +17,25 @@ type ApiRequestOptions = RequestInit & {
 
 let refreshPromise: Promise<string> | null = null
 
+// P1.7：登入過期前留訊息給 LoginView，並帶 redirect 讓登入後回原頁
+// 用 sessionStorage 跨組件傳遞（api.ts 在 Vue setup context 外，無法直接呼 useToast）
 const clearAuthAndRedirect = (): never => {
     clearAuth()
-    window.location.href = '/#/login'
+    try {
+        sessionStorage.setItem('auth_expired_toast', '1')
+    } catch {
+        // 隱私模式可能擋下 sessionStorage，靜默 — toast 沒了但流程仍正確
+    }
+    // hash router：當前路徑來自 location.hash，剝掉前置 #
+    const currentHash = window.location.hash || ''
+    const currentPath = currentHash.replace(/^#/, '').split('?')[0]
+    // 已經在 /login（或無路徑）就不重導；避免登入頁自身 401 造成 redirect 循環
+    if (!currentPath || currentPath.startsWith('/login')) {
+        window.location.href = '/#/login'
+    } else {
+        const redirectParam = encodeURIComponent(currentPath)
+        window.location.href = `/#/login?redirect=${redirectParam}`
+    }
     throw new Error('Authentication expired, please login again')
 }
 
