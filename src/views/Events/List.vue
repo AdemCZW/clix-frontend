@@ -134,8 +134,8 @@
         <input type="time" v-model="newEvent.time" />
       </div>
       <div class="form-group">
-        <label>活動地點 *</label>
-        <input type="text" v-model="newEvent.location" placeholder="請輸入活動地點" />
+        <label>活動地點</label>
+        <input type="text" v-model="newEvent.location" placeholder="活動舉辦地點（選填）" />
       </div>
       <div class="form-group">
         <label>詳細地址</label>
@@ -185,8 +185,8 @@
           <input type="time" v-model="editingEvent.time" />
         </div>
         <div class="form-group">
-          <label>活動地點 *</label>
-          <input type="text" v-model="editingEvent.location" placeholder="請輸入活動地點" />
+          <label>活動地點</label>
+          <input type="text" v-model="editingEvent.location" placeholder="活動舉辦地點（選填）" />
         </div>
         <div class="form-group">
           <label>詳細地址</label>
@@ -490,8 +490,9 @@ const editEvent = (event: Event) => switchEvent(event, "/admin/registration-sett
 const viewDetails = (event: Event) => switchEvent(event, "/admin/registration-setting");
 
 const createEvent = async () => {
-  if (!newEvent.value.name || !newEvent.value.date || !newEvent.value.time || !newEvent.value.location) {
-    error("請填寫活動名稱、日期、時間與地點");
+  // location 已改為選填（對齊 OnboardingModal + backend model）
+  if (!newEvent.value.name || !newEvent.value.date || !newEvent.value.time) {
+    error("請填寫活動名稱、日期、時間");
     return;
   }
   try {
