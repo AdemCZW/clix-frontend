@@ -31,6 +31,7 @@ export interface NormalizedImportRow {
   type: 'VIP' | '一般民眾'
   status: '已報到' | '未報到'
   ticket?: number | null
+  external_ticket_id?: string
   form_answers: Record<string, string>
   unknown_columns: Record<string, string>
   /**
@@ -108,6 +109,10 @@ export function normalizeImportRow(
           }
           break
         }
+        case 'external_ticket_id':
+          // 票號：純字串，trim 後直接帶；空值不傳，讓後端 fallback 用內部 UUID
+          if (stringValue) fixed.external_ticket_id = stringValue
+          break
         default:
           // name / company / title / phone / email
           ;(fixed as Record<string, string>)[systemKey] = stringValue
@@ -141,6 +146,7 @@ export function normalizeImportRow(
     type: fixed.type ?? '一般民眾',
     status: fixed.status ?? '未報到',
     ticket: fixed.ticket ?? null,
+    external_ticket_id: fixed.external_ticket_id ?? '',
     form_answers: formAnswers,
     unknown_columns: unknownColumns,
     validation_issues: validationIssues,
