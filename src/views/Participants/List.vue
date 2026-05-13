@@ -377,6 +377,39 @@ const handleExport = () => {
 const fileInput = ref<HTMLInputElement | null>(null);
 const triggerImport = () => fileInput.value!.click();
 
+// 批次清除當前活動全部參與者（給「匯入錯了要重來」場景）
+const bulkClearCurrentEvent = async () => {
+  const eventId = eventsStore.currentEvent?.id;
+  if (!eventId) {
+    showError("請先選擇活動");
+    return;
+  }
+  const count = participantsStore.participants.length;
+  if (count === 0) {
+    warning("目前沒有可清除的參與者");
+    return;
+  }
+  const ok = await confirm({
+    title: "⚠️ 清除全部參與者",
+    message:
+      `將永久刪除「${eventsStore.currentEvent?.name}」內全部 ${count} 筆參與者。\n\n` +
+      `此操作無法復原（包含他們的 QR Code / 座位分配等資料）。\n\n` +
+      `常見場景：剛匯入有錯，要刪光重匯。\n\n` +
+      `確定要繼續？`,
+    confirmText: "確認清除",
+    cancelText: "取消",
+    danger: true,
+  });
+  if (!ok) return;
+  try {
+    const result = await participantsStore.bulkDeleteByEvent(eventId);
+    success(`✅ ${result.message}`);
+    await participantsStore.fetchParticipants({ event: String(eventId) });
+  } catch (err: unknown) {
+    showError((err as Error).message || "批次刪除失敗");
+  }
+};
+
 const formatImportErrorDetails = (errors: Array<Record<string, unknown>>, maxRows = 8) => {
   const preview = errors.slice(0, maxRows).map((err) => {
     const errorMap = (err.errors || {}) as Record<string, string[] | string>;
@@ -737,6 +770,12 @@ const formatDate = (isoString: string) => {
         </select>
       </div>
       <div class="top-bar-right">
+        <button
+          class="tb outline danger-outline"
+          :disabled="participantsStore.participants.length === 0"
+          @click="bulkClearCurrentEvent"
+          title="清除當前活動全部參與者（不可復原）"
+        >⚠️ 全部清除</button>
         <button class="tb outline" @click="triggerImport">匯入</button>
         <div class="export-dropdown">
           <button class="tb outline" :disabled="isExporting" @click="handleExport">匯出</button>
@@ -1752,6 +1791,16 @@ const formatDate = (isoString: string) => {
 .tb.primary { background:#167A67; color:#fff; }
 .tb.primary:hover { background:#0f5d4e; }
 .tb.danger { background:transparent; color:#ef4444; border:1px solid #fecaca; }
+.tb.danger-outline {
+  background: #fff;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+.tb.danger-outline:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+.tb.danger-outline:disabled { opacity: 0.4; cursor: not-allowed; }
 .tb.danger:hover { background:#fef2f2; }
 .tb:disabled { opacity:.5; cursor:not-allowed; }
 

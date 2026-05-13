@@ -118,6 +118,20 @@ export const useParticipantsStore = defineStore('participants', () => {
             participants.value = participants.value.filter(p => p.id !== id)
         })
 
+    const bulkDeleteByEvent = (eventId: number) =>
+        run(async () => {
+            const res = await apiRequest('/api/participants/bulk_delete_by_event/', {
+                method: 'POST',
+                body: JSON.stringify({ event: eventId, confirm: true }),
+            })
+            if (!res.ok) throw new Error(await parseApiError(res, `批次刪除失敗 (${res.status})`))
+            const data = await res.json()
+            // 清掉當前活動 cache 內的 participants
+            participants.value = participants.value.filter(p => p.eventId !== eventId)
+            cache.invalidate?.()
+            return data as { deleted: number; message: string }
+        })
+
     const checkinByToken = (token: string) =>
         run(async () => {
             const res = await apiRequest('/api/participants/checkin_by_token/', {
@@ -243,6 +257,7 @@ export const useParticipantsStore = defineStore('participants', () => {
         createParticipant,
         updateParticipant,
         deleteParticipant,
+        bulkDeleteByEvent,
         checkinByToken,
         checkIn,
         checkOut,
