@@ -6,6 +6,7 @@ import { useToast } from "@/composables/useToast";
 import { useConfirm } from "@/composables/useConfirm";
 import { ImportValidationError, useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
+import { useRegistrationPagesStore } from "@/stores/registrationPages";
 import PageLoader from "@/components/shared/PageLoader.vue";
 import LogoSpinner from '@/components/shared/LogoSpinner.vue';
 import type { Participant } from "@/types";
@@ -85,6 +86,54 @@ const generalCount = computed(
 
 // 編輯面板狀態
 const editingParticipant = ref<Participant | null>(null);
+const editTab = ref<"basic" | "custom">("basic");
+
+// 自訂欄位顯示用 — 從當前活動的 RegistrationFormField 抓 label
+// 跟匯出 Excel 用同一份資料，避免重複 fetch
+const pagesStore = useRegistrationPagesStore();
+type FormFieldDef = { field_key?: string | null; label?: string; is_hidden?: boolean };
+const eventFormFields = ref<FormFieldDef[]>([]);
+async function loadEventFormFields() {
+  eventFormFields.value = [];
+  const eventId = eventsStore.currentEvent?.id;
+  if (!eventId) return;
+  try {
+    const page = await pagesStore.fetchByEvent(eventId);
+    eventFormFields.value = (page?.formFields as FormFieldDef[]) || [];
+  } catch {
+    eventFormFields.value = [];
+  }
+}
+watch(() => eventsStore.currentEvent?.id, loadEventFormFields, { immediate: true });
+
+// SYSTEM_FIELD_KEYS 在 export 段已定義同名常數；這裡為避免 hoisting 重複，inline 使用
+const SYSTEM_FIELD_KEYS_SET = new Set([
+  "name", "email", "phone",
+  "buyer_name", "buyer_email", "buyer_phone",
+  "note", "promo_code",
+]);
+
+// 切換 participant 時重置回基本 tab
+watch(editingParticipant, () => { editTab.value = "basic"; });
+
+interface CustomAnswerRow { key: string; label: string; value: string; deprecated: boolean }
+const customAnswerRows = computed<CustomAnswerRow[]>(() => {
+  const fa = (editingParticipant.value?.formAnswers || {}) as Record<string, unknown>;
+  // 建 label 查表：field_key 或 label 都 → 顯示用 label
+  const labelMap = new Map<string, string>();
+  eventFormFields.value.forEach((f) => {
+    const k = f.field_key || f.label;
+    if (k) labelMap.set(k, f.label || k);
+  });
+  return Object.entries(fa)
+    .filter(([key]) => !SYSTEM_FIELD_KEYS_SET.has(key))
+    .map(([key, value]) => ({
+      key,
+      label: labelMap.get(key) || key,
+      value: value == null ? "" : String(value),
+      deprecated: !labelMap.has(key),  // 該 key 不在當前活動的 form_fields 內
+    }));
+});
 
 // 【核心過濾邏輯】依據標籤 + 搜尋 + 狀態
 const filteredList = computed(() => {
@@ -626,7 +675,25 @@ const formatDate = (isoString: string) => {
             <h3>{{ editingParticipant.name }}</h3>
             <button class="panel-close" @click="editingParticipant = null">✕</button>
           </div>
-          <div class="panel-body">
+          <!-- Tab 切換：基本資料 / 自訂欄位（form_answers）-->
+          <div class="panel-tabs">
+            <button
+              type="button"
+              class="panel-tab"
+              :class="{ active: editTab === 'basic' }"
+              @click="editTab = 'basic'"
+            >基本資料</button>
+            <button
+              type="button"
+              class="panel-tab"
+              :class="{ active: editTab === 'custom' }"
+              @click="editTab = 'custom'"
+            >
+              自訂欄位
+              <span v-if="customAnswerRows.length" class="tab-count">{{ customAnswerRows.length }}</span>
+            </button>
+          </div>
+          <div v-show="editTab === 'basic'" class="panel-body">
             <div class="fg"><label>姓名</label><input v-model="editingParticipant.name" class="fi" /></div>
             <div class="fg"><label>公司</label><input v-model="editingParticipant.company" class="fi" /></div>
             <div class="fg"><label>職稱</label><input v-model="editingParticipant.title" class="fi" /></div>
@@ -656,6 +723,22 @@ const formatDate = (isoString: string) => {
               <img :src="editingParticipant.qrCodeUrl" alt="QR" class="qr-img" />
               <a :href="editingParticipant.qrCodeUrl" download="qrcode.png" class="qr-dl">下載 QR Code</a>
             </div>
+          </div>
+          <!-- 自訂欄位 tab：read-only 顯示 form_answers，對應當前活動的 RegistrationFormField label -->
+          <div v-show="editTab === 'custom'" class="panel-body">
+            <div v-if="customAnswerRows.length === 0" class="custom-empty">
+              此參與者沒有自訂欄位資料
+              <span class="custom-empty-hint">（若報名表有自訂欄位但這裡空白，可能此參與者是後台手動建立或匯入時未填）</span>
+            </div>
+            <template v-else>
+              <div v-for="row in customAnswerRows" :key="row.key" class="fg readonly">
+                <label>
+                  {{ row.label }}
+                  <span v-if="row.deprecated" class="deprecated-tag" title="此欄位已不在當前報名表設定中">已下架</span>
+                </label>
+                <div class="fi-ro custom-value">{{ row.value || "（空白）" }}</div>
+              </div>
+            </template>
           </div>
           <div class="panel-footer">
             <button class="tb danger" @click.stop="deleteParticipant(editingParticipant)">刪除</button>
@@ -1583,7 +1666,87 @@ const formatDate = (isoString: string) => {
   color:var(--text-muted); padding:4px 8px; border-radius:6px;
 }
 .panel-close:hover { background:var(--bg-hover); }
+
+/* Tab 切換（基本資料 / 自訂欄位） */
+.panel-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+.panel-tab {
+  position: relative;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.panel-tab:hover { color: var(--text-main); }
+.panel-tab.active {
+  color: #167A67;
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 2px;
+    background: #167A67;
+  }
+}
+.tab-count {
+  background: #167A67;
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  min-width: 18px;
+  text-align: center;
+}
+.panel-tab:not(.active) .tab-count {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
 .panel-body { padding:14px 16px; overflow-y:auto; flex:1; }
+
+/* 自訂欄位 tab 空狀態 */
+.custom-empty {
+  text-align: center;
+  padding: 40px 16px 20px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.custom-empty-hint {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.76rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  opacity: 0.75;
+}
+.custom-value {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.deprecated-tag {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 0.66rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 700;
+}
 .fg { margin-bottom:12px; }
 .fg label {
   display:block; font-size:.78rem; font-weight:600;
