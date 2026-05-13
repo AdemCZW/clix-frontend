@@ -264,13 +264,22 @@ const formatDate = (date: string) => {
 };
 
 // 匯出 Excel
+// P0.11 第 43 次稽核：公式注入防護
+// 任何儲存格值若以 = + - @ \t \r 開頭，Excel/Numbers 開啟會嘗試當公式執行
+// 修法：對字串型 cell 前綴 ' 字元（Excel 視為文字不執行）
+const FORMULA_PREFIXES = ["=", "+", "-", "@", "\t", "\r"];
+const sanitizeCell = (v: unknown): unknown => {
+  if (typeof v !== "string" || v.length === 0) return v;
+  return FORMULA_PREFIXES.includes(v[0]) ? "'" + v : v;
+};
+
 const exportEventData = async (event: LocalEvent) => {
   const data = event.participants.map((p) => ({
-    姓名: p.name,
-    公司: p.company,
-    職稱: p.title,
-    Email: p.email,
-    電話: p.phone,
+    姓名: sanitizeCell(p.name),
+    公司: sanitizeCell(p.company),
+    職稱: sanitizeCell(p.title),
+    Email: sanitizeCell(p.email),
+    電話: sanitizeCell(p.phone),
     報到狀態: p.checkedIn ? "已報到" : "未報到",
     報名時間: formatDate(p.registeredAt),
   }));
