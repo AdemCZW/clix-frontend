@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import vPrint from "vue3-print-nb";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
+import { useRegistrationPagesStore } from "@/stores/registrationPages";
 import { getAccessToken } from "@/utils/authStorage";
 import QRCodeLib from "qrcode";
 import jsQR from "jsqr";
@@ -10,6 +11,7 @@ import PageLoader from "@/components/shared/PageLoader.vue";
 
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
+const pagesStore = useRegistrationPagesStore();
 
 const logoUrl = ref("");
 const logoFile = ref<File | null>(null);
@@ -72,6 +74,118 @@ function stopDrag() {
 
 const activeElement = ref<BadgeElement | null>(null);
 
+// ── 範本可用欄位 ─────────────────────────────────
+// 基本欄位（系統內建在 Participant 上的欄位）
+// 渲染時用 getFieldValue 對應，code 是 QR 特例（用 qrTokenOf）
+const BASIC_FIELD_OPTIONS: { key: string; label: string }[] = [
+  { key: "name", label: "姓名" },
+  { key: "company", label: "單位" },
+  { key: "title", label: "職稱" },
+  { key: "email", label: "Email" },
+  { key: "phone", label: "電話" },
+  { key: "type", label: "身分" },
+  { key: "external_ticket_id", label: "票號" },
+  { key: "code", label: "QR Code" },
+];
+
+// 自訂欄位 — 從 RegistrationPage.formFields 撈當前活動的（過濾系統 fixed / 隱藏 / 無 field_key 者）
+const customFieldOptions = ref<{ key: string; label: string }[]>([]);
+const loadingCustomFields = ref(false);
+const customFieldsError = ref("");
+
+async function loadCustomFields() {
+  const eventId = eventsStore.currentEvent?.id;
+  if (!eventId) {
+    customFieldOptions.value = [];
+    return;
+  }
+  loadingCustomFields.value = true;
+  customFieldsError.value = "";
+  try {
+    const page = await pagesStore.fetchByEvent(eventId);
+    const fields = page?.formFields ?? [];
+    const basicKeys = new Set(BASIC_FIELD_OPTIONS.map((o) => o.key));
+    customFieldOptions.value = fields
+      .filter((f) => !f.is_hidden && !f.is_fixed && f.field_key && !basicKeys.has(f.field_key))
+      .map((f) => ({ key: f.field_key as string, label: f.label || (f.field_key as string) }));
+  } catch {
+    customFieldOptions.value = [];
+    customFieldsError.value = "自訂欄位讀取失敗";
+  } finally {
+    loadingCustomFields.value = false;
+  }
+}
+
+// Field resolver：根據 element.key 從 participant 取值（QR 由 template 特例處理）
+function getFieldValue(p: Record<string, unknown>, key: string): string {
+  switch (key) {
+    case "name":
+    case "company":
+    case "title":
+    case "email":
+    case "phone":
+    case "type":
+      return String(p[key] ?? "");
+    case "external_ticket_id":
+      return String((p as { externalTicketId?: string }).externalTicketId ?? "");
+    case "code":
+      return ""; // QR 由 <img> 特例處理，不應走文字渲染
+    default: {
+      // 自訂欄位：查 form_answers[field_key]
+      const answers = (p as { formAnswers?: Record<string, unknown> }).formAnswers ?? {};
+      return String(answers[key] ?? "");
+    }
+  }
+}
+
+// ── 新增 / 移除項目 ───────────────────────────────
+const showAddModal = ref(false);
+const addTab = ref<"basic" | "custom">("basic");
+
+function openAddModal() {
+  showAddModal.value = true;
+  addTab.value = "basic";
+  // 開啟時刷新自訂欄位，避免使用者剛改了報名表又回來時看不到新欄位
+  loadCustomFields();
+}
+function closeAddModal() {
+  showAddModal.value = false;
+}
+
+function nextElementId(): string {
+  return `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function addElement(option: { key: string; label: string }) {
+  // 新項目擺空白處（依現有數量錯開），預設樣式向 company 看齊（不會太突兀）
+  const offsetIndex = templateElements.value.length;
+  const newEl: BadgeElement = {
+    id: nextElementId(),
+    key: option.key,
+    label: option.label,
+    x: 20,
+    y: 160 + offsetIndex * 24,
+    style: { fontSize: 14, fontWeight: "400", color: "#1e293b" },
+  };
+  // QR 預設大一點、放右側
+  if (option.key === "code") {
+    newEl.x = 230;
+    newEl.y = 20;
+    newEl.style.fontSize = 12;
+    newEl.style.color = "#cbd5e1";
+  }
+  templateElements.value.push(newEl);
+  activeElement.value = newEl;
+  closeAddModal();
+}
+
+function removeActiveElement() {
+  if (!activeElement.value) return;
+  const id = activeElement.value.id;
+  templateElements.value = templateElements.value.filter((el) => el.id !== id);
+  activeElement.value = null;
+}
+
 // 預設排版
 const defaultElements = [
   {
@@ -130,8 +244,11 @@ watch(
   async (newEvent) => {
     if (newEvent?.id) {
       await participantsStore.fetchParticipants({ event: String(newEvent.id) });
+      // 切活動 → 重抓自訂欄位（不同活動的報名表自訂欄位可能不同）
+      loadCustomFields();
     } else {
       participantsStore.clear();
+      customFieldOptions.value = [];
     }
   },
   { immediate: true }
@@ -521,6 +638,7 @@ watch(logoUrl, (val) => {
               <input type="file" accept="image/*" @change="handleLogoUpload" hidden />
             </label>
             <img v-if="logoUrl" :src="logoUrl" alt="Logo" class="logo-thumb" />
+            <button class="btn-sm primary" @click="openAddModal">+ 新增項目</button>
             <button class="btn-sm danger" @click="resetTemplate">重置排版</button>
             <span class="size-label">60 × 90 mm</span>
           </div>
@@ -542,7 +660,7 @@ watch(logoUrl, (val) => {
             }"
             @mousedown="(evt) => startDrag(el, evt)"
           >
-            <template v-if="el.label === 'QR編碼'">
+            <template v-if="el.key === 'code'">
               <img
                 v-if="selectedParticipants[0] && qrDataUrls[qrTokenOf(selectedParticipants[0])]"
                 :src="qrDataUrls[qrTokenOf(selectedParticipants[0])]"
@@ -579,8 +697,58 @@ watch(logoUrl, (val) => {
               <label>Y</label>
               <input type="number" v-model="activeElement.y" class="num-input" />
             </div>
+            <button class="btn-sm danger remove-btn" @click="removeActiveElement">移除</button>
           </div>
         </Transition>
+      </div>
+    </div>
+
+    <!-- 新增項目 Modal -->
+    <div v-if="showAddModal" class="add-modal-overlay no-print" @click.self="closeAddModal">
+      <div class="add-modal">
+        <div class="add-modal-header">
+          <h3>新增項目</h3>
+          <button class="btn-close-add" @click="closeAddModal">✕</button>
+        </div>
+        <div class="add-modal-tabs">
+          <button :class="{ active: addTab === 'basic' }" @click="addTab = 'basic'">基本項目</button>
+          <button :class="{ active: addTab === 'custom' }" @click="addTab = 'custom'">
+            自訂欄位
+            <span v-if="customFieldOptions.length" class="tab-count">{{ customFieldOptions.length }}</span>
+          </button>
+        </div>
+        <div class="add-modal-body">
+          <template v-if="addTab === 'basic'">
+            <button
+              v-for="opt in BASIC_FIELD_OPTIONS"
+              :key="opt.key"
+              class="add-option"
+              @click="addElement(opt)"
+            >
+              <span class="opt-label">{{ opt.label }}</span>
+              <span class="opt-key">{{ opt.key }}</span>
+            </button>
+          </template>
+          <template v-else>
+            <div v-if="loadingCustomFields" class="add-modal-empty">載入中…</div>
+            <div v-else-if="customFieldsError" class="add-modal-empty error">{{ customFieldsError }}</div>
+            <div v-else-if="!customFieldOptions.length" class="add-modal-empty">
+              此活動沒有可用的自訂欄位。
+              <br />
+              請先到「報名表欄位」頁面新增非系統預設欄位。
+            </div>
+            <button
+              v-else
+              v-for="opt in customFieldOptions"
+              :key="opt.key"
+              class="add-option"
+              @click="addElement(opt)"
+            >
+              <span class="opt-label">{{ opt.label }}</span>
+              <span class="opt-key">{{ opt.key }}</span>
+            </button>
+          </template>
+        </div>
       </div>
     </div>
 
@@ -606,9 +774,7 @@ watch(logoUrl, (val) => {
             whiteSpace: 'nowrap',
           }"
         >
-          <template v-if="el.key === 'name'">{{ p.name }}</template>
-          <template v-else-if="el.key === 'company'">{{ p.company }}</template>
-          <template v-else-if="el.key === 'code'">
+          <template v-if="el.key === 'code'">
             <img
               v-if="qrDataUrls[qrTokenOf(p)]"
               :src="qrDataUrls[qrTokenOf(p)]"
@@ -616,6 +782,7 @@ watch(logoUrl, (val) => {
               height="80"
             />
           </template>
+          <template v-else>{{ getFieldValue(p, el.key) }}</template>
         </div>
       </div>
     </div>
@@ -1032,6 +1199,7 @@ watch(logoUrl, (val) => {
   transition: all 0.2s;
   &:hover { border-color: var(--accent); color: #0f5d4e; background: #eef2ff; }
   &.danger { border-color: #fca5a5; background: #fff1f2; color: #ef4444; &:hover { background: #fee2e2; } }
+  &.primary { border-color: var(--accent); background: #eef9f4; color: #0f5d4e; &:hover { background: #d9f0e6; } }
 }
 
 .logo-thumb {
@@ -1039,6 +1207,118 @@ watch(logoUrl, (val) => {
   max-width: 60px;
   border-radius: 4px;
   object-fit: contain;
+}
+
+.remove-btn {
+  margin-left: auto;
+}
+
+.add-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.add-modal {
+  background: #fff;
+  width: 420px;
+  max-width: 92vw;
+  max-height: 80vh;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.add-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-color);
+  h3 { margin: 0; font-size: 1rem; }
+}
+.btn-close-add {
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  line-height: 1;
+  &:hover { color: var(--text-primary); }
+}
+.add-modal-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 18px 0;
+  border-bottom: 1px solid var(--border-color);
+  button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 8px 12px;
+    border-bottom: 2px solid transparent;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    &.active {
+      color: #0f5d4e;
+      border-bottom-color: var(--accent);
+    }
+  }
+  .tab-count {
+    background: #e8f5f1;
+    color: #0f5d4e;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 0.7rem;
+  }
+}
+.add-modal-body {
+  padding: 12px 18px 18px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.add-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  &:hover {
+    border-color: var(--accent);
+    background: #eef9f4;
+  }
+  .opt-key {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-weight: 400;
+  }
+}
+.add-modal-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 24px 12px;
+  font-size: 0.85rem;
+  &.error { color: #ef4444; }
 }
 
 .size-label {
