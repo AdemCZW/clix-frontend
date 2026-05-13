@@ -32,6 +32,14 @@ onMounted(async () => {
 
   // 監聽點擊外部關閉選單
   document.addEventListener("click", handleClickOutside);
+
+  // 瀏覽器 idle 時預載 xlsx vendor chunk（~425 KB），讓第一次匯入不用等下載
+  const prefetchXlsx = () => { loadXLSX().catch(() => {}); };
+  if (typeof (window as unknown as { requestIdleCallback?: unknown }).requestIdleCallback === "function") {
+    (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(prefetchXlsx);
+  } else {
+    setTimeout(prefetchXlsx, 1500);
+  }
 });
 
 onUnmounted(() => {
