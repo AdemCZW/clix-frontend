@@ -86,9 +86,10 @@ const onScanSuccess = async (rawToken) => {
     else if (parsed.check_in_token) token = parsed.check_in_token;
   } catch { /* 純字串 token */ }
 
-  // 驗證 token 格式（必須是 UUID）
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!token || !uuidRegex.test(token)) {
+  // 後端 checkin_by_token 支援雙軌：合法 UUID → check_in_token；非 UUID → external_ticket_id
+  // 前端只擋空 token，格式判斷交給後端統一處理（與 MobileScanner / Printer 行為一致）
+  token = String(token || "").trim();
+  if (!token) {
     apiError.value = '無效的 QR Code，請重新掃描';
     phase.value = 'error';
     return;
