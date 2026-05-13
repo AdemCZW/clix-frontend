@@ -136,10 +136,18 @@ const customAnswerRows = computed<CustomAnswerRow[]>(() => {
     }));
 });
 
-// Excel 額外資料（P1.8 B+ 隔離儲存區）
+// Excel 額外資料（P1.8 第 39 次：改存到 Participant.extra_import_data 直屬欄位）
+// 相容舊資料：若新欄位空但 formAnswers.__extra_import 有，仍能讀出來
 const extraImportRows = computed<Array<{ key: string; value: string }>>(() => {
-  const fa = (editingParticipant.value?.formAnswers || {}) as Record<string, unknown>;
-  const extra = fa.__extra_import;
+  const p = editingParticipant.value;
+  if (!p) return [];
+  // 優先讀新欄位（store normalize 後應為 camelCase）
+  let extra: unknown = (p as Participant & { extraImportData?: unknown }).extraImportData;
+  if (!extra || typeof extra !== "object" || Array.isArray(extra)) {
+    // fallback：第 36 次留下的歷史資料（form_answers.__extra_import）
+    const fa = (p.formAnswers || {}) as Record<string, unknown>;
+    extra = fa.__extra_import;
+  }
   if (!extra || typeof extra !== "object" || Array.isArray(extra)) return [];
   return Object.entries(extra as Record<string, unknown>).map(([key, value]) => ({
     key,
@@ -466,10 +474,11 @@ const handleImport = async (e: Event) => {
       }
     }
 
-    // sanitize：未知欄位若使用者選擇保留，併入 form_answers.__extra_import（隔離 key）
+    // sanitize：未知欄位若使用者選擇保留，存到獨立的 extra_import_data 欄位（P1.8 第 39 次）
+    // 從第 36 次的 form_answers.__extra_import 改成 Participant 直屬 JSONField，schema 更乾淨
     const sanitizedData = normalized.map((row) => {
       const { unknown_columns: _unknown, validation_issues: _issues, form_answers, ...rest } = row;
-      const merged: Record<string, unknown> = { ...form_answers };
+      const payload: Record<string, unknown> = { ...rest, form_answers: { ...form_answers } };
       if (keepExtra && _unknown && Object.keys(_unknown).length > 0) {
         const extra: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(_unknown)) {
@@ -478,9 +487,9 @@ const handleImport = async (e: Event) => {
           const safeKey = String(k).trim().slice(0, EXTRA_IMPORT_KEY_MAX_LEN);
           if (safeKey) extra[safeKey] = v;
         }
-        if (Object.keys(extra).length > 0) merged.__extra_import = extra;
+        if (Object.keys(extra).length > 0) payload.extra_import_data = extra;
       }
-      return { ...rest, form_answers: merged };
+      return payload;
     });
 
     try {

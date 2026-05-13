@@ -92,6 +92,7 @@ export interface Participant {
 
   // ── 訂單 / 票券 / 自訂（5/5 起加入；optional 因為早期資料 / list view 不一定全帶） ──
   formAnswers?: Record<string, unknown>
+  extraImportData?: Record<string, unknown>
   orderId?: number | null
   orderNumber?: string
   buyerName?: string
@@ -132,6 +133,7 @@ export interface RawParticipant {
 
   // 訂單 / 票券 / 自訂（後端 ParticipantSerializer 一律會回，但舊版 / 部分情境可能缺欄位）
   form_answers?: Record<string, unknown>
+  extra_import_data?: Record<string, unknown>
   order?: number | null
   order_number?: string
   buyer_name?: string

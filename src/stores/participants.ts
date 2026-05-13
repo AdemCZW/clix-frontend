@@ -36,6 +36,7 @@ function mapParticipant(p: RawParticipant): Participant {
         updatedAt: p.updated_at,
         // ── 訂單 / 票券 / 自訂（5/5 schema）─────────────────────
         formAnswers: p.form_answers ?? {},
+        extraImportData: p.extra_import_data ?? {},
         orderId: p.order ?? null,
         orderNumber: p.order_number ?? '',
         buyerName: p.buyer_name ?? '',
