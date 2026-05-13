@@ -127,12 +127,24 @@ const customAnswerRows = computed<CustomAnswerRow[]>(() => {
   });
   return Object.entries(fa)
     .filter(([key]) => !SYSTEM_FIELD_KEYS_SET.has(key))
+    .filter(([key]) => key !== "__extra_import")  // __extra_import 獨立區塊顯示
     .map(([key, value]) => ({
       key,
       label: labelMap.get(key) || key,
       value: value == null ? "" : String(value),
       deprecated: !labelMap.has(key),  // 該 key 不在當前活動的 form_fields 內
     }));
+});
+
+// Excel 額外資料（P1.8 B+ 隔離儲存區）
+const extraImportRows = computed<Array<{ key: string; value: string }>>(() => {
+  const fa = (editingParticipant.value?.formAnswers || {}) as Record<string, unknown>;
+  const extra = fa.__extra_import;
+  if (!extra || typeof extra !== "object" || Array.isArray(extra)) return [];
+  return Object.entries(extra as Record<string, unknown>).map(([key, value]) => ({
+    key,
+    value: value == null ? "" : String(value),
+  }));
 });
 
 // 【核心過濾邏輯】依據標籤 + 搜尋 + 狀態
@@ -394,44 +406,81 @@ const handleImport = async (e: Event) => {
       }
     }
 
-    if (unknownHeaderToCount.size > 0 || issueToCount.size > 0) {
-      const sections: string[] = [];
-
-      if (unknownHeaderToCount.size > 0) {
-        // 列出前 8 個未知 header，太多就 …等 N 個
-        const sortedHeaders = Array.from(unknownHeaderToCount.entries())
-          .sort((a, b) => b[1] - a[1])
-          .map(([h, n]) => `「${h}」(${n} 筆有值)`);
-        const headerPreview = sortedHeaders.slice(0, 8).join("、");
-        const more = sortedHeaders.length > 8 ? `…等 ${sortedHeaders.length} 個欄位` : "";
-        sections.push(
-          `🔸 ${unknownHeaderToCount.size} 個欄位不在系統的固定欄位 / 報名表欄位內：\n` +
-            `${headerPreview}${more}\n` +
-            `請先把這些欄位修正成系統可辨識的欄位，否則本次匯入會被中止。`,
-        );
-      }
-
-      if (issueToCount.size > 0) {
-        const issueLines = Array.from(issueToCount.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
-          .map(([msg, n]) => `• (${n} 筆) ${msg}`);
-        sections.push(
-          `🔸 偵測到值的格式問題：\n${issueLines.join("\n")}\n` +
-            `請先修正這些資料值，否則本次匯入會被中止。`,
-        );
-      }
-
+    // ── 值格式錯（type 非法 / ticket 非數字 etc.）維持 strict 擋下 ──
+    if (issueToCount.size > 0) {
+      const issueLines = Array.from(issueToCount.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([msg, n]) => `• (${n} 筆) ${msg}`);
+      const sections = [
+        `🔸 偵測到值的格式問題：\n${issueLines.join("\n")}\n` +
+          `請先修正這些資料值，否則本次匯入會被中止。`,
+      ];
       await showImportBlockedDialog("匯入已中止", sections);
       warning("匯入已中止，請先修正 Excel 內容");
       (e.target as HTMLInputElement).value = "";
       return;
     }
 
-    // strict mode：前端只送合法欄位，不再把 unknown_columns 併回 form_answers
+    // ── P1.8 B+：未知欄位改成「使用者確認後保留」（不直接擋下） ──
+    // 風險控管：每 row unknown 欄位數量上限 30、key trim 過長截 100 char
+    const EXTRA_IMPORT_MAX_KEYS = 30;
+    const EXTRA_IMPORT_KEY_MAX_LEN = 100;
+    let keepExtra = false;
+    if (unknownHeaderToCount.size > 0) {
+      // sanity check：若任一 row 超過 30 個 unknown 欄位 → 仍直接擋（防止欄位爆量）
+      const overflowRow = normalized.findIndex(
+        (row) => Object.keys(row.unknown_columns || {}).length > EXTRA_IMPORT_MAX_KEYS,
+      );
+      if (overflowRow !== -1) {
+        await showImportBlockedDialog("匯入已中止", [
+          `第 ${overflowRow + 1} 列偵測到超過 ${EXTRA_IMPORT_MAX_KEYS} 個未知欄位，已超過保留上限。\n` +
+            `請先簡化 Excel 欄位後再匯入。`,
+        ]);
+        warning("匯入已中止：單列未知欄位過多");
+        (e.target as HTMLInputElement).value = "";
+        return;
+      }
+
+      const sortedHeaders = Array.from(unknownHeaderToCount.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([h, n]) => `「${h}」(${n} 筆有值)`);
+      const headerPreview = sortedHeaders.slice(0, 8).join("、");
+      const more = sortedHeaders.length > 8 ? `…等 ${sortedHeaders.length} 個欄位` : "";
+
+      keepExtra = await confirm({
+        title: "Excel 含未知欄位",
+        message:
+          `偵測到 ${unknownHeaderToCount.size} 個系統不認識的欄位：\n` +
+          `${headerPreview}${more}\n\n` +
+          `按「繼續匯入並保留」會把這些欄位的資料存到「Excel 額外資料」區，\n` +
+          `日後可在參與者詳情頁的「自訂欄位」分頁查看。\n\n` +
+          `按「取消」可先修正 Excel 欄位名稱後重試。`,
+        confirmText: "繼續匯入並保留",
+        cancelText: "取消",
+        danger: false,
+      });
+      if (!keepExtra) {
+        (e.target as HTMLInputElement).value = "";
+        return;
+      }
+    }
+
+    // sanitize：未知欄位若使用者選擇保留，併入 form_answers.__extra_import（隔離 key）
     const sanitizedData = normalized.map((row) => {
       const { unknown_columns: _unknown, validation_issues: _issues, form_answers, ...rest } = row;
-      return { ...rest, form_answers: { ...form_answers } };
+      const merged: Record<string, unknown> = { ...form_answers };
+      if (keepExtra && _unknown && Object.keys(_unknown).length > 0) {
+        const extra: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(_unknown)) {
+          if (String(v ?? "").trim() === "") continue;  // 空值不收
+          // key trim + 截斷，避免 noise
+          const safeKey = String(k).trim().slice(0, EXTRA_IMPORT_KEY_MAX_LEN);
+          if (safeKey) extra[safeKey] = v;
+        }
+        if (Object.keys(extra).length > 0) merged.__extra_import = extra;
+      }
+      return { ...rest, form_answers: merged };
     });
 
     try {
@@ -724,19 +773,32 @@ const formatDate = (isoString: string) => {
               <a :href="editingParticipant.qrCodeUrl" download="qrcode.png" class="qr-dl">下載 QR Code</a>
             </div>
           </div>
-          <!-- 自訂欄位 tab：read-only 顯示 form_answers，對應當前活動的 RegistrationFormField label -->
+          <!-- 自訂欄位 tab：read-only 顯示 form_answers + Excel 額外資料隔離區 -->
           <div v-show="editTab === 'custom'" class="panel-body">
-            <div v-if="customAnswerRows.length === 0" class="custom-empty">
+            <div v-if="customAnswerRows.length === 0 && extraImportRows.length === 0" class="custom-empty">
               此參與者沒有自訂欄位資料
               <span class="custom-empty-hint">（若報名表有自訂欄位但這裡空白，可能此參與者是後台手動建立或匯入時未填）</span>
             </div>
             <template v-else>
+              <!-- 正規自訂欄位（field_key 對應 RegistrationFormField） -->
               <div v-for="row in customAnswerRows" :key="row.key" class="fg readonly">
                 <label>
                   {{ row.label }}
                   <span v-if="row.deprecated" class="deprecated-tag" title="此欄位已不在當前報名表設定中">已下架</span>
                 </label>
                 <div class="fi-ro custom-value">{{ row.value || "（空白）" }}</div>
+              </div>
+
+              <!-- P1.8 B+：Excel 匯入時保留的額外欄位（不在系統 / form_fields 內） -->
+              <div v-if="extraImportRows.length > 0" class="extra-import-block">
+                <div class="extra-import-header">
+                  <span class="extra-import-title">📎 Excel 額外資料</span>
+                  <span class="extra-import-hint">匯入時保留的非系統欄位（{{ extraImportRows.length }} 項）</span>
+                </div>
+                <div v-for="row in extraImportRows" :key="`extra-${row.key}`" class="fg readonly">
+                  <label>{{ row.key }}</label>
+                  <div class="fi-ro custom-value">{{ row.value || "（空白）" }}</div>
+                </div>
               </div>
             </template>
           </div>
@@ -1746,6 +1808,36 @@ const formatDate = (isoString: string) => {
   background: #fef3c7;
   color: #92400e;
   font-weight: 700;
+}
+
+/* P1.8 B+：Excel 額外資料隔離區 */
+.extra-import-block {
+  margin-top: 18px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #fefce8;            /* 品牌黃淺底，跟 buyer 區同色系，視覺暗示「非系統」 */
+  border: 1px dashed #fde68a;
+}
+.extra-import-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #fde68a;
+  flex-wrap: wrap;
+}
+.extra-import-title {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #92400e;
+}
+.extra-import-hint {
+  font-size: 0.7rem;
+  color: #a16207;
+}
+.extra-import-block .fg label {
+  color: #92400e;
 }
 .fg { margin-bottom:12px; }
 .fg label {
