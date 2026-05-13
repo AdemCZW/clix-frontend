@@ -186,6 +186,33 @@ const filteredList = computed(() => {
   });
 });
 
+// 分頁（10 筆 / 頁）— client-side slice，搜尋/篩選/tab 變動會 reset 回第 1 頁
+const PAGE_SIZE = 10;
+const currentPage = ref(1);
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredList.value.length / PAGE_SIZE)));
+const pagedList = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE;
+  return filteredList.value.slice(start, start + PAGE_SIZE);
+});
+// 任一 filter 變化 → 重置到第 1 頁
+watch([debouncedSearch, activeTab, filterStatus, () => participantsStore.participants.length], () => {
+  currentPage.value = 1;
+});
+// 當前頁超出範圍時（例如刪 record 後）自動 clamp
+watch(totalPages, (n) => {
+  if (currentPage.value > n) currentPage.value = n;
+});
+function goToPage(p: number) {
+  currentPage.value = Math.max(1, Math.min(totalPages.value, p));
+}
+const pageRangeText = computed(() => {
+  const total = filteredList.value.length;
+  if (total === 0) return "0";
+  const start = (currentPage.value - 1) * PAGE_SIZE + 1;
+  const end = Math.min(currentPage.value * PAGE_SIZE, total);
+  return `${start}–${end} / ${total}`;
+});
+
 // 匯出 Excel 邏輯
 const isExporting = ref(false);
 const showExportMenu = ref(false);
@@ -748,7 +775,7 @@ const formatDate = (isoString: string) => {
             </thead>
             <tbody>
               <tr
-                v-for="p in filteredList" :key="p.id"
+                v-for="p in pagedList" :key="p.id"
                 :class="{ active: editingParticipant?.id === p.id }"
                 @click="openEditPanel(p)"
               >
@@ -775,6 +802,17 @@ const formatDate = (isoString: string) => {
               </tr>
             </tbody>
           </table>
+          <!-- 分頁列：每 10 筆一頁，首頁 / 上一頁 / 頁碼 / 下一頁 / 末頁 -->
+          <div v-if="filteredList.length > 0" class="pager">
+            <button class="pager-btn" :disabled="currentPage === 1" @click="goToPage(1)" title="首頁">«</button>
+            <button class="pager-btn" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)" title="上一頁">‹</button>
+            <span class="pager-info">
+              第 <strong>{{ currentPage }}</strong> / {{ totalPages }} 頁
+              <span class="pager-range">（{{ pageRangeText }}）</span>
+            </span>
+            <button class="pager-btn" :disabled="currentPage >= totalPages" @click="goToPage(currentPage + 1)" title="下一頁">›</button>
+            <button class="pager-btn" :disabled="currentPage >= totalPages" @click="goToPage(totalPages)" title="末頁">»</button>
+          </div>
         </div>
       </div>
 
@@ -1872,6 +1910,58 @@ const formatDate = (isoString: string) => {
   background: #fef3c7;
   color: #92400e;
   font-weight: 700;
+}
+
+/* 分頁列（每 10 筆一頁） */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-card);
+  flex-wrap: wrap;
+}
+.pager-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-color);
+  background: #fff;
+  border-radius: 6px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pager-btn:hover:not(:disabled) {
+  background: #e8f5f1;
+  color: #167A67;
+  border-color: #167A67;
+}
+.pager-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.pager-info {
+  margin: 0 8px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+.pager-info strong {
+  color: #167A67;
+  font-variant-numeric: tabular-nums;
+}
+.pager-range {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  margin-left: 4px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* 匯入 loading 遮罩（第 40 次） */
