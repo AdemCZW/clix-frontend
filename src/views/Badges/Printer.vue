@@ -88,8 +88,16 @@ const BASIC_FIELD_OPTIONS: { key: string; label: string }[] = [
   { key: "code", label: "QR Code" },
 ];
 
-// 自訂欄位 — 從 RegistrationPage.formFields 撈當前活動的（過濾系統 fixed / 隱藏 / 無 field_key 者）
-const customFieldOptions = ref<{ key: string; label: string }[]>([]);
+// 自訂欄位 — 兩個來源：
+// 1) RegistrationFormField（後台「報名表欄位」設定，存到 form_answers）
+// 2) extra_import_data（Excel 匯入時保留的非系統欄位，每位參與者各自）— 從現有 participants 聯集 key
+// 兩種來源都過濾掉基本欄位重複者。
+interface CustomFieldOption {
+  key: string;
+  label: string;
+  source: "form" | "excel";
+}
+const customFieldOptions = ref<CustomFieldOption[]>([]);
 const loadingCustomFields = ref(false);
 const customFieldsError = ref("");
 
@@ -101,19 +109,41 @@ async function loadCustomFields() {
   }
   loadingCustomFields.value = true;
   customFieldsError.value = "";
+  const basicKeys = new Set(BASIC_FIELD_OPTIONS.map((o) => o.key));
+  const formOpts: CustomFieldOption[] = [];
   try {
     const page = await pagesStore.fetchByEvent(eventId);
     const fields = page?.formFields ?? [];
-    const basicKeys = new Set(BASIC_FIELD_OPTIONS.map((o) => o.key));
-    customFieldOptions.value = fields
-      .filter((f) => !f.is_hidden && !f.is_fixed && f.field_key && !basicKeys.has(f.field_key))
-      .map((f) => ({ key: f.field_key as string, label: f.label || (f.field_key as string) }));
+    for (const f of fields) {
+      if (f.is_hidden || f.is_fixed) continue;
+      const k = f.field_key;
+      if (!k || basicKeys.has(k)) continue;
+      formOpts.push({ key: k, label: f.label || k, source: "form" });
+    }
   } catch {
-    customFieldOptions.value = [];
-    customFieldsError.value = "自訂欄位讀取失敗";
-  } finally {
-    loadingCustomFields.value = false;
+    // 報名表讀取失敗不擋下匯入額外資料 — 兩個來源是獨立的
+    customFieldsError.value = "報名表欄位讀取失敗";
   }
+
+  // 聯集所有 participant 的 extra_import_data keys
+  const formKeySet = new Set(formOpts.map((o) => o.key));
+  const extraKeys = new Set<string>();
+  for (const p of participantsStore.participants) {
+    const extra = (p as { extraImportData?: Record<string, unknown> }).extraImportData ?? {};
+    for (const k of Object.keys(extra)) {
+      if (!k) continue;
+      if (basicKeys.has(k) || formKeySet.has(k)) continue;
+      extraKeys.add(k);
+    }
+  }
+  const extraOpts: CustomFieldOption[] = Array.from(extraKeys).map((k) => ({
+    key: k,
+    label: k,
+    source: "excel",
+  }));
+
+  customFieldOptions.value = [...formOpts, ...extraOpts];
+  loadingCustomFields.value = false;
 }
 
 // Field resolver：根據 element.key 從 participant 取值（QR 由 template 特例處理）
@@ -131,9 +161,13 @@ function getFieldValue(p: Record<string, unknown>, key: string): string {
     case "code":
       return ""; // QR 由 <img> 特例處理，不應走文字渲染
     default: {
-      // 自訂欄位：查 form_answers[field_key]
+      // 自訂欄位：優先查 form_answers[field_key]，找不到 fallback 到 extra_import_data
       const answers = (p as { formAnswers?: Record<string, unknown> }).formAnswers ?? {};
-      return String(answers[key] ?? "");
+      if (key in answers && answers[key] !== "" && answers[key] != null) {
+        return String(answers[key]);
+      }
+      const extra = (p as { extraImportData?: Record<string, unknown> }).extraImportData ?? {};
+      return String(extra[key] ?? "");
     }
   }
 }
@@ -157,17 +191,18 @@ function nextElementId(): string {
 }
 
 function addElement(option: { key: string; label: string }) {
-  // 新項目擺空白處（依現有數量錯開），預設樣式向 company 看齊（不會太突兀）
-  const offsetIndex = templateElements.value.length;
+  // canvas 是 90mm × 60mm（約 340×226 px），新項目擺在中段安全區（左上往內錯開）
+  // 多個錯開避免完全堆疊；超過 6 個就 mod 重來（user 自行拖開）
+  const offsetIndex = templateElements.value.length % 6;
   const newEl: BadgeElement = {
     id: nextElementId(),
     key: option.key,
     label: option.label,
-    x: 20,
-    y: 160 + offsetIndex * 24,
+    x: 40 + offsetIndex * 12,
+    y: 40 + offsetIndex * 18,
     style: { fontSize: 14, fontWeight: "400", color: "#1e293b" },
   };
-  // QR 預設大一點、放右側
+  // QR 預設放右上、字大小不重要
   if (option.key === "code") {
     newEl.x = 230;
     newEl.y = 20;
@@ -745,7 +780,9 @@ watch(logoUrl, (val) => {
               @click="addElement(opt)"
             >
               <span class="opt-label">{{ opt.label }}</span>
-              <span class="opt-key">{{ opt.key }}</span>
+              <span class="opt-source" :class="opt.source">
+                {{ opt.source === "form" ? "報名表" : "Excel" }}
+              </span>
             </button>
           </template>
         </div>
@@ -1311,6 +1348,20 @@ watch(logoUrl, (val) => {
     color: var(--text-muted);
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
     font-weight: 400;
+  }
+  .opt-source {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    &.form {
+      background: #e8f5f1;
+      color: #0f5d4e;
+    }
+    &.excel {
+      background: #fef3c7;
+      color: #92400e;
+    }
   }
 }
 .add-modal-empty {
