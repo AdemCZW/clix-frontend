@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { apiRequest } from '@/utils/api'
 import { parseApiError } from '@/utils/parseApiError'
 import { useStoreRequest } from '@/utils/useStoreRequest'
 import { useCache } from '@/utils/useCache'
+import { useEventsStore } from '@/stores/events'
+import { checkinByToken as checkinByTokenService } from '@/services/checkinService'
 import type { Participant, RawParticipant, RegistrationPage, PublicSubmittedParticipant } from '@/types'
 
 export class ImportValidationError extends Error {
@@ -71,6 +73,19 @@ export const useParticipantsStore = defineStore('participants', () => {
     const { loading, error, run, clearError } = useStoreRequest()
     const cache = useCache(30_000)
 
+    // 切換到不同活動時清掉舊活動的列表與快取，避免新頁面渲染舊資料
+    const eventsStore = useEventsStore()
+    watch(
+        () => eventsStore.currentEvent?.id,
+        (newId, oldId) => {
+            if (oldId !== undefined && newId !== oldId) {
+                participants.value = []
+                selectedVIPs.value = []
+                cache.invalidate()
+            }
+        },
+    )
+
     async function fetchParticipants(params: Record<string, string> = {}) {
         const key = buildCacheKey(params)
         if (participants.value.length > 0 && cache.isValid(key)) return participants.value
@@ -134,16 +149,11 @@ export const useParticipantsStore = defineStore('participants', () => {
 
     const checkinByToken = (token: string) =>
         run(async () => {
-            const res = await apiRequest('/api/participants/checkin_by_token/', {
-                method: 'POST',
-                body: JSON.stringify({ token }),
-            })
-            if (!res.ok) throw new Error(await parseApiError(res, `報到失敗 (${res.status})`))
-            const data = await res.json()
-            const updated = mapParticipant(data.participant)
+            const { participant: raw, message } = await checkinByTokenService(token)
+            const updated = mapParticipant(raw as unknown as RawParticipant)
             const idx = participants.value.findIndex(p => p.id === updated.id)
             if (idx !== -1) participants.value[idx] = updated
-            return { message: data.message as string, participant: updated }
+            return { message, participant: updated }
         })
 
     const checkIn = (id: number) =>

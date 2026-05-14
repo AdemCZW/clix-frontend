@@ -2,8 +2,8 @@
 import { ref, computed, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import jsQR from "jsqr";
-import { apiRequest } from "@/utils/api";
 import { getAccessToken } from "@/utils/authStorage";
+import { checkinByToken, parseTokenFromQr } from "@/services/checkinService";
 import type { Participant } from "@/types";
 import LogoSpinner from '@/components/shared/LogoSpinner.vue';
 
@@ -78,34 +78,10 @@ const onScanSuccess = async (rawToken) => {
   phase.value = "loading";
   apiError.value = "";
 
-  // 嘗試解析 JSON 格式（相容舊版 QR），否則直接當 token
-  let token = rawToken;
+  const token = parseTokenFromQr(rawToken);
   try {
-    const parsed = JSON.parse(rawToken);
-    if (parsed.token) token = parsed.token;
-    else if (parsed.check_in_token) token = parsed.check_in_token;
-  } catch { /* 純字串 token */ }
-
-  // 後端 checkin_by_token 支援雙軌：合法 UUID → check_in_token；非 UUID → external_ticket_id
-  // 前端只擋空 token，格式判斷交給後端統一處理（與 MobileScanner / Printer 行為一致）
-  token = String(token || "").trim();
-  if (!token) {
-    apiError.value = '無效的 QR Code，請重新掃描';
-    phase.value = 'error';
-    return;
-  }
-
-  try {
-    const res = await apiRequest("/api/participants/checkin_by_token/", {
-      method: "POST",
-      body: JSON.stringify({ token }),
-    });
-    if (!res.ok) {
-      const e = await res.json().catch(() => null);
-      throw new Error(e?.detail || e?.message || `報到失敗 (${res.status})`);
-    }
-    const data = await res.json();
-    currentParticipant.value = data.participant || data;
+    const { participant } = await checkinByToken(token);
+    currentParticipant.value = participant as ParticipantData;
     phase.value = "result";
   } catch (err: unknown) {
     apiError.value = (err as Error).message;

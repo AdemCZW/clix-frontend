@@ -212,6 +212,7 @@ onUnmounted(() => disconnectWebSocket());
                   position: 'absolute',
                   left: el.x + 'px',
                   top: el.y + 'px',
+                  transform: 'translate(-50%, -50%)',
                   fontSize: el.style.fontSize + 'px',
                   fontWeight: el.style.fontWeight,
                   color: lastPrint ? el.style.color : '#94a3b8',
@@ -252,6 +253,7 @@ onUnmounted(() => disconnectWebSocket());
           :style="{
             left: el.x + 'px',
             top: el.y + 'px',
+            transform: 'translate(-50%, -50%)',
             fontSize: el.style.fontSize + 'px',
             fontWeight: el.style.fontWeight,
             color: el.style.color,

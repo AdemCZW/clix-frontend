@@ -1,1 +1,0 @@
-import{X as e}from"./vendor-quill-DqmlyrTK.js";function t(){let t=e(!1),n=e(null);async function r(e){t.value=!0,n.value=null;try{return await e()}catch(e){throw n.value=e.message,e}finally{t.value=!1}}async function i(e){return e()}function a(){n.value=null}return{loading:t,error:n,run:r,runSilent:i,clearError:a}}export{t};

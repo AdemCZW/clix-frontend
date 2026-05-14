@@ -5,6 +5,14 @@ import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { useRegistrationPagesStore } from "@/stores/registrationPages";
 import { getAccessToken } from "@/utils/authStorage";
+import { checkinByToken, parseTokenFromQr } from "@/services/checkinService";
+import {
+  BASIC_FIELD_OPTIONS,
+  buildCustomFieldOptions,
+  buildExtraFieldOptions,
+  resolveFieldValue,
+  type FieldOption,
+} from "@/utils/participantFieldResolver";
 import QRCodeLib from "qrcode";
 import jsQR from "jsqr";
 import PageLoader from "@/components/shared/PageLoader.vue";
@@ -74,30 +82,8 @@ function stopDrag() {
 
 const activeElement = ref<BadgeElement | null>(null);
 
-// ── 範本可用欄位 ─────────────────────────────────
-// 基本欄位（系統內建在 Participant 上的欄位）
-// 渲染時用 getFieldValue 對應，code 是 QR 特例（用 qrTokenOf）
-const BASIC_FIELD_OPTIONS: { key: string; label: string }[] = [
-  { key: "name", label: "姓名" },
-  { key: "company", label: "單位" },
-  { key: "title", label: "職稱" },
-  { key: "email", label: "Email" },
-  { key: "phone", label: "電話" },
-  { key: "type", label: "身分" },
-  { key: "external_ticket_id", label: "票號" },
-  { key: "code", label: "QR Code" },
-];
-
-// 自訂欄位 — 兩個來源：
-// 1) RegistrationFormField（後台「報名表欄位」設定，存到 form_answers）
-// 2) extra_import_data（Excel 匯入時保留的非系統欄位，每位參與者各自）— 從現有 participants 聯集 key
-// 兩種來源都過濾掉基本欄位重複者。
-interface CustomFieldOption {
-  key: string;
-  label: string;
-  source: "form" | "excel";
-}
-const customFieldOptions = ref<CustomFieldOption[]>([]);
+// 自訂欄位來源：form_answers + extra_import_data，由共用 resolver 提供
+const customFieldOptions = ref<FieldOption[]>([]);
 const loadingCustomFields = ref(false);
 const customFieldsError = ref("");
 
@@ -109,68 +95,27 @@ async function loadCustomFields() {
   }
   loadingCustomFields.value = true;
   customFieldsError.value = "";
-  const basicKeys = new Set(BASIC_FIELD_OPTIONS.map((o) => o.key));
-  const formOpts: CustomFieldOption[] = [];
+
+  let formOpts: FieldOption[] = [];
   try {
     const page = await pagesStore.fetchByEvent(eventId);
-    const fields = page?.formFields ?? [];
-    for (const f of fields) {
-      if (f.is_hidden || f.is_fixed) continue;
-      const k = f.field_key;
-      if (!k || basicKeys.has(k)) continue;
-      formOpts.push({ key: k, label: f.label || k, source: "form" });
-    }
+    formOpts = buildCustomFieldOptions(page?.formFields ?? []);
   } catch {
     // 報名表讀取失敗不擋下匯入額外資料 — 兩個來源是獨立的
     customFieldsError.value = "報名表欄位讀取失敗";
   }
 
-  // 聯集所有 participant 的 extra_import_data keys
-  const formKeySet = new Set(formOpts.map((o) => o.key));
-  const extraKeys = new Set<string>();
-  for (const p of participantsStore.participants) {
-    const extra = (p as { extraImportData?: Record<string, unknown> }).extraImportData ?? {};
-    for (const k of Object.keys(extra)) {
-      if (!k) continue;
-      if (basicKeys.has(k) || formKeySet.has(k)) continue;
-      extraKeys.add(k);
-    }
-  }
-  const extraOpts: CustomFieldOption[] = Array.from(extraKeys).map((k) => ({
-    key: k,
-    label: k,
-    source: "excel",
-  }));
-
+  const extraOpts = buildExtraFieldOptions(
+    participantsStore.participants,
+    formOpts.map((o) => o.key),
+  );
   customFieldOptions.value = [...formOpts, ...extraOpts];
   loadingCustomFields.value = false;
 }
 
 // Field resolver：根據 element.key 從 participant 取值（QR 由 template 特例處理）
-function getFieldValue(p: Record<string, unknown>, key: string): string {
-  switch (key) {
-    case "name":
-    case "company":
-    case "title":
-    case "email":
-    case "phone":
-    case "type":
-      return String(p[key] ?? "");
-    case "external_ticket_id":
-      return String((p as { externalTicketId?: string }).externalTicketId ?? "");
-    case "code":
-      return ""; // QR 由 <img> 特例處理，不應走文字渲染
-    default: {
-      // 自訂欄位：優先查 form_answers[field_key]，找不到 fallback 到 extra_import_data
-      const answers = (p as { formAnswers?: Record<string, unknown> }).formAnswers ?? {};
-      if (key in answers && answers[key] !== "" && answers[key] != null) {
-        return String(answers[key]);
-      }
-      const extra = (p as { extraImportData?: Record<string, unknown> }).extraImportData ?? {};
-      return String(extra[key] ?? "");
-    }
-  }
-}
+const getFieldValue = (p: Record<string, unknown>, key: string): string =>
+  resolveFieldValue(p, key);
 
 // ── 新增 / 移除項目 ───────────────────────────────
 const showAddModal = ref(false);
@@ -383,26 +328,9 @@ async function handleScannedToken(rawToken: string) {
   stopScanCamera();
   scanPhase.value = "loading";
 
-  // 解析 token（相容 JSON 格式或純字串）
-  let token = rawToken;
+  const token = parseTokenFromQr(rawToken);
   try {
-    const parsed = JSON.parse(rawToken);
-    if (parsed.token) token = parsed.token;
-    else if (parsed.check_in_token) token = parsed.check_in_token;
-  } catch { /* 純字串 */ }
-
-  try {
-    const { apiRequest } = await import("@/utils/api");
-    const res = await apiRequest("/api/participants/checkin_by_token/", {
-      method: "POST",
-      body: JSON.stringify({ token }),
-    });
-    if (!res.ok) {
-      const e = await res.json().catch(() => null);
-      throw new Error(e?.detail || e?.message || `報到失敗 (${res.status})`);
-    }
-    const data = await res.json();
-    const p = data.participant || data;
+    const { participant: p } = await checkinByToken(token);
     scannedParticipant.value = p;
 
     // 同步加入本地選取清單（用 checkInToken 或 check_in_token 比對）
@@ -689,6 +617,7 @@ watch(logoUrl, (val) => {
             :style="{
               left: el.x + 'px',
               top: el.y + 'px',
+              transform: 'translate(-50%, -50%)',
               fontSize: el.style.fontSize + 'px',
               fontWeight: el.style.fontWeight,
               color: el.style.color,
@@ -781,7 +710,7 @@ watch(logoUrl, (val) => {
             >
               <span class="opt-label">{{ opt.label }}</span>
               <span class="opt-source" :class="opt.source">
-                {{ opt.source === "form" ? "報名表" : "Excel" }}
+                {{ opt.source === "custom" ? "報名表" : "Excel" }}
               </span>
             </button>
           </template>
@@ -805,6 +734,7 @@ watch(logoUrl, (val) => {
             position: 'absolute',
             left: el.x + 'px',
             top: el.y + 'px',
+            transform: 'translate(-50%, -50%)',
             fontSize: el.style.fontSize + 'px',
             fontWeight: el.style.fontWeight,
             color: el.style.color,
@@ -1354,11 +1284,11 @@ watch(logoUrl, (val) => {
     padding: 2px 8px;
     border-radius: 10px;
     font-weight: 600;
-    &.form {
+    &.custom {
       background: #e8f5f1;
       color: #0f5d4e;
     }
-    &.excel {
+    &.extra {
       background: #fef3c7;
       color: #92400e;
     }

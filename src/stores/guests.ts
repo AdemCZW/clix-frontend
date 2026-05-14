@@ -1,9 +1,10 @@
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { apiRequest } from '@/utils/api'
 import { parseApiError } from '@/utils/parseApiError'
 import { useStoreRequest } from '@/utils/useStoreRequest'
 import { useCache } from '@/utils/useCache'
+import { useEventsStore } from '@/stores/events'
 import type { Guest } from '@/types'
 
 export const useGuestsStore = defineStore('guests', () => {
@@ -63,6 +64,19 @@ export const useGuestsStore = defineStore('guests', () => {
 
     // ===== Selection State（報名頁面預覽用）=====
     const selectedGuests = ref<Guest[]>([])
+
+    // 切換到不同活動時清掉舊活動的貴賓列表與選取狀態
+    const eventsStore = useEventsStore()
+    watch(
+        () => eventsStore.currentEvent?.id,
+        (newId, oldId) => {
+            if (oldId !== undefined && newId !== oldId) {
+                guests.splice(0, guests.length)
+                selectedGuests.value = []
+                cache.invalidate()
+            }
+        },
+    )
 
     const toggleGuest = (guest: Guest) => {
         const index = selectedGuests.value.findIndex((g) => g.id === guest.id)

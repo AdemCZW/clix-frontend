@@ -125,8 +125,8 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import jsQR from "jsqr";
-import { API_BASE_URL } from "@/utils/api";
 import { getAccessToken } from "@/utils/authStorage";
+import { checkinByToken, CheckinError } from "@/services/checkinService";
 import { useEventsStore } from "@/stores/events";
 
 interface ScannedInfo {
@@ -303,52 +303,36 @@ const stopScanning = () => {
 
 const validateCheckin = async (token: string) => {
   try {
-    const accessToken = getAccessToken();
-    const res = await fetch(`${API_BASE_URL}/api/participants/checkin_by_token/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      },
-      body: JSON.stringify({ token }),
-    });
-
-    if (res.status === 401) {
+    const { participant: p } = await checkinByToken(token, { disableAuthRedirect: true });
+    currentParticipant.value = p;
+    scannedData.value = {
+      name: String(p.name || ""),
+      company: String(p.company || ""),
+      title: String(p.title || ""),
+      checkinTime: new Date().toLocaleString("zh-TW", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+    resultType.value = "success";
+    sendPhase.value = "idle";
+    todayCheckins.value++;
+    totalCheckins.value++;
+  } catch (err: unknown) {
+    if (err instanceof CheckinError && err.kind === "unauthorized") {
       errorMessage.value = "請先登入後才能使用掃描功能\n\n點擊下方按鈕前往登入頁面";
       resultType.value = "error";
       needsLogin.value = true;
       showResult.value = true;
       return;
     }
-
-    const data = await res.json();
-
-    if (res.ok) {
-      // API 可能回傳 { participant: {...} } 或直接 {...}
-      const p = data.participant || data;
-      currentParticipant.value = p;
-      scannedData.value = {
-        name: p.name || "",
-        company: p.company || "",
-        title: p.title || "",
-        checkinTime: new Date().toLocaleString("zh-TW", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      resultType.value = "success";
-      sendPhase.value = "idle";
-      todayCheckins.value++;
-      totalCheckins.value++;
-    } else {
-      errorMessage.value = data.detail || data.error || "報到失敗，請確認 QR Code 是否正確";
-      resultType.value = "error";
-    }
-  } catch {
-    errorMessage.value = "網路錯誤，請檢查連線後重試";
+    errorMessage.value =
+      err instanceof CheckinError
+        ? err.message
+        : "網路錯誤，請檢查連線後重試";
     resultType.value = "error";
   }
 

@@ -1,0 +1,1 @@
+import{X as e}from"./vendor-quill-BYCvAx-i.js";function t(t=3e4){let n=e(0),r=e(``);function i(e=``){return r.value===e&&Date.now()-n.value<t}function a(e=``){n.value=Date.now(),r.value=e}function o(){n.value=0,r.value=``}return{isValid:i,touch:a,invalidate:o}}export{t};
