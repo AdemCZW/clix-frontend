@@ -5,7 +5,6 @@ import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { useRegistrationPagesStore } from "@/stores/registrationPages";
 import { getAccessToken } from "@/utils/authStorage";
-import { checkinByToken, parseTokenFromQr } from "@/services/checkinService";
 import {
   BASIC_FIELD_OPTIONS,
   buildCustomFieldOptions,
@@ -14,7 +13,6 @@ import {
   type FieldOption,
 } from "@/utils/participantFieldResolver";
 import QRCodeLib from "qrcode";
-import jsQR from "jsqr";
 import PageLoader from "@/components/shared/PageLoader.vue";
 
 const participantsStore = useParticipantsStore();
@@ -276,155 +274,6 @@ const isAllSelected = computed(
 // ===== 站台管理 =====
 const showStations = ref(false);
 
-// ===== QR 掃描 → 報到 → 選台列印 =====
-const scanModalOpen = ref(false);
-const scanVideo = ref<HTMLVideoElement | null>(null);
-const scanCanvas = ref<HTMLCanvasElement | null>(null);
-const scanStream = ref<MediaStream | null>(null);
-// phase: 'scanning' | 'loading' | 'checkedin' | 'sending' | 'sent' | 'error'
-const scanPhase = ref("scanning");
-const scannedParticipant = ref<Record<string, unknown> | null>(null); // raw API response
-const scanError = ref("");
-const sendingStation = ref<number | null>(null);
-let scanAnimFrame: number | null = null;
-
-async function openScanModal() {
-  scanPhase.value = "scanning";
-  scannedParticipant.value = null;
-  scanError.value = "";
-  scanModalOpen.value = true;
-  await new Promise<void>((r) => setTimeout(r, 80));
-  try {
-    scanStream.value = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-    scanVideo.value!.srcObject = scanStream.value;
-    scanVideo.value!.play();
-    scanFrame();
-  } catch {
-    scanError.value = "無法開啟相機，請確認相機權限";
-    scanPhase.value = "error";
-  }
-}
-
-function scanFrame() {
-  const video = scanVideo.value;
-  const canvas = scanCanvas.value;
-  if (!video || !canvas || !scanModalOpen.value) return;
-  if (video.readyState === video.HAVE_ENOUGH_DATA) {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d")!;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const code = jsQR(imageData.data, imageData.width, imageData.height);
-    if (code?.data) {
-      handleScannedToken(code.data);
-      return;
-    }
-  }
-  scanAnimFrame = requestAnimationFrame(scanFrame);
-}
-
-async function handleScannedToken(rawToken: string) {
-  stopScanCamera();
-  scanPhase.value = "loading";
-
-  const token = parseTokenFromQr(rawToken);
-  try {
-    const { participant: p } = await checkinByToken(token);
-    scannedParticipant.value = p;
-
-    // 同步加入本地選取清單（用 checkInToken 或 check_in_token 比對）
-    const matched = allParticipants.value.find(
-      (ap) => ap.checkInToken === (p.check_in_token || p.checkInToken),
-    );
-    if (matched && !selectedIds.value.includes(matched.id)) {
-      selectedIds.value.push(matched.id);
-    }
-
-    scanPhase.value = "checkedin";
-  } catch (err: unknown) {
-    scanError.value = (err as Error).message || "報到失敗，請重試";
-    scanPhase.value = "error";
-  }
-}
-
-async function sendToStation(slot: number) {
-  if (!scannedParticipant.value) return;
-  sendingStation.value = slot;
-  scanPhase.value = "sending";
-
-  const eid = eventsStore.currentEvent?.id;
-  const stationSession = `print-${eid}-station-${slot}`;
-  const wsBase = (import.meta.env.VITE_API_BASE_URL || window.location.origin)
-    .replace(/\/$/, "")
-    .replace(/^https/, "wss")
-    .replace(/^http/, "ws");
-  const participantSnapshot = { ...(scannedParticipant.value as Record<string, unknown>) };
-
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const accessToken = getAccessToken() || "";
-      const tokenParam = accessToken ? `?token=${accessToken}` : "";
-      const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/${tokenParam}`);
-
-      let settled = false;
-      let connectTimeout: ReturnType<typeof setTimeout> | null = null;
-      let ackTimeout: ReturnType<typeof setTimeout> | null = null;
-      const settle = (ok: boolean, err?: Error) => {
-        if (settled) return;
-        settled = true;
-        if (connectTimeout) clearTimeout(connectTimeout);
-        if (ackTimeout) clearTimeout(ackTimeout);
-        try { ws.close(); } catch { /* ignore */ }
-        ok ? resolve() : reject(err);
-      };
-
-      connectTimeout = setTimeout(() => settle(false, new Error("連線超時（5秒）")), 5000);
-
-      ws.onopen = () => {
-        if (connectTimeout) clearTimeout(connectTimeout);
-        ws.send(JSON.stringify({ type: "print", data: participantSnapshot }));
-        ackTimeout = setTimeout(() => settle(true), 6000);
-      };
-      ws.onmessage = ({ data }) => {
-        try {
-          const msg = JSON.parse(data);
-          if (["ack", "print_queued", "print_received", "ok"].includes(msg.type)) settle(true);
-        } catch { /* ignore */ }
-      };
-      ws.onerror = () => settle(false, new Error("WebSocket 連線錯誤"));
-      ws.onclose = () => settle(true); // 降級視為成功
-    });
-    scanPhase.value = "sent";
-  } catch (err: unknown) {
-    scanError.value = `傳送到站台 ${slot} 失敗：${(err as Error).message}`;
-    scanPhase.value = "error";
-  }
-}
-
-function stopScanCamera() {
-  if (scanAnimFrame) { cancelAnimationFrame(scanAnimFrame); scanAnimFrame = null; }
-  if (scanStream.value) {
-    scanStream.value.getTracks().forEach((t) => t.stop());
-    scanStream.value = null;
-  }
-}
-
-function closeScanModal() {
-  stopScanCamera();
-  scanModalOpen.value = false;
-  scanPhase.value = "scanning";
-  scannedParticipant.value = null;
-  scanError.value = "";
-}
-
-function scanAgain() {
-  scannedParticipant.value = null;
-  scanError.value = "";
-  openScanModal();
-}
-
-
 // ===== 外部列印站台連線測試 =====
 // stationTestStatus: 'idle' | 'testing' | 'online' | 'offline'
 const stationTestStatus = ref<Record<number, string>>({ 1: "idle", 2: "idle", 3: "idle" });
@@ -542,7 +391,18 @@ watch(logoUrl, (val) => {
         <div class="mgmt-right" v-if="mobileQrDataUrl">
           <div class="qr-wrap">
             <img :src="mobileQrDataUrl" class="qr-img" alt="手機派送頁 QR" />
-            <span class="qr-label">手機派送</span>
+            <span class="qr-label">手機派送（預設站台 1）</span>
+          </div>
+          <div class="qr-steps">
+            <div class="qr-meta">
+              活動 #{{ eventsStore.currentEvent?.id }} · {{ eventsStore.currentEvent?.name }}
+            </div>
+            <ol class="qr-step-list">
+              <li><strong>Step 1</strong>　手機掃此 QR 開啟掃描頁</li>
+              <li><strong>Step 2</strong>　再掃參加者報到 QR</li>
+              <li><strong>Step 3</strong>　自動送印至「站台 1」</li>
+            </ol>
+            <div class="qr-note">⚠ 此入口固定送至站台 1。多站台需求請告知後台。</div>
           </div>
         </div>
       </div>
@@ -559,14 +419,6 @@ watch(logoUrl, (val) => {
             class="input-styled search-input"
             placeholder="搜尋姓名或單位..."
           />
-          <button class="btn-scan" @click="openScanModal" title="掃描 QR 選人">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="5" height="5" rx="1"/><rect x="16" y="3" width="5" height="5" rx="1"/>
-              <rect x="3" y="16" width="5" height="5" rx="1"/>
-              <path d="M16 16h5v5h-5z" fill="currentColor" stroke="none"/>
-              <path d="M16 11h5M11 3v5M11 16v5M11 11h5"/>
-            </svg>
-          </button>
         </div>
         <div class="list-header">
           <button class="btn-toggle" :class="{ active: isAllSelected }" @click="toggleAll">
@@ -754,99 +606,6 @@ watch(logoUrl, (val) => {
       </div>
     </div>
 
-    <!-- QR 掃描選人 Modal -->
-    <div v-if="scanModalOpen" class="scan-overlay" @click.self="closeScanModal">
-      <div class="scan-modal">
-        <div class="scan-modal-header">
-          <h3>{{ scanPhase === 'scanning' ? '掃描 QR 報到' : scanPhase === 'checkedin' ? '報到成功' : scanPhase === 'sent' ? '已送出列印' : scanPhase === 'error' ? '操作失敗' : '處理中...' }}</h3>
-          <button class="btn-close-scan" @click="closeScanModal">✕</button>
-        </div>
-        <div class="scan-body">
-
-          <!-- 掃描畫面 -->
-          <template v-if="scanPhase === 'scanning'">
-            <div class="video-wrap">
-              <video ref="scanVideo" class="scan-video" playsinline muted></video>
-              <canvas ref="scanCanvas" style="display:none"></canvas>
-              <div class="scan-frame">
-                <div class="corner tl"></div><div class="corner tr"></div>
-                <div class="corner bl"></div><div class="corner br"></div>
-              </div>
-            </div>
-            <p class="scan-hint">將 QR Code 對準框內，掃描後自動報到</p>
-          </template>
-
-          <!-- 報到中 -->
-          <template v-else-if="scanPhase === 'loading'">
-            <div class="scan-spinner-wrap">
-              <div class="scan-spinner"></div>
-              <p class="scan-hint">報到中...</p>
-            </div>
-          </template>
-
-          <!-- 報到成功 → 選站台 -->
-          <template v-else-if="scanPhase === 'checkedin'">
-            <div class="scan-result success">
-              <div class="result-icon">✓</div>
-              <div class="result-name">{{ scannedParticipant?.name }}</div>
-              <div class="result-msg">{{ scannedParticipant?.company || '' }}</div>
-              <div class="result-tag">報到成功</div>
-            </div>
-            <p class="scan-hint" style="margin-top:4px">選擇列印站台</p>
-            <div class="station-select-row">
-              <button
-                v-for="s in [1, 2, 3]"
-                :key="s"
-                class="btn-station-select"
-                :class="{ active: stationTestStatus[s] === 'online' }"
-                @click="sendToStation(s)"
-              >
-                🖨️ 站台 {{ s }}
-                <span v-if="stationTestStatus[s] === 'online'" class="dot-online"></span>
-              </button>
-            </div>
-            <div class="scan-result-actions">
-              <button class="btn-scan-again" @click="scanAgain">再掃一張</button>
-              <button class="btn-scan-done" @click="closeScanModal">完成</button>
-            </div>
-          </template>
-
-          <!-- 傳送中 -->
-          <template v-else-if="scanPhase === 'sending'">
-            <div class="scan-spinner-wrap">
-              <div class="scan-spinner"></div>
-              <p class="scan-hint">傳送到站台 {{ sendingStation }}...</p>
-            </div>
-          </template>
-
-          <!-- 傳送成功 -->
-          <template v-else-if="scanPhase === 'sent'">
-            <div class="scan-result success">
-              <div class="result-icon">✓</div>
-              <div class="result-name">{{ scannedParticipant?.name }}</div>
-              <div class="result-tag">已傳送到站台 {{ sendingStation }}</div>
-            </div>
-            <div class="scan-result-actions">
-              <button class="btn-scan-again" @click="scanAgain">再掃一張</button>
-              <button class="btn-scan-done" @click="closeScanModal">完成</button>
-            </div>
-          </template>
-
-          <!-- 錯誤 -->
-          <template v-else-if="scanPhase === 'error'">
-            <div class="scan-result error">
-              <div class="result-icon">✕</div>
-              <div class="result-name">{{ scanError }}</div>
-            </div>
-            <div class="scan-result-actions">
-              <button class="btn-scan-again" @click="scanAgain">重新掃描</button>
-              <button class="btn-scan-done" @click="closeScanModal">關閉</button>
-            </div>
-          </template>
-
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -994,6 +753,44 @@ watch(logoUrl, (val) => {
 
   .qr-img { width: 64px; height: 64px; border-radius: 6px; border: 1px solid var(--border-color); }
   .qr-label { font-size: 0.7rem; color: var(--text-muted); }
+}
+
+.qr-steps {
+  max-width: 320px;
+  padding-left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+
+  .qr-meta {
+    font-weight: 600;
+    color: var(--text-main);
+    background: #f1f5f9;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+  }
+  .qr-step-list {
+    margin: 0;
+    padding: 0 0 0 4px;
+    list-style: none;
+    line-height: 1.6;
+
+    strong {
+      color: #167A67;
+      margin-right: 4px;
+    }
+  }
+  .qr-note {
+    font-size: 0.72rem;
+    color: #b45309;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
 }
 
 /* ===== 主區塊 ===== */

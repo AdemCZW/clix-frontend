@@ -58,7 +58,8 @@ const stopScanning = () => {
 };
 
 // ===== 狀態 =====
-// phase: 'scan' | 'loading' | 'result' | 'sending' | 'sent' | 'error'
+// phase: 'scan' | 'loading' | 'sending' | 'sent' | 'error'
+//   方案 A（第 56 次定案）：報到成功後不再讓使用者選站台，直接送預設站台
 const phase           = ref("scan");
 const scanError       = ref("");
 interface ParticipantData {
@@ -70,8 +71,10 @@ interface ParticipantData {
 }
 const currentParticipant = ref<ParticipantData | null>(null); // raw API response participant object
 const apiError        = ref("");
-const sendingStation  = ref<number | null>(null);
 const sendError       = ref("");
+
+// 預設送印站台（方案 A：固定送站台 1）
+const DEFAULT_STATION = 1;
 
 const onScanSuccess = async (rawToken) => {
   stopScanning();
@@ -82,7 +85,8 @@ const onScanSuccess = async (rawToken) => {
   try {
     const { participant } = await checkinByToken(token);
     currentParticipant.value = participant as ParticipantData;
-    phase.value = "result";
+    // 報到成功後直接送印至預設站台（不再讓使用者選站台）
+    await sendToStation(DEFAULT_STATION);
   } catch (err: unknown) {
     apiError.value = (err as Error).message;
     phase.value = "error";
@@ -90,9 +94,8 @@ const onScanSuccess = async (rawToken) => {
 };
 
 // ===== 傳送到站台 =====
-const sendToStation = async (slot) => {
+const sendToStation = async (slot: number) => {
   if (!currentParticipant.value) return;
-  sendingStation.value = slot;
   sendError.value = "";
   phase.value = "sending";
 
@@ -166,7 +169,6 @@ const sendToStation = async (slot) => {
 // 繼續掃描
 const reset = () => {
   currentParticipant.value = null;
-  sendingStation.value = null;
   apiError.value = "";
   sendError.value = "";
   phase.value = "scan";
@@ -181,15 +183,17 @@ onUnmounted(() => stopScanning());
 
     <!-- ===== Header ===== -->
     <div class="dispatch-header">
-      <h1 class="dispatch-title">掃描 & 選擇列印站</h1>
-      <div class="event-badge" v-if="eventId">活動 #{{ eventId }}</div>
+      <h1 class="dispatch-title">先掃參加者 QR 才會送印</h1>
+      <div class="event-badge" v-if="eventId">活動 #{{ eventId }} · 預設站台 1</div>
     </div>
 
     <!-- ===== 掃描畫面 ===== -->
     <div class="phase-scan" v-if="phase === 'scan'">
       <div class="scan-start" v-if="!isScanning">
         <div class="scan-icon">📷</div>
-        <p class="scan-desc">掃描參與者識別碼</p>
+        <p class="scan-desc">掃描參加者報到 QR</p>
+        <p class="scan-pending">⌛ 尚未送出列印</p>
+        <p class="scan-note">掃描成功會自動報到 + 送至站台 1 列印</p>
         <p class="scan-error" v-if="scanError">{{ scanError }}</p>
         <button class="btn-start" @click="startScanning">啟動掃描器</button>
       </div>
@@ -199,7 +203,7 @@ onUnmounted(() => stopScanning());
         <div class="scan-overlay">
           <div class="scan-frame"></div>
         </div>
-        <p class="scan-hint">將 QR Code 對準掃描框</p>
+        <p class="scan-hint">將參加者 QR Code 對準掃描框</p>
         <button class="btn-stop" @click="stopScanning">停止</button>
       </div>
     </div>
@@ -210,56 +214,16 @@ onUnmounted(() => stopScanning());
       <p>驗證中...</p>
     </div>
 
-    <!-- ===== 報到成功 → 選站台 ===== -->
-    <div class="phase-result" v-else-if="phase === 'result' && currentParticipant">
-      <div class="check-badge">✓</div>
-      <h2 class="result-title">報到成功</h2>
-
-      <div class="participant-card">
-        <div class="p-row">
-          <span class="p-label">姓名</span>
-          <span class="p-value name">{{ currentParticipant.name }}</span>
-        </div>
-        <div class="p-row">
-          <span class="p-label">單位</span>
-          <span class="p-value">{{ currentParticipant.company }}</span>
-        </div>
-        <div class="p-row" v-if="currentParticipant.title">
-          <span class="p-label">職稱</span>
-          <span class="p-value">{{ currentParticipant.title }}</span>
-        </div>
-        <div class="p-row">
-          <span class="p-label">類型</span>
-          <span class="p-value">{{ currentParticipant.type }}</span>
-        </div>
-      </div>
-
-      <p class="station-prompt">選擇列印站台：</p>
-      <div class="station-buttons">
-        <button
-          v-for="s in [1, 2, 3]"
-          :key="s"
-          class="btn-station"
-          @click="sendToStation(s)"
-        >
-          <span class="station-icon">🖨️</span>
-          <span class="station-label">站台 {{ s }}</span>
-        </button>
-      </div>
-
-      <button class="btn-rescan" @click="reset">↩ 重新掃描</button>
-    </div>
-
     <!-- ===== 傳送中 ===== -->
     <div class="phase-sending" v-else-if="phase === 'sending'">
       <LogoSpinner :size="36" />
-      <p>傳送到站台 {{ sendingStation }}...</p>
+      <p>{{ currentParticipant?.name || '' }} 報到成功，傳送至站台 1...</p>
     </div>
 
     <!-- ===== 傳送成功 ===== -->
     <div class="phase-sent" v-else-if="phase === 'sent'">
       <div class="sent-icon">✓</div>
-      <h2>已傳送至站台 {{ sendingStation }}</h2>
+      <h2>已送印至站台 1</h2>
       <p class="sent-name">{{ currentParticipant?.name }} — 識別證列印中</p>
       <button class="btn-next" @click="reset">繼續掃描下一位</button>
     </div>
@@ -325,6 +289,23 @@ onUnmounted(() => stopScanning());
 /* 掃描起始畫面 */
 .scan-icon { font-size: 4rem; margin-bottom: 16px; }
 .scan-desc { color: var(--text-muted); font-size: 1rem; margin-bottom: 8px; }
+.scan-pending {
+  display: inline-block;
+  font-size: 0.82rem;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+}
+.scan-note {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  margin-bottom: 16px;
+  max-width: 260px;
+  line-height: 1.5;
+}
 .scan-error { color: #f87171; font-size: 0.9rem; margin-bottom: 12px; }
 .btn-start {
   background: linear-gradient(135deg, #167A67, #0f5d4e);
