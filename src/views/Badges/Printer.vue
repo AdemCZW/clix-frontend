@@ -271,9 +271,6 @@ const isAllSelected = computed(
     selectedIds.value.length === filteredParticipants.value.length,
 );
 
-// ===== 站台管理 =====
-const showStations = ref(false);
-
 // ===== 外部列印站台連線測試 =====
 // stationTestStatus: 'idle' | 'testing' | 'online' | 'offline'
 const stationTestStatus = ref<Record<number, string>>({ 1: "idle", 2: "idle", 3: "idle" });
@@ -347,14 +344,6 @@ watch(logoUrl, (val) => {
       </div>
       <div class="toolbar-right">
         <button
-          v-if="eventsStore.currentEvent"
-          class="btn-outline"
-          :class="{ active: showStations }"
-          @click="showStations = !showStations"
-        >
-          外部站台 {{ showStations ? '▲' : '▼' }}
-        </button>
-        <button
           class="btn-primary"
           :disabled="selectedIds.length === 0"
           v-print="{ id: 'printBadges', preview: false, popTitle: '識別證列印' }"
@@ -368,76 +357,61 @@ watch(logoUrl, (val) => {
       </div>
     </div>
 
-    <!-- 站台管理（可展開） -->
-    <Transition name="slide-down">
-      <div class="station-mgmt no-print" v-if="showStations && eventsStore.currentEvent">
-        <div class="station-grid">
-
-          <!-- 卡片 1：外部站台連線 -->
-          <section class="station-card">
-            <h3 class="card-title">
-              <span class="title-bar"></span>
-              外部列印站台
-            </h3>
-            <div class="station-rows">
-              <div v-for="s in [1, 2, 3]" :key="s" class="station-row">
-                <div class="station-info">
-                  <span class="station-test-dot" :class="stationTestStatus[s]"></span>
-                  <span class="station-name">站台 {{ s }}</span>
-                </div>
-                <div class="station-actions">
-                  <button class="btn-link" @click="openStation(s)">開啟</button>
-                  <button
-                    class="btn-test"
-                    :class="stationTestStatus[s]"
-                    :disabled="stationTestStatus[s] === 'testing'"
-                    @click="testStation(s)"
-                  >
-                    {{ stationTestStatus[s] === 'testing' ? '測試中...' : stationTestStatus[s] === 'online' ? '已連線' : stationTestStatus[s] === 'offline' ? '離線' : '測試' }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- 卡片 2：手機派送 -->
-          <section class="dispatch-card" v-if="mobileQrDataUrl">
-            <h3 class="card-title">
-              <span class="title-bar yellow"></span>
-              手機派送
-              <span class="title-chip">預設站台 1</span>
-            </h3>
-            <div class="event-pill">
-              活動 #{{ eventsStore.currentEvent?.id }} · {{ eventsStore.currentEvent?.name }}
-            </div>
-            <div class="dispatch-body">
-              <div class="dispatch-qr">
-                <img :src="mobileQrDataUrl" class="qr-img" alt="手機派送頁 QR" />
-                <span class="qr-label">手機請掃此 QR</span>
-              </div>
-              <ol class="step-list">
-                <li>
-                  <span class="step-num">1</span>
-                  <span class="step-text">手機掃此 QR 開啟掃描頁</span>
-                </li>
-                <li>
-                  <span class="step-num">2</span>
-                  <span class="step-text">再掃參加者報到 QR</span>
-                </li>
-                <li>
-                  <span class="step-num">3</span>
-                  <span class="step-text">自動送印至「站台 1」</span>
-                </li>
-              </ol>
-            </div>
-            <div class="dispatch-note">
-              ⚠ 此入口固定送至站台 1。多站台需求請告知後台。
-            </div>
-          </section>
-
+    <!-- 手機派送 + 站台 1（合併卡片，預設顯示） -->
+    <section class="dispatch-card no-print" v-if="eventsStore.currentEvent && mobileQrDataUrl">
+      <div class="dispatch-head">
+        <h3 class="card-title">
+          <span class="title-bar yellow"></span>
+          手機派送
+        </h3>
+        <div class="head-chips">
+          <span class="event-pill">活動 #{{ eventsStore.currentEvent?.id }} · {{ eventsStore.currentEvent?.name }}</span>
+          <span class="station-status" :class="stationTestStatus[1]">
+            <span class="status-dot"></span>
+            站台 1 {{ stationTestStatus[1] === 'online' ? '已連線' : stationTestStatus[1] === 'offline' ? '離線' : stationTestStatus[1] === 'testing' ? '測試中' : '尚未測試' }}
+          </span>
         </div>
       </div>
-    </Transition>
+
+      <div class="dispatch-body">
+        <div class="dispatch-qr">
+          <img :src="mobileQrDataUrl" class="qr-img" alt="手機派送頁 QR" />
+          <span class="qr-label">手機掃此 QR</span>
+        </div>
+
+        <ol class="step-list">
+          <li>
+            <span class="step-num">1</span>
+            <span class="step-text">手機掃 QR 開啟掃描頁</span>
+          </li>
+          <li>
+            <span class="step-num">2</span>
+            <span class="step-text">再掃參加者報到 QR</span>
+          </li>
+          <li>
+            <span class="step-num">3</span>
+            <span class="step-text">自動送印至站台 1</span>
+          </li>
+        </ol>
+
+        <div class="dispatch-side">
+          <div class="dispatch-note">
+            ⚠ 此入口固定送站台 1，多站台需求請告知後台
+          </div>
+          <div class="side-actions">
+            <button class="btn-link" @click="openStation(1)">開啟站台 1</button>
+            <button
+              class="btn-test"
+              :class="stationTestStatus[1]"
+              :disabled="stationTestStatus[1] === 'testing'"
+              @click="testStation(1)"
+            >
+              {{ stationTestStatus[1] === 'testing' ? '測試中...' : '測試連線' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- 主區塊：人員選擇 + 設計畫布 -->
     <div class="main-layout">
@@ -706,169 +680,114 @@ watch(logoUrl, (val) => {
   &:hover, &.active { border-color: var(--accent); color: #167A67; background: #f5f3ff; }
 }
 
-/* ===== 站台管理（卡片化，沿用報名頁版型） ===== */
-.station-mgmt {
-  margin-bottom: 16px;
-}
-
-.station-grid {
-  display: grid;
-  grid-template-columns: 1fr 1.35fr;
-  gap: 14px;
-  align-items: stretch;
-}
-
-.station-card,
+/* ===== 手機派送單卡（合併站台 1 連線狀態） ===== */
 .dispatch-card {
   background: #fafaf8;
   border: 1px solid #e8e8e4;
   border-radius: 12px;
-  padding: 18px 20px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+}
+
+.dispatch-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .card-title {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 800;
   color: #0f172a;
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 
   .title-bar {
     display: inline-block;
     width: 4px;
-    height: 18px;
+    height: 16px;
     background: #167A67;
     border-radius: 2px;
-
     &.yellow { background: #E0A800; }
   }
-
-  .title-chip {
-    margin-left: auto;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: #167A67;
-    background: #e8f5f1;
-    padding: 3px 10px;
-    border-radius: 999px;
-  }
 }
 
-.station-rows {
+.head-chips {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 8px;
-}
-
-.station-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background: #fff;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  transition: border-color 0.2s;
-  &:hover { border-color: #cbd5e1; }
-}
-
-.station-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  .station-name {
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: var(--text-main);
-  }
-}
-
-.station-actions {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.station-test-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #cbd5e1;
-  transition: background 0.3s;
-  &.testing { background: #f59e0b; animation: ws-pulse 1s infinite; }
-  &.online  { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.5); }
-  &.offline { background: #ef4444; }
-}
-
-.btn-link {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #167A67;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 5px 10px;
-  border-radius: 6px;
-  transition: background 0.15s;
-  &:hover { background: #e8f5f1; }
-}
-
-.btn-test {
-  padding: 5px 12px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.78rem;
-  cursor: pointer;
-  border: 1px solid var(--border-color);
-  background: #fff;
-  color: var(--text-muted);
-  transition: all 0.2s;
-  &:hover:not(:disabled) { border-color: var(--accent); color: #0f5d4e; }
-  &:disabled { opacity: 0.6; cursor: default; }
-  &.online  { border-color: #bbf7d0; color: #16a34a; background: #f0fdf4; }
-  &.offline { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
+  flex-wrap: wrap;
+  margin-left: auto;
 }
 
 .event-pill {
-  align-self: flex-start;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
   color: #337168;
   background: #e8f5f1;
-  padding: 5px 14px;
+  padding: 4px 12px;
   border-radius: 999px;
-  letter-spacing: 0.2px;
+}
+
+.station-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: var(--text-secondary);
+  border: 1px solid #e2e8f0;
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #cbd5e1;
+  }
+
+  &.online  { background: #f0fdf4; border-color: #bbf7d0; color: #16a34a;
+    .status-dot { background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.5); }
+  }
+  &.offline { background: #fef2f2; border-color: #fecaca; color: #dc2626;
+    .status-dot { background: #ef4444; }
+  }
+  &.testing { background: #fffbeb; border-color: #fde68a; color: #b45309;
+    .status-dot { background: #f59e0b; animation: ws-pulse 1s infinite; }
+  }
 }
 
 .dispatch-body {
   display: flex;
   gap: 18px;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 .dispatch-qr {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
 
   .qr-img {
-    width: 110px;
-    height: 110px;
+    width: 96px;
+    height: 96px;
     border-radius: 8px;
     border: 1px solid var(--border-color);
     background: #fff;
     padding: 4px;
   }
   .qr-label {
-    font-size: 0.74rem;
+    font-size: 0.72rem;
     color: var(--text-muted);
     font-weight: 600;
   }
@@ -882,7 +801,8 @@ watch(logoUrl, (val) => {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  justify-content: center;
+  gap: 8px;
 
   li {
     display: flex;
@@ -909,17 +829,63 @@ watch(logoUrl, (val) => {
   }
 }
 
+.dispatch-side {
+  flex-shrink: 0;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .dispatch-note {
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   color: #b45309;
   background: #fffbeb;
   border: 1px solid #fde68a;
-  padding: 8px 12px;
+  padding: 8px 10px;
   border-radius: 8px;
+  line-height: 1.4;
 }
 
-@media (max-width: 960px) {
-  .station-grid { grid-template-columns: 1fr; }
+.side-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-link {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #167A67;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.15s;
+  &:hover { background: #e8f5f1; border-color: var(--accent); }
+}
+
+.btn-test {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.78rem;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: #fff;
+  color: var(--text-muted);
+  transition: all 0.2s;
+  &:hover:not(:disabled) { border-color: var(--accent); color: #0f5d4e; }
+  &:disabled { opacity: 0.6; cursor: default; }
+  &.online  { border-color: #bbf7d0; color: #16a34a; background: #f0fdf4; }
+  &.offline { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
+}
+
+@media (max-width: 900px) {
+  .dispatch-body { flex-direction: column; }
+  .dispatch-side { width: 100%; }
 }
 
 /* ===== 主區塊 ===== */
