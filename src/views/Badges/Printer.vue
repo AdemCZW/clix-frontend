@@ -371,39 +371,70 @@ watch(logoUrl, (val) => {
     <!-- 站台管理（可展開） -->
     <Transition name="slide-down">
       <div class="station-mgmt no-print" v-if="showStations && eventsStore.currentEvent">
-        <div class="mgmt-left">
-          <span class="mgmt-title">外部列印站台</span>
-          <div class="station-btns">
-            <div v-for="s in [1, 2, 3]" :key="s" class="station-item">
-              <div class="station-test-dot" :class="stationTestStatus[s]"></div>
-              <button class="btn-station" @click="openStation(s)">站台 {{ s }}</button>
-              <button
-                class="btn-test"
-                :class="stationTestStatus[s]"
-                :disabled="stationTestStatus[s] === 'testing'"
-                @click="testStation(s)"
-              >
-                {{ stationTestStatus[s] === 'testing' ? '測試中...' : stationTestStatus[s] === 'online' ? '已連線' : stationTestStatus[s] === 'offline' ? '離線' : '測試' }}
-              </button>
+        <div class="station-grid">
+
+          <!-- 卡片 1：外部站台連線 -->
+          <section class="station-card">
+            <h3 class="card-title">
+              <span class="title-bar"></span>
+              外部列印站台
+            </h3>
+            <div class="station-rows">
+              <div v-for="s in [1, 2, 3]" :key="s" class="station-row">
+                <div class="station-info">
+                  <span class="station-test-dot" :class="stationTestStatus[s]"></span>
+                  <span class="station-name">站台 {{ s }}</span>
+                </div>
+                <div class="station-actions">
+                  <button class="btn-link" @click="openStation(s)">開啟</button>
+                  <button
+                    class="btn-test"
+                    :class="stationTestStatus[s]"
+                    :disabled="stationTestStatus[s] === 'testing'"
+                    @click="testStation(s)"
+                  >
+                    {{ stationTestStatus[s] === 'testing' ? '測試中...' : stationTestStatus[s] === 'online' ? '已連線' : stationTestStatus[s] === 'offline' ? '離線' : '測試' }}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-        <div class="mgmt-right" v-if="mobileQrDataUrl">
-          <div class="qr-wrap">
-            <img :src="mobileQrDataUrl" class="qr-img" alt="手機派送頁 QR" />
-            <span class="qr-label">手機派送（預設站台 1）</span>
-          </div>
-          <div class="qr-steps">
-            <div class="qr-meta">
+          </section>
+
+          <!-- 卡片 2：手機派送 -->
+          <section class="dispatch-card" v-if="mobileQrDataUrl">
+            <h3 class="card-title">
+              <span class="title-bar yellow"></span>
+              手機派送
+              <span class="title-chip">預設站台 1</span>
+            </h3>
+            <div class="event-pill">
               活動 #{{ eventsStore.currentEvent?.id }} · {{ eventsStore.currentEvent?.name }}
             </div>
-            <ol class="qr-step-list">
-              <li><strong>Step 1</strong>　手機掃此 QR 開啟掃描頁</li>
-              <li><strong>Step 2</strong>　再掃參加者報到 QR</li>
-              <li><strong>Step 3</strong>　自動送印至「站台 1」</li>
-            </ol>
-            <div class="qr-note">⚠ 此入口固定送至站台 1。多站台需求請告知後台。</div>
-          </div>
+            <div class="dispatch-body">
+              <div class="dispatch-qr">
+                <img :src="mobileQrDataUrl" class="qr-img" alt="手機派送頁 QR" />
+                <span class="qr-label">手機請掃此 QR</span>
+              </div>
+              <ol class="step-list">
+                <li>
+                  <span class="step-num">1</span>
+                  <span class="step-text">手機掃此 QR 開啟掃描頁</span>
+                </li>
+                <li>
+                  <span class="step-num">2</span>
+                  <span class="step-text">再掃參加者報到 QR</span>
+                </li>
+                <li>
+                  <span class="step-num">3</span>
+                  <span class="step-text">自動送印至「站台 1」</span>
+                </li>
+              </ol>
+            </div>
+            <div class="dispatch-note">
+              ⚠ 此入口固定送至站台 1。多站台需求請告知後台。
+            </div>
+          </section>
+
         </div>
       </div>
     </Transition>
@@ -675,67 +706,127 @@ watch(logoUrl, (val) => {
   &:hover, &.active { border-color: var(--accent); color: #167A67; background: #f5f3ff; }
 }
 
-/* ===== 站台管理 ===== */
+/* ===== 站台管理（卡片化，沿用報名頁版型） ===== */
 .station-mgmt {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 14px 20px;
   margin-bottom: 16px;
 }
 
-.station-list {
-  display: flex;
-  gap: 10px;
-  flex: 1;
-  flex-wrap: wrap;
+.station-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 14px;
+  align-items: stretch;
 }
 
-.station-item {
+.station-card,
+.dispatch-card {
+  background: #fafaf8;
+  border: 1px solid #e8e8e4;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: var(--bg-primary);
+  gap: 10px;
+
+  .title-bar {
+    display: inline-block;
+    width: 4px;
+    height: 18px;
+    background: #167A67;
+    border-radius: 2px;
+
+    &.yellow { background: #E0A800; }
+  }
+
+  .title-chip {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #167A67;
+    background: #e8f5f1;
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+}
+
+.station-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.station-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #fff;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 6px 10px;
+  border-radius: 10px;
+  transition: border-color 0.2s;
+  &:hover { border-color: #cbd5e1; }
+}
+
+.station-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .station-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-main);
+  }
+}
+
+.station-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
 
 .station-test-dot {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: #cbd5e1;
   transition: background 0.3s;
   &.testing { background: #f59e0b; animation: ws-pulse 1s infinite; }
-  &.online  { background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.5); }
+  &.online  { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.5); }
   &.offline { background: #ef4444; }
 }
 
-.btn-station {
-  padding: 6px 14px;
-  border-radius: 6px;
+.btn-link {
+  font-size: 0.82rem;
   font-weight: 600;
-  font-size: 0.85rem;
+  color: #167A67;
+  background: transparent;
+  border: none;
   cursor: pointer;
-  border: 1px solid var(--border-color);
-  background: var(--bg-card);
-  color: var(--text-main);
-  transition: all 0.2s;
-  &:hover { background: #eef2ff; border-color: var(--accent); color: #0f5d4e; }
+  padding: 5px 10px;
+  border-radius: 6px;
+  transition: background 0.15s;
+  &:hover { background: #e8f5f1; }
 }
 
 .btn-test {
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 6px;
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   cursor: pointer;
   border: 1px solid var(--border-color);
-  background: var(--bg-card);
+  background: #fff;
   color: var(--text-muted);
   transition: all 0.2s;
   &:hover:not(:disabled) { border-color: var(--accent); color: #0f5d4e; }
@@ -744,53 +835,91 @@ watch(logoUrl, (val) => {
   &.offline { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
 }
 
-.qr-wrap {
+.event-pill {
+  align-self: flex-start;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #337168;
+  background: #e8f5f1;
+  padding: 5px 14px;
+  border-radius: 999px;
+  letter-spacing: 0.2px;
+}
+
+.dispatch-body {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.dispatch-qr {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   flex-shrink: 0;
 
-  .qr-img { width: 64px; height: 64px; border-radius: 6px; border: 1px solid var(--border-color); }
-  .qr-label { font-size: 0.7rem; color: var(--text-muted); }
+  .qr-img {
+    width: 110px;
+    height: 110px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    padding: 4px;
+  }
+  .qr-label {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
 }
 
-.qr-steps {
-  max-width: 320px;
-  padding-left: 12px;
+.step-list {
+  flex: 1;
+  min-width: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 0.78rem;
-  color: var(--text-secondary);
+  gap: 10px;
 
-  .qr-meta {
-    font-weight: 600;
-    color: var(--text-main);
-    background: #f1f5f9;
-    padding: 4px 10px;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
-  .qr-step-list {
-    margin: 0;
-    padding: 0 0 0 4px;
-    list-style: none;
-    line-height: 1.6;
-
-    strong {
-      color: #167A67;
-      margin-right: 4px;
-    }
-  }
-  .qr-note {
+  .step-num {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #167A67;
+    color: #fff;
+    border-radius: 50%;
     font-size: 0.72rem;
-    color: #b45309;
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    padding: 4px 8px;
-    border-radius: 6px;
+    font-weight: 800;
   }
+  .step-text {
+    font-size: 0.85rem;
+    color: var(--text-main);
+    line-height: 1.4;
+  }
+}
+
+.dispatch-note {
+  font-size: 0.76rem;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+@media (max-width: 960px) {
+  .station-grid { grid-template-columns: 1fr; }
 }
 
 /* ===== 主區塊 ===== */
