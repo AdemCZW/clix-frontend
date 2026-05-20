@@ -627,9 +627,9 @@ watch(logoUrl, (val) => {
   justify-content: space-between;
   align-items: center;
   background: var(--bg-card);
-  border-radius: 14px;
-  padding: 14px 24px;
-  margin-bottom: 16px;
+  border-radius: 12px;
+  padding: 8px 16px;
+  margin-bottom: 10px;
   border: 1px solid var(--border-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
@@ -685,17 +685,17 @@ watch(logoUrl, (val) => {
   background: #fafaf8;
   border: 1px solid #e8e8e4;
   border-radius: 12px;
-  padding: 14px 18px;
-  margin-bottom: 16px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .dispatch-head {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -767,27 +767,27 @@ watch(logoUrl, (val) => {
 
 .dispatch-body {
   display: flex;
-  gap: 18px;
-  align-items: stretch;
+  gap: 14px;
+  align-items: center;
 }
 
 .dispatch-qr {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-shrink: 0;
 
   .qr-img {
-    width: 96px;
-    height: 96px;
-    border-radius: 8px;
+    width: 78px;
+    height: 78px;
+    border-radius: 6px;
     border: 1px solid var(--border-color);
     background: #fff;
-    padding: 4px;
+    padding: 3px;
   }
   .qr-label {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
     font-weight: 600;
   }
@@ -802,50 +802,49 @@ watch(logoUrl, (val) => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 8px;
+  gap: 5px;
 
   li {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
   }
   .step-num {
     flex-shrink: 0;
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     background: #167A67;
     color: #fff;
     border-radius: 50%;
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 800;
   }
   .step-text {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     color: var(--text-main);
-    line-height: 1.4;
+    line-height: 1.3;
   }
 }
 
 .dispatch-side {
   flex-shrink: 0;
-  width: 200px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 6px;
 }
 
 .dispatch-note {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   color: #b45309;
   background: #fffbeb;
   border: 1px solid #fde68a;
-  padding: 8px 10px;
-  border-radius: 8px;
-  line-height: 1.4;
+  padding: 5px 10px;
+  border-radius: 6px;
+  line-height: 1.3;
+  max-width: 200px;
 }
 
 .side-actions {
@@ -891,18 +890,19 @@ watch(logoUrl, (val) => {
 /* ===== 主區塊 ===== */
 .main-layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 16px;
+  grid-template-columns: 260px auto;
+  gap: 12px;
   align-items: start;
+  justify-content: start;
 }
 
 /* 左側人員選擇 */
 .selection-panel {
   background: var(--bg-card);
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid var(--border-color);
-  padding: 16px;
-  height: calc(100vh - 180px);
+  padding: 14px;
+  height: calc(100vh - 160px);
   display: flex;
   flex-direction: column;
 
@@ -1019,16 +1019,16 @@ watch(logoUrl, (val) => {
 /* ===== 右側設計區域 ===== */
 .design-area {
   background: var(--bg-card);
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid var(--border-color);
-  padding: 20px;
+  padding: 14px 16px;
 }
 
 .canvas-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
   gap: 8px;
 }
