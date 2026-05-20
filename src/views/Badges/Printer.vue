@@ -619,6 +619,8 @@ watch(logoUrl, (val) => {
   padding: 16px;
   background: var(--bg-primary);
   min-height: 100vh;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 /* ===== 頂部工具列 ===== */
@@ -890,10 +892,9 @@ watch(logoUrl, (val) => {
 /* ===== 主區塊 ===== */
 .main-layout {
   display: grid;
-  grid-template-columns: 260px auto;
+  grid-template-columns: 260px 1fr;
   gap: 12px;
   align-items: start;
-  justify-content: start;
 }
 
 /* 左側人員選擇 */
