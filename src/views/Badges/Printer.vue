@@ -357,66 +357,57 @@ watch(logoUrl, (val) => {
       </div>
     </div>
 
-    <!-- 手機派送 + 站台 1（合併卡片，預設顯示） -->
-    <section class="dispatch-card no-print" v-if="eventsStore.currentEvent && mobileQrDataUrl">
-      <div class="dispatch-head">
-        <h3 class="card-title">
-          <span class="title-bar yellow"></span>
-          手機派送
-        </h3>
-        <div class="head-chips">
-          <span class="event-pill">活動 #{{ eventsStore.currentEvent?.id }} · {{ eventsStore.currentEvent?.name }}</span>
-          <span class="station-status" :class="stationTestStatus[1]">
-            <span class="status-dot"></span>
-            站台 1 {{ stationTestStatus[1] === 'online' ? '已連線' : stationTestStatus[1] === 'offline' ? '離線' : stationTestStatus[1] === 'testing' ? '測試中' : '尚未測試' }}
-          </span>
-        </div>
-      </div>
-
-      <div class="dispatch-body">
-        <div class="dispatch-qr">
-          <img :src="mobileQrDataUrl" class="qr-img" alt="手機派送頁 QR" />
-          <span class="qr-label">手機掃此 QR</span>
-        </div>
-
-        <ol class="step-list">
-          <li>
-            <span class="step-num">1</span>
-            <span class="step-text">手機掃 QR 開啟掃描頁</span>
-          </li>
-          <li>
-            <span class="step-num">2</span>
-            <span class="step-text">再掃參加者報到 QR</span>
-          </li>
-          <li>
-            <span class="step-num">3</span>
-            <span class="step-text">自動送印至站台 1</span>
-          </li>
-        </ol>
-
-        <div class="dispatch-side">
-          <div class="dispatch-note">
-            ⚠ 此入口固定送站台 1，多站台需求請告知後台
-          </div>
-          <div class="side-actions">
-            <button class="btn-link" @click="openStation(1)">開啟站台 1</button>
-            <button
-              class="btn-test"
-              :class="stationTestStatus[1]"
-              :disabled="stationTestStatus[1] === 'testing'"
-              @click="testStation(1)"
-            >
-              {{ stationTestStatus[1] === 'testing' ? '測試中...' : '測試連線' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 主區塊：人員選擇 + 設計畫布 -->
+    <!-- 主區塊：左欄（手機派送 + 人員選擇）+ 右欄（設計畫布） -->
     <div class="main-layout">
-      <!-- 左側：人員選擇 -->
-      <div class="tech-card selection-panel no-print">
+      <!-- 左側容器：派送卡 + 人員選擇 -->
+      <div class="left-column">
+
+        <!-- 手機派送（正方形卡片） -->
+        <section class="dispatch-card no-print" v-if="eventsStore.currentEvent && mobileQrDataUrl">
+          <div class="dispatch-head">
+            <h3 class="card-title">
+              <span class="title-bar yellow"></span>
+              手機派送
+            </h3>
+            <span class="event-pill">#{{ eventsStore.currentEvent?.id }} · {{ eventsStore.currentEvent?.name }}</span>
+          </div>
+
+          <div class="dispatch-body">
+            <div class="dispatch-qr">
+              <img :src="mobileQrDataUrl" class="qr-img" alt="手機派送頁 QR" />
+            </div>
+            <ol class="step-list">
+              <li><span class="step-num">1</span><span class="step-text">開啟掃描頁</span></li>
+              <li><span class="step-num">2</span><span class="step-text">掃參加者 QR</span></li>
+              <li><span class="step-num">3</span><span class="step-text">送印站台 1</span></li>
+            </ol>
+          </div>
+
+          <div class="dispatch-note">
+            ⚠ 固定送站台 1，多站台請告知後台
+          </div>
+
+          <div class="dispatch-foot">
+            <span class="station-status" :class="stationTestStatus[1]">
+              <span class="status-dot"></span>
+              {{ stationTestStatus[1] === 'online' ? '已連線' : stationTestStatus[1] === 'offline' ? '離線' : stationTestStatus[1] === 'testing' ? '測試中' : '尚未測試' }}
+            </span>
+            <div class="foot-actions">
+              <button class="btn-link" @click="openStation(1)">開啟</button>
+              <button
+                class="btn-test"
+                :class="stationTestStatus[1]"
+                :disabled="stationTestStatus[1] === 'testing'"
+                @click="testStation(1)"
+              >
+                {{ stationTestStatus[1] === 'testing' ? '...' : '測試' }}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 人員選擇 -->
+        <div class="tech-card selection-panel no-print">
         <h3 class="card-subtitle">人員選擇</h3>
         <div class="search-row">
           <input
@@ -447,6 +438,9 @@ watch(logoUrl, (val) => {
           </div>
         </div>
       </div>
+
+      </div>
+      <!-- /left-column -->
 
       <!-- 右側：設計畫布 -->
       <div class="design-area no-print">
@@ -682,27 +676,36 @@ watch(logoUrl, (val) => {
   &:hover, &.active { border-color: var(--accent); color: #167A67; background: #f5f3ff; }
 }
 
-/* ===== 手機派送單卡（合併站台 1 連線狀態） ===== */
+/* ===== 左欄容器：派送卡 + 人員選擇 ===== */
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ===== 手機派送（260×260 正方形卡） ===== */
 .dispatch-card {
+  width: 100%;
+  aspect-ratio: 1 / 1;
   background: #fafaf8;
   border: 1px solid #e8e8e4;
   border-radius: 12px;
-  padding: 10px 14px;
-  margin-bottom: 10px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-sizing: border-box;
 }
 
 .dispatch-head {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
 }
 
 .card-title {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 800;
   color: #0f172a;
   margin: 0;
@@ -720,38 +723,35 @@ watch(logoUrl, (val) => {
   }
 }
 
-.head-chips {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-left: auto;
-}
-
 .event-pill {
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: #337168;
   background: #e8f5f1;
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 999px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .station-status {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.76rem;
+  gap: 5px;
+  font-size: 0.72rem;
   font-weight: 600;
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 999px;
   background: #f1f5f9;
   color: var(--text-secondary);
   border: 1px solid #e2e8f0;
+  white-space: nowrap;
 
   .status-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: #cbd5e1;
   }
@@ -769,29 +769,24 @@ watch(logoUrl, (val) => {
 
 .dispatch-body {
   display: flex;
-  gap: 14px;
+  gap: 10px;
   align-items: center;
+  flex: 1;
+  min-height: 0;
 }
 
 .dispatch-qr {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
   flex-shrink: 0;
 
   .qr-img {
-    width: 78px;
-    height: 78px;
+    width: 100px;
+    height: 100px;
     border-radius: 6px;
     border: 1px solid var(--border-color);
     background: #fff;
     padding: 3px;
-  }
-  .qr-label {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    font-weight: 600;
+    box-sizing: border-box;
+    display: block;
   }
 }
 
@@ -804,75 +799,73 @@ watch(logoUrl, (val) => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
 
   li {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
   .step-num {
     flex-shrink: 0;
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     background: #167A67;
     color: #fff;
     border-radius: 50%;
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     font-weight: 800;
   }
   .step-text {
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     color: var(--text-main);
     line-height: 1.3;
   }
 }
 
-.dispatch-side {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
 .dispatch-note {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: #b45309;
   background: #fffbeb;
   border: 1px solid #fde68a;
-  padding: 5px 10px;
+  padding: 4px 8px;
   border-radius: 6px;
   line-height: 1.3;
-  max-width: 200px;
 }
 
-.side-actions {
+.dispatch-foot {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 6px;
-  flex-wrap: wrap;
+}
+
+.foot-actions {
+  display: flex;
+  gap: 4px;
 }
 
 .btn-link {
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   font-weight: 600;
   color: #167A67;
   background: #fff;
   border: 1px solid var(--border-color);
   cursor: pointer;
-  padding: 6px 12px;
+  padding: 4px 10px;
   border-radius: 6px;
   transition: all 0.15s;
   &:hover { background: #e8f5f1; border-color: var(--accent); }
 }
 
 .btn-test {
-  padding: 6px 12px;
+  padding: 4px 10px;
   border-radius: 6px;
   font-weight: 600;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   cursor: pointer;
   border: 1px solid var(--border-color);
   background: #fff;
@@ -882,11 +875,6 @@ watch(logoUrl, (val) => {
   &:disabled { opacity: 0.6; cursor: default; }
   &.online  { border-color: #bbf7d0; color: #16a34a; background: #f0fdf4; }
   &.offline { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
-}
-
-@media (max-width: 900px) {
-  .dispatch-body { flex-direction: column; }
-  .dispatch-side { width: 100%; }
 }
 
 /* ===== 主區塊 ===== */
@@ -903,7 +891,9 @@ watch(logoUrl, (val) => {
   border-radius: 12px;
   border: 1px solid var(--border-color);
   padding: 14px;
-  height: calc(100vh - 160px);
+  flex: 1;
+  min-height: 0;
+  height: calc(100vh - 440px); /* 扣掉 toolbar 高度 + 派送卡 260 + gap */
   display: flex;
   flex-direction: column;
 
