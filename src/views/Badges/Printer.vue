@@ -946,7 +946,9 @@ watch(logoUrl, (val) => {
   padding: 14px;
   flex: 1;
   min-height: 0;
-  height: calc(100vh - 440px); /* 扣掉 toolbar 高度 + 派送卡 260 + gap */
+  /* 用 clamp 保護最小/最大高度：min 320px、預設 viewport - 440px、上限 720px
+     避免縮窗時 calc 變太小造成內部 flex 子元素拿不到有效空間 */
+  height: clamp(320px, calc(100vh - 440px), 720px);
   display: flex;
   flex-direction: column;
 
@@ -1010,6 +1012,9 @@ watch(logoUrl, (val) => {
   flex: 1;
   overflow-y: auto;
   padding-right: 2px;
+  /* 兜底：即使 parent flex 計算出問題，list 自己也不會無限延伸 */
+  max-height: 60vh;
+  min-height: 0;
 
   &::-webkit-scrollbar { width: 4px; }
   &::-webkit-scrollbar-track { background: transparent; }
