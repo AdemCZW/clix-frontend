@@ -45,7 +45,8 @@ const tick = () => {
     canvasCtx.drawImage(videoElement.value, 0, 0, canvas.width, canvas.height);
     const imageData = canvasCtx.getImageData(0, 0, canvas.width, canvas.height);
     const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
-    if (code) { onScanSuccess(code.data); return; }
+    // jsQR 偵測到反光 / 條碼 / 紋路時可能回 { data: "" }，避免誤判跳「無效 QR」錯誤
+    if (code && code.data && code.data.trim()) { onScanSuccess(code.data); return; }
   }
   animationId = requestAnimationFrame(tick);
 };
@@ -76,10 +77,22 @@ const sendError       = ref("");
 // 預設送印站台（方案 A：固定送站台 1）
 const DEFAULT_STATION = 1;
 
-const onScanSuccess = async (rawToken) => {
+// 上一次掃到的 raw token — 防止同一個誤判 QR 連續觸發
+let lastRawToken = "";
+const lastScannedRaw = ref("");
+
+const onScanSuccess = async (rawToken: string) => {
+  // race guard：只接受 scan 階段的呼叫，避免 stopScanning cancel 之前 queued RAF 還 fire 出來
+  if (phase.value !== "scan") return;
+  // dedupe：500ms 內同一個 raw token 不重複處理（jsQR 同幀可能多觸發）
+  if (rawToken === lastRawToken) return;
+  lastRawToken = rawToken;
+  setTimeout(() => { if (lastRawToken === rawToken) lastRawToken = ""; }, 1500);
+
   stopScanning();
   phase.value = "loading";
   apiError.value = "";
+  lastScannedRaw.value = rawToken;
 
   const token = parseTokenFromQr(rawToken);
   try {
@@ -233,6 +246,10 @@ onUnmounted(() => stopScanning());
       <div class="error-icon">✕</div>
       <h2>發生錯誤</h2>
       <p class="error-msg">{{ apiError || sendError }}</p>
+      <details v-if="lastScannedRaw" class="error-debug">
+        <summary>掃到的內容（debug）</summary>
+        <code>{{ lastScannedRaw }}</code>
+      </details>
       <button class="btn-retry" @click="reset">重試</button>
     </div>
 
@@ -470,7 +487,33 @@ onUnmounted(() => stopScanning());
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 16px;
 }
-.error-msg { color: #f87171; font-size: 0.95rem; margin: 8px 0 24px; line-height: 1.6; }
+.error-msg { color: #f87171; font-size: 0.95rem; margin: 8px 0 16px; line-height: 1.6; }
+.error-debug {
+  margin: 0 0 20px;
+  max-width: 320px;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+.error-debug summary {
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 8px;
+  display: inline-block;
+}
+.error-debug code {
+  display: block;
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  word-break: break-all;
+  font-family: ui-monospace, "SF Mono", monospace;
+  color: #cbd5e1;
+  text-align: left;
+  max-height: 140px;
+  overflow: auto;
+}
 .btn-retry {
   background: #ef4444; color: white; border: none;
   padding: 12px 32px; border-radius: 10px; font-weight: 700;
