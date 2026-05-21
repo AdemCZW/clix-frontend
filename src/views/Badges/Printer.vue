@@ -14,6 +14,9 @@ import {
 } from "@/utils/participantFieldResolver";
 import QRCodeLib from "qrcode";
 import PageLoader from "@/components/shared/PageLoader.vue";
+import { useToast } from "@/composables/useToast";
+
+const { success: toastSuccess, error: toastError } = useToast();
 
 const participantsStore = useParticipantsStore();
 const eventsStore = useEventsStore();
@@ -321,6 +324,19 @@ function openStation(slot: number) {
   window.open(url, `_station_${slot}`, "width=960,height=700,menubar=no,toolbar=no,status=no,scrollbars=yes");
 }
 
+function copyMobileDispatchUrl() {
+  const url = mobileDispatchUrl.value;
+  if (!url) {
+    toastError("尚未產生派送網址");
+    return;
+  }
+  navigator.clipboard.writeText(url).then(() => {
+    toastSuccess("派送網址已複製，貼到手機瀏覽器即可開啟");
+  }).catch(() => {
+    toastError("複製失敗，請手動長按 QR 或選取網址");
+  });
+}
+
 // 儲存版面設計 & Logo 到 localStorage
 watch(templateElements, (val) => {
   localStorage.setItem("badge_template", JSON.stringify(val));
@@ -375,6 +391,13 @@ watch(logoUrl, (val) => {
           <div class="dispatch-body">
             <div class="dispatch-qr">
               <img :src="mobileQrDataUrl" class="qr-img" alt="手機派送頁 QR" />
+              <button class="btn-copy-url" type="button" @click="copyMobileDispatchUrl">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                複製網址
+              </button>
             </div>
             <ol class="step-list">
               <li><span class="step-num">1</span><span class="step-text">開啟掃描頁</span></li>
@@ -777,6 +800,10 @@ watch(logoUrl, (val) => {
 
 .dispatch-qr {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
 
   .qr-img {
     width: 100px;
@@ -787,6 +814,32 @@ watch(logoUrl, (val) => {
     padding: 3px;
     box-sizing: border-box;
     display: block;
+  }
+}
+
+.btn-copy-url {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #167A67;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 6px;
+  transition: all 0.15s;
+  white-space: nowrap;
+
+  svg { flex-shrink: 0; }
+
+  &:hover {
+    background: #e8f5f1;
+    border-color: var(--accent);
+  }
+  &:active {
+    transform: translateY(0.5px);
   }
 }
 
