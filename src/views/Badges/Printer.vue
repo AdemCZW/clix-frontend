@@ -40,13 +40,20 @@ const allParticipants = computed(() => participantsStore.participants);
 
 const searchQuery = ref("");
 const selectedIds = ref<number[]>([]);
-const filteredParticipants = computed(() =>
-  allParticipants.value.filter(
-    (p) =>
-      (p.name || "").includes(searchQuery.value) ||
-      (p.company || "").includes(searchQuery.value),
-  ),
+const normalizedSearchQuery = computed(() =>
+  typeof searchQuery.value === "string" ? searchQuery.value.trim() : "",
 );
+const filteredParticipants = computed(() => {
+  const keyword = normalizedSearchQuery.value;
+  if (!keyword) return allParticipants.value;
+
+  return allParticipants.value.filter((p) => {
+    const name = typeof p.name === "string" ? p.name : String(p.name ?? "");
+    const company =
+      typeof p.company === "string" ? p.company : String(p.company ?? "");
+    return name.includes(keyword) || company.includes(keyword);
+  });
+});
 const selectedParticipants = computed(() =>
   allParticipants.value.filter((p) => selectedIds.value.includes(p.id)),
 );
@@ -1009,8 +1016,11 @@ watch(logoUrl, (val) => {
 }
 
 .participant-list {
-  flex: 1;
+  /* Safari 在 nested flex + overflow 場景可能把內容高度算錯，補 height:0 作為 shrink baseline */
+  flex: 1 1 auto;
+  height: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding-right: 2px;
   /* 兜底：即使 parent flex 計算出問題，list 自己也不會無限延伸 */
   max-height: 60vh;
