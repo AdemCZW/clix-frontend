@@ -453,19 +453,22 @@ watch(logoUrl, (val) => {
           </button>
         </div>
         <div class="participant-list">
-          <div
-            v-for="p in filteredParticipants"
-            :key="p.id"
-            class="p-item"
-            :class="{ selected: selectedIds.includes(p.id) }"
-            @click="toggleSelection(p.id)"
-          >
-            <div class="p-info">
-              <span class="name">{{ p.name }}</span>
-              <span class="comp">{{ p.company }}</span>
+          <template v-if="filteredParticipants.length">
+            <div
+              v-for="p in filteredParticipants"
+              :key="p.id"
+              class="p-item"
+              :class="{ selected: selectedIds.includes(p.id) }"
+              @click="toggleSelection(p.id)"
+            >
+              <div class="p-info">
+                <span class="name">{{ p.name }}</span>
+                <span class="comp">{{ p.company }}</span>
+              </div>
+              <span v-if="selectedIds.includes(p.id)" class="check-mark">✓</span>
             </div>
-            <span v-if="selectedIds.includes(p.id)" class="check-mark">✓</span>
-          </div>
+          </template>
+          <div v-else class="participant-empty">沒有符合搜尋的名單</div>
         </div>
       </div>
 
@@ -951,11 +954,9 @@ watch(logoUrl, (val) => {
   border-radius: 12px;
   border: 1px solid var(--border-color);
   padding: 14px;
-  flex: 1;
-  min-height: 0;
-  /* 用 clamp 保護最小/最大高度：min 320px、預設 viewport - 440px、上限 720px
-     避免縮窗時 calc 變太小造成內部 flex 子元素拿不到有效空間 */
-  height: clamp(320px, calc(100vh - 440px), 720px);
+  flex: none;
+  min-height: 360px;
+  height: auto;
   display: flex;
   flex-direction: column;
 
@@ -1016,19 +1017,26 @@ watch(logoUrl, (val) => {
 }
 
 .participant-list {
-  /* Safari 在 nested flex + overflow 場景可能把內容高度算錯，補 height:0 作為 shrink baseline */
-  flex: 1 1 auto;
-  height: 0;
+  flex: 0 1 auto;
+  min-height: 170px;
+  max-height: 380px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-right: 2px;
-  /* 兜底：即使 parent flex 計算出問題，list 自己也不會無限延伸 */
-  max-height: 60vh;
-  min-height: 0;
 
   &::-webkit-scrollbar { width: 4px; }
   &::-webkit-scrollbar-track { background: transparent; }
   &::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+}
+
+.participant-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  font-weight: 600;
 }
 
 .p-item {
