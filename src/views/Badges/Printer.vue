@@ -15,6 +15,7 @@ import {
 import QRCodeLib from "qrcode";
 import PageLoader from "@/components/shared/PageLoader.vue";
 import { useToast } from "@/composables/useToast";
+import { apiRequest } from "@/utils/api";
 
 const { success: toastSuccess, error: toastError } = useToast();
 
@@ -344,6 +345,29 @@ function copyMobileDispatchUrl() {
   });
 }
 
+// 產生站台 .bat 內容（含 station_token，站台 PC 免登入）並複製
+async function copyStationBat(slot: number) {
+  const eid = eventsStore.currentEvent?.id;
+  if (!eid) {
+    toastError("尚未選擇活動");
+    return;
+  }
+  try {
+    const res = await apiRequest(`/api/print-station-token/?event=${eid}&slot=${slot}`);
+    if (!res.ok) throw new Error();
+    const { station_token } = await res.json();
+    const url = `${window.location.origin}${window.location.pathname}#/print/station/${slot}?event=${eid}&station_token=${station_token}`;
+    const bat =
+      `@echo off\r\n` +
+      `rem clix 列印站台 ${slot}（活動 #${eid}）— 雙擊自動開啟列印頁，免登入\r\n` +
+      `start "" "${url}"\r\n`;
+    await navigator.clipboard.writeText(bat);
+    toastSuccess(`站台 ${slot} 的 .bat 內容已複製，貼到記事本另存為 .bat 即可`);
+  } catch {
+    toastError("產生站台連結失敗，請確認已登入且有此活動權限");
+  }
+}
+
 // 儲存版面設計 & Logo 到 localStorage
 watch(templateElements, (val) => {
   localStorage.setItem("badge_template", JSON.stringify(val));
@@ -423,6 +447,7 @@ watch(logoUrl, (val) => {
               {{ stationTestStatus[1] === 'online' ? '已連線' : stationTestStatus[1] === 'offline' ? '離線' : stationTestStatus[1] === 'testing' ? '測試中' : '尚未測試' }}
             </span>
             <div class="foot-actions">
+              <button class="btn-link" @click="copyStationBat(1)">複製 .bat</button>
               <button class="btn-link" @click="openStation(1)">開啟</button>
               <button
                 class="btn-test"
@@ -909,6 +934,8 @@ watch(logoUrl, (val) => {
 .foot-actions {
   display: flex;
   gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .btn-link {

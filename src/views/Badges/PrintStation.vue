@@ -7,6 +7,8 @@ import { getAccessToken } from "@/utils/authStorage";
 const route = useRoute();
 const slot = computed(() => String(route.params.slot || "1"));
 const eventId = computed(() => String(route.query.event || ""));
+// 站台簽章 token（.bat URL 帶來）：站台啞終端免登入連 WS 用
+const stationToken = computed(() => String(route.query.station_token || ""));
 
 // QR Code 圖片生成
 // QR 內容優先用外部票號（external_ticket_id），fallback 用內部 check_in_token UUID。
@@ -85,9 +87,12 @@ function connectWebSocket() {
     .replace(/\/$/, "")
     .replace(/^https/, "wss")
     .replace(/^http/, "ws");
-  const token = getAccessToken() || "";
-  const tokenParam = token ? `?token=${token}` : "";
-  wsInstance = new WebSocket(`${wsBase}/ws/print/${sessionId.value}/${tokenParam}`);
+  // 站台優先用 URL 的 station_token（啞終端免登入、不受 JWT 24h 過期影響）；
+  // 沒有才 fallback 使用者 JWT（後台登入態下開預覽視窗用）
+  const authParam = stationToken.value
+    ? `?station_token=${encodeURIComponent(stationToken.value)}`
+    : (getAccessToken() ? `?token=${getAccessToken()}` : "");
+  wsInstance = new WebSocket(`${wsBase}/ws/print/${sessionId.value}/${authParam}`);
   wsInstance.onopen  = () => { wsStatus.value = "connected"; };
   wsInstance.onclose = () => { wsStatus.value = "disconnected"; wsInstance = null; };
   wsInstance.onerror = () => { wsStatus.value = "error"; };
