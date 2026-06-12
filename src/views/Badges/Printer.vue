@@ -345,8 +345,9 @@ function copyMobileDispatchUrl() {
   });
 }
 
-// 產生站台 .bat 內容（含 station_token，站台 PC 免登入）並複製
-async function copyStationBat(slot: number) {
+// 產生站台啟動檔（含 station_token，站台機免登入）並下載
+// platform: "win" → .bat（雙擊即開）；"mac" → .command（首次需 chmod +x）
+async function downloadStationLauncher(slot: number, platform: "win" | "mac") {
   const eid = eventsStore.currentEvent?.id;
   if (!eid) {
     toastError("尚未選擇活動");
@@ -357,12 +358,38 @@ async function copyStationBat(slot: number) {
     if (!res.ok) throw new Error();
     const { station_token } = await res.json();
     const url = `${window.location.origin}${window.location.pathname}#/print/station/${slot}?event=${eid}&station_token=${station_token}`;
-    const bat =
-      `@echo off\r\n` +
-      `rem clix 列印站台 ${slot}（活動 #${eid}）— 雙擊自動開啟列印頁，免登入\r\n` +
-      `start "" "${url}"\r\n`;
-    await navigator.clipboard.writeText(bat);
-    toastSuccess(`站台 ${slot} 的 .bat 內容已複製，貼到記事本另存為 .bat 即可`);
+
+    let filename: string;
+    let content: string;
+    if (platform === "win") {
+      filename = `clix-station${slot}.bat`;
+      content =
+        `@echo off\r\n` +
+        `rem clix 列印站台 ${slot}（活動 #${eid}）— 雙擊自動開啟列印頁，免登入\r\n` +
+        `start "" "${url}"\r\n`;
+    } else {
+      filename = `clix-station${slot}.command`;
+      content =
+        `#!/bin/bash\n` +
+        `# clix 列印站台 ${slot}（活動 #${eid}）— 雙擊自動開啟列印頁，免登入\n` +
+        `# 首次使用：在終端機對本檔執行  chmod +x "${filename}"  後即可雙擊\n` +
+        `open "${url}"\n`;
+    }
+
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+
+    toastSuccess(
+      platform === "win"
+        ? `已下載 ${filename}，複製到站台電腦雙擊即可`
+        : `已下載 ${filename}，首次需在終端機執行 chmod +x 後雙擊`
+    );
   } catch {
     toastError("產生站台連結失敗，請確認已登入且有此活動權限");
   }
@@ -447,7 +474,8 @@ watch(logoUrl, (val) => {
               {{ stationTestStatus[1] === 'online' ? '已連線' : stationTestStatus[1] === 'offline' ? '離線' : stationTestStatus[1] === 'testing' ? '測試中' : '尚未測試' }}
             </span>
             <div class="foot-actions">
-              <button class="btn-link" @click="copyStationBat(1)">複製 .bat</button>
+              <button class="btn-link" @click="downloadStationLauncher(1, 'win')">Win .bat</button>
+              <button class="btn-link" @click="downloadStationLauncher(1, 'mac')">Mac .command</button>
               <button class="btn-link" @click="openStation(1)">開啟</button>
               <button
                 class="btn-test"
