@@ -268,8 +268,8 @@ onUnmounted(() => disconnectWebSocket());
           <template v-else-if="el.key === 'company'">{{ wsCurrentPrint.company }}</template>
           <template v-else-if="el.key === 'code'">
             <img
-              v-if="qrDataUrls[wsCurrentPrint.checkInToken]"
-              :src="qrDataUrls[wsCurrentPrint.checkInToken]"
+              v-if="qrDataUrls[qrTokenOf(wsCurrentPrint)]"
+              :src="qrDataUrls[qrTokenOf(wsCurrentPrint)]"
               width="80" height="80"
             />
           </template>
