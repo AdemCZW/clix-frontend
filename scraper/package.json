@@ -1,0 +1,16 @@
+{
+  "name": "beclass-lead-scraper",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "爬取 beclass.com 活動列表，找出辦活動的主辦單位作為報名系統的潛在客戶",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "preview": "node src/index.js --no-details --pages 1-2",
+    "inspect": "node src/index.js --inspect",
+    "test": "node test/parse.test.js"
+  }
+}

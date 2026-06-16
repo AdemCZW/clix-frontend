@@ -1,0 +1,5 @@
+# 爬取結果不進版控（含可能的個資，請妥善保管）
+output/*.json
+output/*.csv
+node_modules
+*.log
