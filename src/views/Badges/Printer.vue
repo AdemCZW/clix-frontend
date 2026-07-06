@@ -395,9 +395,14 @@ async function downloadStationLauncher(slot: number, platform: "win" | "mac") {
   }
 }
 
-// 儲存版面設計 & Logo 到 localStorage
+// 儲存版面設計到 localStorage（拖曳時 deep watch 每個 mousemove 都觸發，
+// debounce 300ms：只在停手後寫一次，避免拖曳全程狂寫 localStorage）
+let saveTemplateTimer: ReturnType<typeof setTimeout> | null = null;
 watch(templateElements, (val) => {
-  localStorage.setItem("badge_template", JSON.stringify(val));
+  if (saveTemplateTimer) clearTimeout(saveTemplateTimer);
+  saveTemplateTimer = setTimeout(() => {
+    localStorage.setItem("badge_template", JSON.stringify(val));
+  }, 300);
 }, { deep: true });
 
 watch(logoUrl, (val) => {

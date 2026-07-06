@@ -48,11 +48,11 @@ onUnmounted(() => {
 
 // 切換活動時自動重新載入參與者
 watch(
-  () => eventsStore.currentEvent,
-  async (newEvent) => {
-    if (newEvent?.id) {
+  () => eventsStore.currentEvent?.id,
+  async (newId) => {
+    if (newId) {
       try {
-        await participantsStore.fetchParticipants({ event: String(newEvent.id) });
+        await participantsStore.fetchParticipants({ event: String(newId) });
       } catch {
         showError("無法載入參與者資料");
       }

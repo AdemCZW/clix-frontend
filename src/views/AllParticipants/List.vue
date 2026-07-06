@@ -80,7 +80,7 @@
                   </thead>
                   <tbody>
                     <tr
-                      v-for="participant in filteredParticipants(event.participants)"
+                      v-for="participant in (filteredMap.get(event.id) || [])"
                       :key="participant.id"
                     >
                       <td class="name-cell">{{ participant.name }}</td>
@@ -230,17 +230,26 @@ const groupedData = computed(() => {
 });
 
 // 篩選參與者（搜尋關鍵字）
-const filteredParticipants = (participants: LocalEvent['participants']) => {
-  if (!debouncedKeyword.value) return participants;
-  const keyword = debouncedKeyword.value.toLowerCase();
-  return participants.filter(
-    (p) =>
-      p.name.toLowerCase().includes(keyword) ||
-      p.email.toLowerCase().includes(keyword) ||
-      p.company.toLowerCase().includes(keyword) ||
-      p.title.toLowerCase().includes(keyword),
-  );
-};
+// 過濾結果快取進 computed Map（取代每次 render 對已展開活動重跑全量 filter 的 method）
+const filteredMap = computed(() => {
+  const kw = debouncedKeyword.value.toLowerCase();
+  const m = new Map<number, LocalEvent['participants']>();
+  events.value.forEach((ev) => {
+    m.set(
+      ev.id,
+      !kw
+        ? ev.participants
+        : ev.participants.filter(
+            (p) =>
+              p.name.toLowerCase().includes(kw) ||
+              p.email.toLowerCase().includes(kw) ||
+              p.company.toLowerCase().includes(kw) ||
+              p.title.toLowerCase().includes(kw),
+          ),
+    );
+  });
+  return m;
+});
 
 // 切換活動展開/收合
 const toggleEvent = (eventId: number) => {
