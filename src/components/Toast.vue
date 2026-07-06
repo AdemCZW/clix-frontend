@@ -101,8 +101,8 @@ const { queue, dismiss } = useToast();
 
 // Info
 .toast-container.info {
-  .toast-content { border-left-color: #667eea; }
-  .toast-icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+  .toast-content { border-left-color: var(--accent); }
+  .toast-icon { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%); color: white; }
 }
 
 // TransitionGroup 動畫

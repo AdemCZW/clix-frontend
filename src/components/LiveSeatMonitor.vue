@@ -64,7 +64,7 @@ const doRefresh = async () => {
   try {
     const eventId = eventsStore.currentEvent?.id;
     if (eventId) {
-      await participantsStore.fetchParticipants({ event: String(eventId) });
+      await participantsStore.fetchParticipants({ event: String(eventId) }, { force: true });
     }
   } finally {
     refreshing.value = false;

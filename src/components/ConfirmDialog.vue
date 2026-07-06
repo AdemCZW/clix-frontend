@@ -128,10 +128,10 @@ const emit = defineEmits(["confirm", "cancel"]);
       &:hover { background: #dc2626; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35); }
     }
     &.primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--accent);
       color: white;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-      &:hover { transform: translateY(-1px); }
+      box-shadow: 0 4px 12px var(--accent-glow);
+      &:hover { background: var(--accent-hover); transform: translateY(-1px); }
     }
   }
 }

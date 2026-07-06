@@ -86,9 +86,9 @@ export const useParticipantsStore = defineStore('participants', () => {
         },
     )
 
-    async function fetchParticipants(params: Record<string, string> = {}) {
+    async function fetchParticipants(params: Record<string, string> = {}, opts: { force?: boolean } = {}) {
         const key = buildCacheKey(params)
-        if (participants.value.length > 0 && cache.isValid(key)) return participants.value
+        if (!opts.force && participants.value.length > 0 && cache.isValid(key)) return participants.value
         return run(async () => {
             const query = new URLSearchParams(params).toString()
             const url = query ? `/api/participants/?${query}` : '/api/participants/'

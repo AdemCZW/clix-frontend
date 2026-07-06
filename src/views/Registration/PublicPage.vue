@@ -8,9 +8,11 @@ import FaqSection from '@/components/registration/FaqSection.vue'
 import MobileStickyBar from '@/components/registration/MobileStickyBar.vue'
 import SuccessState from '@/components/registration/SuccessState.vue'
 import TicketSection from '@/components/registration/TicketSection.vue'
+import { useToast } from '@/composables/useToast'
 
 const route = useRoute()
 const store = usePublicRegisterStore()
+const { error: toastError } = useToast()
 const shortLink = String(route.params.shortLink || '')
 
 // ─── Buyer / 訂購人（依後端 form_fields 中 buyer_* 是否顯示來決定要不要呈現區塊）───
@@ -779,7 +781,7 @@ const handleSubmit = async () => {
     })
     removeSavedDraft()
   } catch {
-    // error displayed via store.error
+    toastError(store.error || '報名送出失敗，請稍後再試')
   } finally {
     submitting.value = false
   }
