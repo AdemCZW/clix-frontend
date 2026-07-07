@@ -887,7 +887,7 @@ const formatDate = (isoString: string) => {
         <template v-else>
           <div class="panel-header">
             <h3>{{ editingParticipant.name }}</h3>
-            <button class="panel-close" @click="editingParticipant = null">✕</button>
+            <button class="panel-close" aria-label="關閉" title="關閉" @click="editingParticipant = null">✕</button>
           </div>
           <!-- Tab 切換：基本資料 / 自訂欄位（form_answers）-->
           <div class="panel-tabs">

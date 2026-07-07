@@ -101,7 +101,7 @@
                     rows="2"
                     class="faq-answer"
                   ></textarea>
-                  <button type="button" @click="removeFaq(index)" class="btn-remove">✕</button>
+                  <button type="button" @click="removeFaq(index)" class="btn-remove" aria-label="刪除 FAQ" title="刪除 FAQ">✕</button>
                 </div>
               </div>
               <button type="button" @click="addFaq" class="btn-add">+ 新增常見問題</button>

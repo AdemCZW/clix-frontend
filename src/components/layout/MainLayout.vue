@@ -127,16 +127,17 @@ const selectEvent = (event: any) => {
       <nav class="menu">
         <!-- 主選單 -->
         <div class="menu-section">
-          <div
+          <button
             v-for="item in mainMenuItems"
             :key="'main-' + item.id"
+            type="button"
             class="menu-item"
             :class="{ active: route.path === item.path }"
             @click="navigateTo(item.path)"
           >
             <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" v-html="item.icon"></svg>
             <span class="menu-label">{{ item.name }}</span>
-          </div>
+          </button>
         </div>
 
         <!-- 活動管理選單 -->
@@ -144,16 +145,17 @@ const selectEvent = (event: any) => {
           <div class="section-divider">
             <span class="divider-text">{{ eventsStore.currentEvent.name }}</span>
           </div>
-          <div
+          <button
             v-for="item in eventMenuItems"
             :key="'event-' + item.id"
+            type="button"
             class="menu-item"
             :class="{ active: route.path === item.path }"
             @click="navigateTo(item.path)"
           >
             <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" v-html="item.icon"></svg>
             <span class="menu-label">{{ item.name }}</span>
-          </div>
+          </button>
         </div>
       </nav>
 
@@ -296,6 +298,11 @@ const selectEvent = (event: any) => {
 }
 
 .menu-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  font-family: inherit;
   padding: 11px 14px;
   margin-bottom: 2px;
   border-radius: 8px;

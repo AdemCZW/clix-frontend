@@ -366,7 +366,7 @@ onMounted(async () => {
           <div class="template-drawer" @click.stop>
             <div class="drawer-header">
               <h3>樣板庫</h3>
-              <button class="btn-close" @click="closeTemplateDrawer">✕</button>
+              <button class="btn-close" aria-label="關閉" title="關閉" @click="closeTemplateDrawer">✕</button>
             </div>
             <div class="drawer-content">
               <div

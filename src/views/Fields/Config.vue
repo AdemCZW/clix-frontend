@@ -265,7 +265,7 @@ const previewGroups = computed(() => {
                           <div class="opt-item">
                             <span class="drag-handle"></span>
                             <input v-model="opt.text" class="opt-input" />
-                            <button @click="removeOption(field, optIdx)" class="opt-del">✕</button>
+                            <button @click="removeOption(field, optIdx)" class="opt-del" aria-label="刪除選項" title="刪除選項">✕</button>
                           </div>
                         </template>
                       </draggable>

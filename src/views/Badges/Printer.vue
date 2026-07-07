@@ -4,6 +4,7 @@ import vPrint from "vue3-print-nb";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { useRegistrationPagesStore } from "@/stores/registrationPages";
+import { useEventScopedLoader } from "@/composables/useEventScopedLoader";
 import { getAccessToken } from "@/utils/authStorage";
 import {
   BASIC_FIELD_OPTIONS,
@@ -228,19 +229,19 @@ onUnmounted(() => {
   window.removeEventListener("mouseup", stopDrag);
 });
 
-watch(
-  () => eventsStore.currentEvent,
-  async (newEvent) => {
-    if (newEvent?.id) {
-      await participantsStore.fetchParticipants({ event: String(newEvent.id) });
-      // 切活動 → 重抓自訂欄位（不同活動的報名表自訂欄位可能不同）
-      loadCustomFields();
-    } else {
+// 隨活動切換載入名單 + 自訂欄位（收斂到 useEventScopedLoader）
+useEventScopedLoader(
+  async (eventId) => {
+    await participantsStore.fetchParticipants({ event: String(eventId) });
+    // 切活動 → 重抓自訂欄位（不同活動的報名表自訂欄位可能不同）
+    loadCustomFields();
+  },
+  {
+    onNoEvent: () => {
       participantsStore.clear();
       customFieldOptions.value = [];
-    }
-  },
-  { immediate: true }
+    },
+  }
 );
 
 const toggleSelection = (id: number) => {
@@ -614,7 +615,7 @@ watch(logoUrl, (val) => {
       <div class="add-modal">
         <div class="add-modal-header">
           <h3>新增項目</h3>
-          <button class="btn-close-add" @click="closeAddModal">✕</button>
+          <button class="btn-close-add" aria-label="關閉" title="關閉" @click="closeAddModal">✕</button>
         </div>
         <div class="add-modal-tabs">
           <button :class="{ active: addTab === 'basic' }" @click="addTab = 'basic'">基本項目</button>

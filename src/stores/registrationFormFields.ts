@@ -1,35 +1,28 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { apiRequest } from '@/utils/api'
+import { useStoreRequest } from '@/utils/useStoreRequest'
 import type { FormField, FieldOption } from '@/types'
 
 export const useRegistrationFormFieldsStore = defineStore('registrationFormFields', () => {
     const fields = ref<FormField[]>([])
-    const loading = ref(false)
     const saving = ref(false)
-    const error = ref<string | null>(null)
     const currentPageId = ref<number | null>(null)
-
-    function clearError() { error.value = null }
+    const { loading, error, run, clearError } = useStoreRequest()
 
     /**
      * 取得指定報名頁的所有欄位（含隱藏）
+     * 注意：改用 run 後失敗會 rethrow（原本僅 set error），唯一呼叫端 Config.vue 自帶 try/catch。
      */
-    async function fetchFields(pageId: number) {
-        loading.value = true
-        clearError()
-        try {
+    function fetchFields(pageId: number) {
+        return run(async () => {
             const res = await apiRequest(`/api/registration-form-fields/by_page/${pageId}/`)
             if (!res.ok) throw new Error(`取得欄位失敗 (${res.status})`)
             const data: FormField[] = await res.json()
             // 就地修改陣列而非替換，確保 vuedraggable 能正確偵測變更
             fields.value.splice(0, fields.value.length, ...data)
             currentPageId.value = pageId
-        } catch (err) {
-            error.value = (err as Error).message
-        } finally {
-            loading.value = false
-        }
+        })
     }
 
     /**
@@ -78,7 +71,7 @@ export const useRegistrationFormFieldsStore = defineStore('registrationFormField
     function clearFields() {
         fields.value = []
         currentPageId.value = null
-        error.value = null
+        clearError()
     }
 
     return {

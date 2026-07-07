@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { useToast } from "@/composables/useToast";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
+import { useEventScopedLoader } from "@/composables/useEventScopedLoader";
 import { useCheckinStats } from "@/composables/useCheckinStats";
 import BaseModal from "@/components/shared/BaseModal.vue";
 import PageLoader from "@/components/shared/PageLoader.vue";
@@ -24,23 +25,22 @@ const filterDateFrom = ref("");
 const filterDateTo = ref("");
 const activeTab = ref("all");
 
-// 隨活動切換載入報到資料
-watch(
-  () => eventsStore.currentEvent,
-  async (event) => {
-    if (!event?.id) {
-      participantsStore.clear();
-      pageLoading.value = false;
-      return;
-    }
+// 隨活動切換載入報到資料（收斂到 useEventScopedLoader）
+useEventScopedLoader(
+  async (eventId) => {
     try {
-      await participantsStore.fetchParticipants({ event: String(event.id) });
+      await participantsStore.fetchParticipants({ event: String(eventId) });
     } catch { /* silent */ }
     finally {
       pageLoading.value = false;
     }
   },
-  { immediate: true }
+  {
+    onNoEvent: () => {
+      participantsStore.clear();
+      pageLoading.value = false;
+    },
+  }
 );
 
 // 活動日期相關

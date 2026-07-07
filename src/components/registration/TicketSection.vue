@@ -24,9 +24,9 @@ const changeQty = (id, delta) => emit('change-qty', id, delta)
       </div>
       <div class="ticket-price">${{ t.price }}</div>
       <div class="ticket-qty">
-        <button type="button" @click="changeQty(t.id, -1)">-</button>
-        <span>{{ getQty(t.id) }}</span>
-        <button type="button" @click="changeQty(t.id, 1)">+</button>
+        <button type="button" :disabled="getQty(t.id) <= 0" :aria-label="'減少 ' + t.name + ' 數量'" @click="changeQty(t.id, -1)">-</button>
+        <span aria-live="polite">{{ getQty(t.id) }}</span>
+        <button type="button" :aria-label="'增加 ' + t.name + ' 數量'" @click="changeQty(t.id, 1)">+</button>
       </div>
     </div>
   </div>
@@ -96,7 +96,9 @@ const changeQty = (id, delta) => emit('change-qty', id, delta)
   transition: .1s;
 }
 
-.ticket-qty button:hover { background: #f1f5f9; }
+.ticket-qty button:hover:not(:disabled) { background: #f1f5f9; }
+
+.ticket-qty button:disabled { opacity: .45; cursor: not-allowed; }
 
 .ticket-qty span {
   font-size: .92rem;

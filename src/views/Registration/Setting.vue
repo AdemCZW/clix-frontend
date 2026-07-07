@@ -752,7 +752,7 @@ const closeGuestDetail = () => {
                   <div class="edit-field"><label class="fl">結束時間</label><input v-model="t.end_time" type="time" class="input-sm" /></div>
                 </div>
               </div>
-              <button class="btn-del-row" @click="removeTicket(i)">×</button>
+              <button class="btn-del-row" aria-label="刪除票券" title="刪除票券" @click="removeTicket(i)">×</button>
             </div>
             <button class="btn-add-row" @click="addTicket">+ 新增票種</button>
           </div>
@@ -770,7 +770,7 @@ const closeGuestDetail = () => {
                 <input v-model="f.question" placeholder="問題" class="input-sm" />
                 <textarea v-model="f.answer" placeholder="回答" class="input-sm ta-sm" rows="2"></textarea>
               </div>
-              <button class="btn-del-row" @click="removeFaq(i)">×</button>
+              <button class="btn-del-row" aria-label="刪除 FAQ" title="刪除 FAQ" @click="removeFaq(i)">×</button>
             </div>
             <button class="btn-add-row" @click="addFaq">+ 新增問答</button>
           </div>
@@ -798,7 +798,7 @@ const closeGuestDetail = () => {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> 電腦
                 </button>
               </div>
-              <button class="btn-close-circle" @click="isPreviewOpen = false">✕</button>
+              <button class="btn-close-circle" aria-label="關閉" title="關閉" @click="isPreviewOpen = false">✕</button>
             </div>
 
             <div :class="['preview-viewport', previewMode]">
@@ -822,7 +822,7 @@ const closeGuestDetail = () => {
           <div class="guest-detail-panel">
             <div class="guest-detail-header">
               <h3>貴賓詳細資訊</h3>
-              <button class="btn-close-circle" @click="closeGuestDetail">✕</button>
+              <button class="btn-close-circle" aria-label="關閉" title="關閉" @click="closeGuestDetail">✕</button>
             </div>
             <div class="guest-detail-body">
               <div class="detail-avatar-section">
