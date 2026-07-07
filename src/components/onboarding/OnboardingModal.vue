@@ -448,12 +448,12 @@ watch(
     transition: all 0.15s;
 
     &:hover {
-      border-color: #167A67;
+      border-color: var(--accent);
       background: rgba(22,122,103,.05);
     }
 
     &.selected {
-      border-color: #167A67;
+      border-color: var(--accent);
       background: rgba(22,122,103,.08);
       box-shadow: 0 0 0 2px rgba(22,122,103,.15);
     }
@@ -515,10 +515,10 @@ watch(
   .btn-create-new {
     flex: 1;
     padding: 8px 12px;
-    border: 1px dashed #167A67;
+    border: 1px dashed var(--accent);
     border-radius: 8px;
     background: transparent;
-    color: #167A67;
+    color: var(--accent);
     font-weight: 600;
     font-size: 0.84rem;
     cursor: pointer;
@@ -571,7 +571,7 @@ watch(
 
     &:focus {
       outline: none;
-      border-color: #167A67;
+      border-color: var(--accent);
       box-shadow: 0 0 0 2px rgba(22,122,103,.1);
     }
 
@@ -642,7 +642,7 @@ watch(
 }
 
 .btn-primary {
-  background: #167A67;
+  background: var(--accent);
   color: white;
   border: none;
   padding: 8px 18px;
@@ -653,7 +653,7 @@ watch(
   transition: all 0.15s;
 
   &:hover:not(:disabled) {
-    background: #0f5d4e;
+    background: var(--accent-hover);
   }
 
   &:disabled {

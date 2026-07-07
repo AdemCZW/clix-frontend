@@ -1818,9 +1818,9 @@ onBeforeUnmount(() => {
 .vm-btn:hover:not(:disabled) { background: var(--bg-hover); }
 .vm-btn:disabled { opacity: .5; cursor: not-allowed; }
 .vm-btn.primary {
-  background: #167A67; color: #fff; border-color: #167A67;
+  background: var(--accent); color: #fff; border-color: var(--accent);
 }
-.vm-btn.primary:hover { background: #0f5d4e; }
+.vm-btn.primary:hover { background: var(--accent-hover); }
 
 .vm-canvas-wrap {
   background: var(--bg-card);
@@ -1867,7 +1867,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 .vm-table-delete circle {
-  fill: #ef4444;
+  fill: var(--danger);
   stroke: #fff;
   stroke-width: 2;
   transition: transform .12s ease, filter .12s ease, fill .12s ease;
@@ -1914,7 +1914,7 @@ onBeforeUnmount(() => {
 }
 /* 拖曳中：已分配 seat 顯示「會覆蓋」警告 — 紅色虛線 */
 .vm-seat.drop-warn {
-  stroke: #ef4444;
+  stroke: var(--danger);
   stroke-width: 2;
   stroke-dasharray: 3 2;
   animation: vm-seat-warn 1.4s ease-in-out infinite;
@@ -1956,7 +1956,7 @@ onBeforeUnmount(() => {
 .vm-table-score text { fill: #475569; }
 .vm-table-score.positive rect { fill: #d1fae5; stroke: #10b981; }
 .vm-table-score.positive text { fill: #047857; }
-.vm-table-score.negative rect { fill: #fee2e2; stroke: #ef4444; }
+.vm-table-score.negative rect { fill: #fee2e2; stroke: var(--danger); }
 .vm-table-score.negative text { fill: #b91c1c; }
 
 /* 智能建議路徑層 */
@@ -1971,7 +1971,7 @@ onBeforeUnmount(() => {
   animation: vm-suggest-dash 0.8s linear infinite;
 }
 .vm-suggest-path.positive { stroke: #10b981; opacity: 0.8; }
-.vm-suggest-path.negative { stroke: #ef4444; opacity: 0.55; }
+.vm-suggest-path.negative { stroke: var(--danger); opacity: 0.55; }
 .vm-suggest-path.top {
   stroke-width: 3;
   opacity: 1;
@@ -1989,7 +1989,7 @@ onBeforeUnmount(() => {
 .vm-suggest-badge text { fill: #475569; }
 .vm-suggest-badge.positive rect { fill: #d1fae5; stroke: #10b981; }
 .vm-suggest-badge.positive text { fill: #047857; }
-.vm-suggest-badge.negative rect { fill: #fee2e2; stroke: #ef4444; }
+.vm-suggest-badge.negative rect { fill: #fee2e2; stroke: var(--danger); }
 .vm-suggest-badge.negative text { fill: #b91c1c; }
 .vm-suggest-badge.top rect {
   stroke-width: 2.5;
@@ -2027,7 +2027,7 @@ onBeforeUnmount(() => {
   margin: 0; font-size: 0.92rem; font-weight: 700; color: var(--text-main);
 }
 .vm-panel-count {
-  background: #167A67; color: #fff;
+  background: var(--accent); color: #fff;
   font-size: 0.72rem; font-weight: 700;
   padding: 2px 10px; border-radius: 999px;
 }
@@ -2075,11 +2075,11 @@ onBeforeUnmount(() => {
 /* 民眾 tab active：綠色 */
 .vm-panel-tab.active {
   background: #fff;
-  color: #167A67;
+  color: var(--accent);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 .vm-panel-tab.active .cnt {
-  background: #167A67;
+  background: var(--accent);
   color: #fff;
 }
 /* VIP tab active：橙色（跟頭像 vip 顏色一致）*/
@@ -2092,7 +2092,7 @@ onBeforeUnmount(() => {
 .vm-panel-empty {
   flex: 1;
   display: flex; align-items: center; justify-content: center;
-  color: #167A67; font-weight: 600; font-size: 0.86rem;
+  color: var(--accent); font-weight: 600; font-size: 0.86rem;
 }
 .vm-panel-list {
   flex: 1; overflow-y: auto;
@@ -2111,7 +2111,7 @@ onBeforeUnmount(() => {
   touch-action: none;
   transition: background .15s, border-color .15s, opacity .2s, transform .2s, filter .2s;
 }
-.vm-person:hover { border-color: #167A67; background: #ecfdf5; }
+.vm-person:hover { border-color: var(--accent); background: #ecfdf5; }
 .vm-person:active { cursor: grabbing; }
 /* 該位賓客正在被拖曳 → panel 內視覺上「拿走了」：半透明 + 內凹 */
 .vm-person.dragging {
@@ -2143,7 +2143,7 @@ onBeforeUnmount(() => {
   position: fixed;
   z-index: 10000;
   transform: translate(-50%, -120%);
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   color: #fff;
   padding: 7px 16px; border-radius: 999px;
   font-size: 0.82rem; font-weight: 700;
@@ -2508,7 +2508,7 @@ onBeforeUnmount(() => {
 .vm-shape-btn.active {
   background: #ecfdf5;
   border-color: #337168;
-  color: #0f5d4e;
+  color: var(--accent-hover);
 }
 .vm-edit-actions {
   display: flex;
@@ -2519,9 +2519,9 @@ onBeforeUnmount(() => {
 
 /* toggle 按鈕的「開啟」狀態 */
 .vm-btn.toggle-on {
-  background: #167A67;
+  background: var(--accent);
   color: #fff;
-  border-color: #167A67;
+  border-color: var(--accent);
 }
-.vm-btn.toggle-on:hover:not(:disabled) { background: #0f5d4e; }
+.vm-btn.toggle-on:hover:not(:disabled) { background: var(--accent-hover); }
 </style>

@@ -318,7 +318,7 @@ onUnmounted(() => stopScanning());
 }
 .scan-error { color: #f87171; font-size: 0.9rem; margin-bottom: 12px; }
 .btn-start {
-  background: linear-gradient(135deg, #167A67, #0f5d4e);
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
   color: white; border: none; padding: 14px 40px;
   border-radius: 12px; font-size: 1rem; font-weight: 700;
   cursor: pointer; margin-top: 8px;
@@ -352,7 +352,7 @@ onUnmounted(() => stopScanning());
 .scan-frame {
   width: 100%;
   height: 100%;
-  border: 3px solid #167A67;
+  border: 3px solid var(--accent);
   border-radius: 16px;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
   animation: pulse-frame 2s ease-in-out infinite;
@@ -363,7 +363,7 @@ onUnmounted(() => stopScanning());
 }
 .scan-hint { color: #cbd5e1; margin: 16px 0 12px; }
 .btn-stop {
-  background: #ef4444; color: white; border: none;
+  background: var(--danger); color: white; border: none;
   padding: 10px 28px; border-radius: 8px; font-weight: 600; cursor: pointer;
 }
 
@@ -371,7 +371,7 @@ onUnmounted(() => stopScanning());
 .spinner {
   width: 48px; height: 48px;
   border: 4px solid #334155;
-  border-top-color: #167A67;
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 20px;
@@ -457,7 +457,7 @@ onUnmounted(() => stopScanning());
 /* 傳送成功 */
 .sent-icon {
   width: 80px; height: 80px; border-radius: 50%;
-  background: linear-gradient(135deg, #167A67, #0f5d4e);
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
   font-size: 2.5rem; font-weight: 900; color: white;
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 16px;
@@ -475,7 +475,7 @@ onUnmounted(() => stopScanning());
 /* 錯誤 */
 .error-icon {
   width: 80px; height: 80px; border-radius: 50%;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: linear-gradient(135deg, var(--danger), #dc2626);
   font-size: 2.5rem; font-weight: 900; color: white;
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 16px;
@@ -508,7 +508,7 @@ onUnmounted(() => stopScanning());
   overflow: auto;
 }
 .btn-retry {
-  background: #ef4444; color: white; border: none;
+  background: var(--danger); color: white; border: none;
   padding: 12px 32px; border-radius: 10px; font-weight: 700;
   font-size: 0.95rem; cursor: pointer;
 }

@@ -35,7 +35,7 @@
 
     <!-- 載入失敗 + 重試 -->
     <div v-else-if="loadError" class="empty-state">
-      <div class="empty-icon" style="color: #ef4444;">
+      <div class="empty-icon" style="color: var(--danger);">
         <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
@@ -545,7 +545,7 @@ const createEvent = async () => {
 }
 
 .btn-create {
-  background: #167A67;
+  background: var(--accent);
   color: #fff;
   border: none;
   padding: 10px 22px;
@@ -556,7 +556,7 @@ const createEvent = async () => {
   transition: background 0.15s;
   white-space: nowrap;
 
-  &:hover { background: #0f5d4e; }
+  &:hover { background: var(--accent-hover); }
 }
 
 /* ── Tabs ── */
@@ -586,7 +586,7 @@ const createEvent = async () => {
   &:hover { color: #475569; }
 
   &.active {
-    color: #167A67;
+    color: var(--accent);
 
     &::after {
       content: '';
@@ -595,7 +595,7 @@ const createEvent = async () => {
       left: 0;
       right: 0;
       height: 3px;
-      background: #167A67;
+      background: var(--accent);
       border-radius: 2px 2px 0 0;
     }
   }
@@ -747,13 +747,13 @@ const createEvent = async () => {
 .row-link {
   font-size: 0.88rem;
   font-weight: 600;
-  color: #167A67;
+  color: var(--accent);
   cursor: pointer;
   white-space: nowrap;
   transition: color 0.15s;
 
   &:hover {
-    color: #0f5d4e;
+    color: var(--accent-hover);
     text-decoration: underline;
     text-underline-offset: 3px;
   }
@@ -770,7 +770,7 @@ const createEvent = async () => {
 
   &.active {
     background: #e8f5f1;
-    color: #167A67;
+    color: var(--accent);
     border: 1px solid #b9dcd2;
   }
 
@@ -1020,12 +1020,12 @@ const createEvent = async () => {
   font-weight: 600;
   font-size: 0.88rem;
   cursor: pointer;
-  background: #167A67;
+  background: var(--accent);
   border: none;
   color: white;
   transition: all 0.15s;
 
-  &:hover { background: #0f5d4e; }
+  &:hover { background: var(--accent-hover); }
 }
 
 /* 過期活動卡片樣式 */
@@ -1071,12 +1071,12 @@ const createEvent = async () => {
   font-weight: 600;
   font-size: 0.88rem;
   cursor: pointer;
-  background: #167A67;
+  background: var(--accent);
   border: none;
   color: white;
   transition: all 0.15s;
 
-  &:hover { background: #0f5d4e; }
+  &:hover { background: var(--accent-hover); }
 }
 
 @media (max-width: 1200px) {

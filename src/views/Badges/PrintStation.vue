@@ -310,7 +310,7 @@ onUnmounted(() => disconnectWebSocket());
 .slot-badge {
   font-size: 2rem;
   font-weight: 900;
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   color: white;
   padding: 8px 24px;
   border-radius: 12px;
@@ -343,7 +343,7 @@ onUnmounted(() => disconnectWebSocket());
 .status-dot.connected    { background: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.6); }
 .status-dot.connecting   { background: #f59e0b; animation: blink 1s infinite; }
 .status-dot.disconnected { background: #475569; }
-.status-dot.error        { background: #ef4444; }
+.status-dot.error        { background: var(--danger); }
 
 @keyframes blink {
   0%, 100% { opacity: 1; }
@@ -369,7 +369,7 @@ onUnmounted(() => disconnectWebSocket());
 }
 .btn-reconnect:hover {
   border-color: var(--accent);
-  color: #167A67;
+  color: var(--accent);
 }
 
 /* ===== Body ===== */
@@ -501,7 +501,7 @@ onUnmounted(() => disconnectWebSocket());
 }
 .log-row.newest {
   background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%);
-  border: 1px solid #167A67;
+  border: 1px solid var(--accent);
   box-shadow: 0 0 16px rgba(22, 122, 103, 0.15);
 }
 .log-seq {
@@ -518,7 +518,7 @@ onUnmounted(() => disconnectWebSocket());
   flex-shrink: 0;
 }
 .log-row.newest .log-seq {
-  background: #167A67;
+  background: var(--accent);
   color: white;
 }
 .log-name {

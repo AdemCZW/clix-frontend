@@ -336,7 +336,7 @@ const previewGroups = computed(() => {
 <style lang="scss" scoped>
 .fields-config {
   padding: 12px;
-  --primary: #167A67;
+  --primary: var(--accent);
   --deep-dark: var(--text-main);
   --text-gray: var(--text-secondary);
   --bg-soft: var(--bg-hover);
@@ -377,13 +377,13 @@ const previewGroups = computed(() => {
     font-weight: 600;
     color: white;
     padding: 7px 18px;
-    background: #167A67;
+    background: var(--accent);
     border: none;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.15s;
 
-    &:hover:not(:disabled) { background: #0f5d4e; }
+    &:hover:not(:disabled) { background: var(--accent-hover); }
     &:disabled { opacity: 0.5; cursor: not-allowed; }
   }
 }
@@ -440,8 +440,8 @@ const previewGroups = computed(() => {
   background: #e8f5f1;       /* 品牌綠淺底 */
   border-color: #c8e3da;
 }
-.field-group.g-attendee .group-bar { background: #167A67; }
-.field-group.g-attendee .group-header h3 { color: #0f5d4e; }
+.field-group.g-attendee .group-bar { background: var(--accent); }
+.field-group.g-attendee .group-header h3 { color: var(--accent-hover); }
 
 .field-group.g-buyer {
   background: #fefce8;       /* 品牌黃淺底 */
@@ -461,7 +461,7 @@ const previewGroups = computed(() => {
   background: var(--bg-card);
   border-color: var(--border-light);
 }
-.field-group.g-custom .group-bar { background: #167A67; }
+.field-group.g-custom .group-bar { background: var(--accent); }
 
 .group-header {
   display: flex;
@@ -512,7 +512,7 @@ const previewGroups = computed(() => {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     border-color: #cbd5e1;
 
-    .drag-handle-field { color: #167A67; }
+    .drag-handle-field { color: var(--accent); }
   }
 
   &.is-hidden-field {
@@ -540,13 +540,13 @@ const previewGroups = computed(() => {
     font-weight: bold;
     letter-spacing: -2px;
   }
-  &:active { cursor: grabbing; color: #167A67; }
+  &:active { cursor: grabbing; color: var(--accent); }
 }
 
 /* 拖曳中的 ghost：半透明 + 邊框強調 */
 .ghost-field {
   opacity: 0.5;
-  border: 2px dashed #167A67 !important;
+  border: 2px dashed var(--accent) !important;
 }
 
 .ghost-card {
@@ -586,7 +586,7 @@ const previewGroups = computed(() => {
 
   &:focus {
     outline: none;
-    border-bottom-color: #167A67;
+    border-bottom-color: var(--accent);
     background: var(--bg-soft);
   }
 
@@ -657,7 +657,7 @@ const previewGroups = computed(() => {
   font-size: 0.78rem;
   font-weight: 600;
   user-select: none;
-  color: #167A67;
+  color: var(--accent);
 
   input { display: none; }
 
@@ -666,7 +666,7 @@ const previewGroups = computed(() => {
     width: 36px;
     height: 20px;
     border-radius: 999px;
-    background: #167A67;
+    background: var(--accent);
     transition: background .2s;
   }
   .dot {
@@ -769,7 +769,7 @@ const previewGroups = computed(() => {
   }
 
   &:hover {
-    color: #167A67;
+    color: var(--accent);
   }
 
   &:active {
@@ -787,7 +787,7 @@ const previewGroups = computed(() => {
   font-weight: 500;
 
   &:focus {
-    color: #167A67;
+    color: var(--accent);
   }
 }
 
@@ -825,7 +825,7 @@ const previewGroups = computed(() => {
 
   &:hover {
     border-color: var(--accent);
-    color: #167A67;
+    color: var(--accent);
     background: #eef2ff;
   }
 }
@@ -881,7 +881,7 @@ const previewGroups = computed(() => {
 }
 
 .btn-add-field {
-  background: #167A67;
+  background: var(--accent);
   color: white;
   width: 38px;
   height: 38px;
@@ -895,7 +895,7 @@ const previewGroups = computed(() => {
   box-shadow: 0 4px 12px rgba(22, 122, 103, 0.25);
 
   &:hover {
-    background: #0f5d4e;
+    background: var(--accent-hover);
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(22, 122, 103, 0.35);
   }

@@ -401,7 +401,7 @@ onMounted(async () => {
   background: var(--bg-primary);
   min-height: 100vh;
   padding: 12px;
-  --primary: #167A67;
+  --primary: var(--accent);
   --deep-dark: var(--text-main);
   --text-gray: var(--text-secondary);
   --bg-soft: var(--bg-hover);
@@ -446,8 +446,8 @@ onMounted(async () => {
 .btn-send { background: #10b981; color: #fff; }
 .btn-send:hover:not(:disabled) { background: #059669; }
 .btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-save { background: #167A67; color: #fff; }
-.btn-save:hover { background: #0f5d4e; }
+.btn-save { background: var(--accent); color: #fff; }
+.btn-save:hover { background: var(--accent-hover); }
 .btn-view-templates {
   background: var(--bg-card); color: var(--text-secondary);
   border: 1px solid var(--border-color);
@@ -556,7 +556,7 @@ onMounted(async () => {
 .tag-item {
   background: rgba(22,122,103,.1);
   border: 1px solid rgba(22,122,103,.2);
-  color: #167A67;
+  color: var(--accent);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 0.78rem;
@@ -566,7 +566,7 @@ onMounted(async () => {
 }
 
 .tag-item:hover {
-  background: #167A67;
+  background: var(--accent);
   color: white;
 }
 
@@ -623,7 +623,7 @@ onMounted(async () => {
 .selection-info {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #167A67;
+  color: var(--accent);
   background: rgba(22,122,103,.1);
   padding: 3px 8px;
   border-radius: 6px;
@@ -714,7 +714,7 @@ onMounted(async () => {
 
 .participant-item.selected {
   background: rgba(22,122,103,.08);
-  border-left: 3px solid #167A67;
+  border-left: 3px solid var(--accent);
 }
 
 .participant-info {
@@ -892,7 +892,7 @@ onMounted(async () => {
 }
 
 .btn-delete-template:hover {
-  color: #ef4444;
+  color: var(--danger);
   background: #fef2f2;
 }
 

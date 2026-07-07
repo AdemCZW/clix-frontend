@@ -1110,7 +1110,7 @@ const formatDate = (isoString: string) => {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 
@@ -1165,7 +1165,7 @@ const formatDate = (isoString: string) => {
   gap: 8px;
 
   &:hover {
-    background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
     color: white;
   }
 
@@ -1264,7 +1264,7 @@ const formatDate = (isoString: string) => {
 
   &.active {
     background: var(--bg-card);
-    color: #167A67;
+    color: var(--accent);
     border-color: var(--border-color);
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
     z-index: 1;
@@ -1275,7 +1275,7 @@ const formatDate = (isoString: string) => {
     }
 
     .tab-count {
-      background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
       color: white;
       box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
     }
@@ -1335,7 +1335,7 @@ const formatDate = (isoString: string) => {
     width: 0;
 
     &:checked ~ .checkmark {
-      background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
       border-color: var(--accent);
 
       &::after {
@@ -1468,7 +1468,7 @@ const formatDate = (isoString: string) => {
   }
 
   &.edit {
-    background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
     color: white;
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
 
@@ -1484,7 +1484,7 @@ const formatDate = (isoString: string) => {
 
   &.delete {
     background: var(--bg-card);
-    color: #ef4444;
+    color: var(--danger);
     border: 1.5px solid #fee2e2;
     box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
 
@@ -1599,9 +1599,9 @@ const formatDate = (isoString: string) => {
 
   .btn-download-qr {
     font-size: 0.82rem;
-    color: #167A67;
+    color: var(--accent);
     text-decoration: none;
-    border: 1px solid #167A67;
+    border: 1px solid var(--accent);
     padding: 6px 16px;
     border-radius: 8px;
 
@@ -1615,15 +1615,15 @@ const formatDate = (isoString: string) => {
   flex: 1;
   padding: 12px 20px;
   background: var(--bg-card);
-  border: 2px solid #ef4444;
-  color: #ef4444;
+  border: 2px solid var(--danger);
+  color: var(--danger);
   border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #ef4444;
+    background: var(--danger);
     color: white;
   }
 }
@@ -1631,7 +1631,7 @@ const formatDate = (isoString: string) => {
 .btn-save {
   flex: 1;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   border: none;
   color: white;
   border-radius: 10px;
@@ -1671,7 +1671,7 @@ const formatDate = (isoString: string) => {
   width: 48px;
   height: 48px;
   border: 4px solid var(--border-color);
-  border-top-color: #167A67;
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -1743,7 +1743,7 @@ const formatDate = (isoString: string) => {
     border:1px solid var(--border-color);
   }
   .mobile-bottom-bar .mb-add {
-    background:#167A67; color:#fff;
+    background:var(--accent); color:#fff;
   }
 
   /* 標籤頁緊湊 */
@@ -1812,9 +1812,9 @@ const formatDate = (isoString: string) => {
 }
 .tb.outline { background:var(--bg-card); color:var(--text-secondary); border:1px solid var(--border-color); }
 .tb.outline:hover { background:var(--bg-hover); }
-.tb.primary { background:#167A67; color:#fff; }
-.tb.primary:hover { background:#0f5d4e; }
-.tb.danger { background:transparent; color:#ef4444; border:1px solid #fecaca; }
+.tb.primary { background:var(--accent); color:#fff; }
+.tb.primary:hover { background:var(--accent-hover); }
+.tb.danger { background:transparent; color:var(--danger); border:1px solid #fecaca; }
 .tb.danger-outline {
   background: #fff;
   color: #b91c1c;
@@ -1822,7 +1822,7 @@ const formatDate = (isoString: string) => {
 }
 .tb.danger-outline:hover:not(:disabled) {
   background: #fee2e2;
-  border-color: #ef4444;
+  border-color: var(--danger);
 }
 .tb.danger-outline:disabled { opacity: 0.4; cursor: not-allowed; }
 .tb.danger:hover { background:#fef2f2; }
@@ -1847,7 +1847,7 @@ const formatDate = (isoString: string) => {
   font-size:.84rem; font-weight:600; color:var(--text-muted);
   cursor:pointer; transition:.15s; text-align:center;
 }
-.tab.active { color:#167A67; box-shadow:inset 0 -2px 0 #167A67; }
+.tab.active { color:var(--accent); box-shadow:inset 0 -2px 0 var(--accent); }
 .tab:hover:not(.active) { color:var(--text-secondary); }
 .cnt {
   display:inline-flex; align-items:center; justify-content:center;
@@ -1855,7 +1855,7 @@ const formatDate = (isoString: string) => {
   background:var(--bg-hover); border-radius:9px;
   font-size:.68rem; font-weight:700; margin-left:4px;
 }
-.tab.active .cnt { background:#167A67; color:#fff; }
+.tab.active .cnt { background:var(--accent); color:#fff; }
 
 /* 表格 */
 .list-scroll { overflow-y:auto; max-height:calc(100vh - 160px); }
@@ -1928,17 +1928,17 @@ const formatDate = (isoString: string) => {
 }
 .panel-tab:hover { color: var(--text-main); }
 .panel-tab.active {
-  color: #167A67;
+  color: var(--accent);
   &::after {
     content: '';
     position: absolute;
     left: 0; right: 0; bottom: -1px;
     height: 2px;
-    background: #167A67;
+    background: var(--accent);
   }
 }
 .tab-count {
-  background: #167A67;
+  background: var(--accent);
   color: #fff;
   font-size: 0.66rem;
   font-weight: 700;
@@ -2014,8 +2014,8 @@ const formatDate = (isoString: string) => {
 }
 .pager-btn:hover:not(:disabled) {
   background: #e8f5f1;
-  color: #167A67;
-  border-color: #167A67;
+  color: var(--accent);
+  border-color: var(--accent);
 }
 .pager-btn:disabled {
   opacity: 0.4;
@@ -2027,7 +2027,7 @@ const formatDate = (isoString: string) => {
   color: var(--text-secondary);
 }
 .pager-info strong {
-  color: #167A67;
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
 .pager-range {
@@ -2071,7 +2071,7 @@ const formatDate = (isoString: string) => {
 .import-spinner.pct-mode {
   background: #e8f5f1;
   border-radius: 50%;
-  border: 3px solid #167A67;
+  border: 3px solid var(--accent);
 }
 .import-spinner .spin {
   width: 100%;
@@ -2082,7 +2082,7 @@ const formatDate = (isoString: string) => {
 .pct-text {
   font-size: 1rem;
   font-weight: 800;
-  color: #167A67;
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
 .import-stage-text {
@@ -2104,7 +2104,7 @@ const formatDate = (isoString: string) => {
 }
 .import-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-hover) 100%);
   transition: width 0.15s ease;
 }
 
@@ -2147,7 +2147,7 @@ const formatDate = (isoString: string) => {
   border-radius:7px; font-size:.88rem; outline:none; background:var(--bg-card);
   color:var(--text-main); transition:.15s;
 }
-.fi:focus { border-color:#167A67; box-shadow:0 0 0 2px rgba(22,122,103,.1); }
+.fi:focus { border-color:var(--accent); box-shadow:0 0 0 2px rgba(22,122,103,.1); }
 select.fi { cursor:pointer; }
 .fi-ro {
   padding:7px 10px; background:var(--bg-primary); border:1px solid var(--border-color);
@@ -2155,7 +2155,7 @@ select.fi { cursor:pointer; }
 }
 .qr-block { text-align:center; padding:12px 0; }
 .qr-img { width:140px; height:140px; border:1px solid var(--border-color); border-radius:8px; padding:6px; background:var(--bg-card); }
-.qr-dl { display:inline-block; margin-top:8px; font-size:.78rem; color:#167A67; text-decoration:none; }
+.qr-dl { display:inline-block; margin-top:8px; font-size:.78rem; color:var(--accent); text-decoration:none; }
 .panel-footer {
   display:flex; gap:8px; padding:12px 16px;
   border-top:1px solid var(--border-color);
@@ -2175,7 +2175,7 @@ select.fi { cursor:pointer; }
   color:var(--text-secondary); font-size:.82rem; text-align:left;
   cursor:pointer; transition:.15s;
 }
-.export-option:hover { background:#167A67; color:#fff; }
+.export-option:hover { background:var(--accent); color:#fff; }
 .dropdown-fade-enter-active,.dropdown-fade-leave-active { transition:all .15s; }
 .dropdown-fade-enter-from,.dropdown-fade-leave-to { opacity:0; transform:translateY(-6px); }
 
@@ -2187,7 +2187,7 @@ select.fi { cursor:pointer; }
 .loading-overlay p { margin-top:12px; font-size:.9rem; color:var(--text-secondary); }
 .loading-spinner {
   width:40px; height:40px; border:3px solid var(--border-color);
-  border-top-color:#167A67; border-radius:50%; animation:spin .8s linear infinite;
+  border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite;
 }
 @keyframes spin { to { transform:rotate(360deg); } }
 

@@ -382,7 +382,7 @@ const hasActiveFilters = computed(() =>
     line-height: 1;
 
     &.primary {
-      background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -400,7 +400,7 @@ const hasActiveFilters = computed(() =>
 
 .btn-manual {
   padding: 10px 20px;
-  background: #167A67;
+  background: var(--accent);
   color: white;
   border: none;
   border-radius: 10px;
@@ -627,7 +627,7 @@ const hasActiveFilters = computed(() =>
   border-radius: 7px;
   border: 1px solid #fecaca;
   background: #fff1f2;
-  color: #ef4444;
+  color: var(--danger);
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
@@ -720,7 +720,7 @@ const hasActiveFilters = computed(() =>
 
 .btn-check-action {
   padding: 7px 16px;
-  background: #167A67;
+  background: var(--accent);
   color: white;
   border: none;
   border-radius: 8px;
@@ -770,7 +770,7 @@ const hasActiveFilters = computed(() =>
   }
 
   &.confirm {
-    background: #ef4444;
+    background: var(--danger);
     color: white;
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
     &:hover { box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4); }

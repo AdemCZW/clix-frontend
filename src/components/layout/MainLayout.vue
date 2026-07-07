@@ -470,7 +470,7 @@ const selectEvent = (event: any) => {
     transition: background 0.15s;
 
     &:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
-    &.current { background: #167A67; color: #fff; font-weight: 600; }
+    &.current { background: var(--accent); color: #fff; font-weight: 600; }
     .check-mark { color: #fff; font-weight: 700; }
   }
 }
@@ -547,7 +547,7 @@ const selectEvent = (event: any) => {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: #167A67;
+    background: var(--accent);
     color: white;
     font-weight: 700;
     font-size: 0.85rem;

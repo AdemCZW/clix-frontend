@@ -436,7 +436,7 @@ const exportEventData = async (event: LocalEvent) => {
 
   &:hover {
     .event-name {
-      color: #167A67;
+      color: var(--accent);
     }
   }
 }
@@ -509,7 +509,7 @@ table {
 }
 
 thead {
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
 
   th {
     padding: 10px 12px;
@@ -551,7 +551,7 @@ tbody {
   }
 
   .email-cell {
-    color: #167A67;
+    color: var(--accent);
   }
 }
 

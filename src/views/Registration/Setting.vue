@@ -874,7 +874,7 @@ const closeGuestDetail = () => {
 /* 原有樣式保持不動 */
 .registration-view {
   padding: 16px;
-  --primary: #167A67;
+  --primary: var(--accent);
   --deep-dark: var(--text-main);
   --text-gray: var(--text-secondary);
   --text-gray-light: var(--text-muted);
@@ -932,7 +932,7 @@ const closeGuestDetail = () => {
   color: var(--text-gray-light);
   margin-top: 4px;
   .link-go {
-    color: #167A67;
+    color: var(--accent);
     cursor: pointer;
     text-decoration: underline;
     margin: 0 2px;
@@ -1035,7 +1035,7 @@ const closeGuestDetail = () => {
     height: 100%;
     left: 0;
     top: 0;
-    background: #167A67;
+    background: var(--accent);
     opacity: 0;
     border-radius: 50px;
     z-index: 1;
@@ -1088,9 +1088,9 @@ const closeGuestDetail = () => {
 }
 .top-btn.danger:hover:not(:disabled) { background:#fecaca; }
 .top-btn.primary {
-  background:#167A67; color:#fff;
+  background:var(--accent); color:#fff;
 }
-.top-btn.primary:hover:not(:disabled) { background:#0f5d4e; }
+.top-btn.primary:hover:not(:disabled) { background:var(--accent-hover); }
 
 /* ── 左右兩欄佈局 ── */
 .setting-two-col {
@@ -1113,8 +1113,8 @@ const closeGuestDetail = () => {
   background:var(--bg-hover); color:var(--text-secondary); border:1px solid var(--border-color);
 }
 .card-btn.outline:hover { background:var(--border-color); }
-.card-btn.primary { background:#167A67; color:#fff; }
-.card-btn.primary:hover { background:#0f5d4e; }
+.card-btn.primary { background:var(--accent); color:#fff; }
+.card-btn.primary:hover { background:var(--accent-hover); }
 
 /* 連結區塊 */
 .link-inline {
@@ -1146,14 +1146,14 @@ const closeGuestDetail = () => {
   border-radius:6px; font-size:.82rem; background:var(--bg-card);
   color:var(--text-main); outline:none;
 }
-.input-sm:focus { border-color:#167A67; }
+.input-sm:focus { border-color:var(--accent); }
 .input-sm.w80 { max-width:80px; }
 .input-sm.w60 { max-width:60px; }
 .ta-sm { resize:vertical; min-height:40px; font-family:inherit; }
 .edit-row-fields > :first-child { font-weight:600; }
 .btn-del-row {
   width:24px; height:24px; border:none; background:transparent;
-  color:#ef4444; font-size:1rem; cursor:pointer; border-radius:4px;
+  color:var(--danger); font-size:1rem; cursor:pointer; border-radius:4px;
   flex-shrink:0; margin-top:4px;
 }
 .btn-del-row:hover { background:#fef2f2; }
@@ -1162,7 +1162,7 @@ const closeGuestDetail = () => {
   background:transparent; border-radius:8px; font-size:.82rem;
   font-weight:600; color:var(--text-muted); cursor:pointer; transition:.15s;
 }
-.btn-add-row:hover { border-color:#167A67; color:#167A67; }
+.btn-add-row:hover { border-color:var(--accent); color:var(--accent); }
 
 /* 來賓選取 */
 .card-hint { font-size:.76rem; color:var(--text-muted); margin:0 0 10px; }
@@ -1173,14 +1173,14 @@ const closeGuestDetail = () => {
   border:1px solid var(--border-color); border-radius:8px;
   cursor:pointer; transition:.15s; background:var(--bg-card);
 }
-.guest-pick-item:hover { border-color:#167A67; }
-.guest-pick-item.checked { border-color:#167A67; background:rgba(22,122,103,.06); }
+.guest-pick-item:hover { border-color:var(--accent); }
+.guest-pick-item.checked { border-color:var(--accent); background:rgba(22,122,103,.06); }
 .pick-check {
   width:20px; height:20px; border-radius:5px; flex-shrink:0;
   border:2px solid var(--border-color); display:flex;
   align-items:center; justify-content:center; transition:.15s;
 }
-.guest-pick-item.checked .pick-check { background:#167A67; border-color:#167A67; }
+.guest-pick-item.checked .pick-check { background:var(--accent); border-color:var(--accent); }
 .pick-info { flex:1; min-width:0; }
 .pick-name { font-size:.84rem; font-weight:600; color:var(--text-main); display:block; }
 .pick-role { font-size:.72rem; color:var(--text-muted); }
@@ -1197,7 +1197,7 @@ const closeGuestDetail = () => {
 .collapse-count {
   display:inline-flex; align-items:center; justify-content:center;
   min-width:18px; height:18px; padding:0 5px;
-  background:#167A67; color:#fff; border-radius:9px;
+  background:var(--accent); color:#fff; border-radius:9px;
   font-size:.65rem; font-weight:700; margin-left:6px;
 }
 .collapse-body { margin-top:12px; }
@@ -1221,7 +1221,7 @@ const closeGuestDetail = () => {
 }
 
 .section-title-bar {
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   padding: 24px 28px;
   border-radius: 16px;
   margin-bottom: 20px;
@@ -1499,7 +1499,7 @@ const closeGuestDetail = () => {
 .btn-mini-tag {
   background: #eef2ff;
   border: 1px solid #e0e7ff;
-  color: #167A67;
+  color: var(--accent);
   padding: 5px 12px;
   border-radius: 8px;
   font-size: 0.8rem;
@@ -1508,7 +1508,7 @@ const closeGuestDetail = () => {
   margin-left: 6px;
   transition: 0.2s;
   &:hover {
-    background: #167A67;
+    background: var(--accent);
     color: white;
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(22, 122, 103, 0.3);
@@ -1573,7 +1573,7 @@ const closeGuestDetail = () => {
     margin: 20px 0;
   }
   :deep(a) {
-    color: #167A67;
+    color: var(--accent);
     text-decoration: none;
     font-weight: 600;
     &:hover {
@@ -1649,7 +1649,7 @@ label {
 
   .btn-copy {
     flex: 1;
-    background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
     color: white;
     border: none;
     border-right: 1px solid rgba(255, 255, 255, 0.2);
@@ -1661,7 +1661,7 @@ label {
     font-size: 0.9rem;
 
     &:hover {
-      background: linear-gradient(135deg, #0f5d4e 0%, #167A67 100%);
+      background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 100%);
       box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
     }
   }
@@ -1721,7 +1721,7 @@ label {
 
   .btn-update-slug {
     padding: 7px 14px;
-    background: #167A67;
+    background: var(--accent);
     color: white;
     border: none;
     border-radius: 8px;
@@ -1732,7 +1732,7 @@ label {
     transition: all 0.2s;
 
     &:hover {
-      background: #0f5d4e;
+      background: var(--accent-hover);
     }
   }
 }
@@ -1828,7 +1828,7 @@ label {
   width: 95%;
   max-width: 1400px;
   height: 90vh;
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   border-radius: 24px;
   display: flex;
   flex-direction: column;
@@ -1862,7 +1862,7 @@ label {
       transition: all 0.3s;
       &.active {
         background: #e0e7ff;
-        color: #167A67;
+        color: var(--accent);
         box-shadow: 0 2px 8px rgba(22, 122, 103, 0.15);
         transform: scale(1.02);
       }
@@ -1881,7 +1881,7 @@ label {
     transition: 0.3s;
     &:hover {
       background: #fee2e2;
-      color: #ef4444;
+      color: var(--danger);
       transform: rotate(90deg);
     }
   }
@@ -1976,7 +1976,7 @@ label {
   width: 100%;
   box-sizing: border-box;
   .p-tag {
-    background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
     color: white;
     padding: 8px 20px;
     border-radius: 20px;
@@ -2070,7 +2070,7 @@ label {
     width: 70px;
     height: 70px;
     margin: 0 auto 16px;
-    background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -2167,7 +2167,7 @@ label {
   }
   .btn-apply-blue {
     position: relative;
-    background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
     color: white;
     border: none;
     padding: 16px 50px;
@@ -2185,7 +2185,7 @@ label {
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(135deg, #0f5d4e 0%, #167A67 100%);
+      background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 100%);
       opacity: 0;
       transition: opacity 0.3s;
     }
@@ -2270,7 +2270,7 @@ label {
 
   .warning-list {
     background: #fef2f2;
-    border-left: 4px solid #ef4444;
+    border-left: 4px solid var(--danger);
     border-radius: 8px;
     padding: 16px 20px 16px 36px;
     margin: 0 0 20px 0;
@@ -2282,7 +2282,7 @@ label {
       font-weight: 500;
 
       &::marker {
-        color: #ef4444;
+        color: var(--danger);
       }
     }
   }
@@ -2327,7 +2327,7 @@ label {
   }
 
   .btn-confirm-danger {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
     border: none;
     color: white;
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
@@ -2403,7 +2403,7 @@ label {
     box-shadow: 0 4px 12px rgba(22, 122, 103, 0.15);
 
     .guest-checkbox {
-      background: #167A67;
+      background: var(--accent);
       border-color: var(--accent);
     }
   }
@@ -2430,7 +2430,7 @@ label {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   background-size: cover;
   background-position: center;
   display: flex;
@@ -2539,7 +2539,7 @@ label {
   width: 100%;
   aspect-ratio: 1;
   border-radius: 8px;
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   background-size: cover;
   background-position: center;
   display: flex;
@@ -2624,7 +2624,7 @@ label {
   width: 160px;
   height: 160px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   background-size: cover;
   background-position: center;
   display: flex;
@@ -2667,7 +2667,7 @@ label {
   color: var(--text-gray);
 
   svg {
-    color: #167A67;
+    color: var(--accent);
     flex-shrink: 0;
   }
 
@@ -2681,7 +2681,7 @@ label {
   padding: 24px;
   background: var(--bg-soft);
   border-radius: 16px;
-  border-left: 4px solid #167A67;
+  border-left: 4px solid var(--accent);
 
   h4 {
     font-size: 1rem;
@@ -2781,7 +2781,7 @@ label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   flex-shrink: 0;
 
   h3 {
@@ -2830,7 +2830,7 @@ label {
   height: 120px;
   border-radius: 50%;
   overflow: hidden;
-  border: 4px solid #167A67;
+  border: 4px solid var(--accent);
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
 
   .avatar-img {
@@ -2848,7 +2848,7 @@ label {
     justify-content: center;
     font-size: 48px;
     font-weight: 600;
-    background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
     color: white;
   }
 }

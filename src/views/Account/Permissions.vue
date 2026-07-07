@@ -514,7 +514,7 @@ const copyToClipboard = (text: string) => {
   height: 36px;
   border-radius: 8px;
   border: none;
-  background: #167A67;
+  background: var(--accent);
   color: white;
   font-size: 20px;
   cursor: pointer;
@@ -627,7 +627,7 @@ const copyToClipboard = (text: string) => {
 
   &:hover {
     border-color: var(--accent);
-    color: #167A67;
+    color: var(--accent);
     background: rgba(22,122,103,.1);
   }
 }
@@ -803,7 +803,7 @@ const copyToClipboard = (text: string) => {
   padding: 11px 22px;
   border: none;
   border-radius: 10px;
-  background: #167A67;
+  background: var(--accent);
   color: white;
   font-size: 0.9rem;
   font-weight: 600;

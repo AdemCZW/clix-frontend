@@ -233,7 +233,7 @@ const handleLogin = async () => {
 
   &:focus {
     outline: none;
-    border-color: #167A67;
+    border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(22, 122, 103, 0.12);
   }
 
@@ -256,7 +256,7 @@ const handleLogin = async () => {
 .remember-check {
   width: 18px;
   height: 18px;
-  accent-color: #167A67;
+  accent-color: var(--accent);
   cursor: pointer;
 }
 
@@ -311,7 +311,7 @@ const handleLogin = async () => {
     text-decoration: underline;
     text-underline-offset: 3px;
   }
-  a:hover { color: #167A67; }
+  a:hover { color: var(--accent); }
 }
 
 /* ─── RWD ─── */

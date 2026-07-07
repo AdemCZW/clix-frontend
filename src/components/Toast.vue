@@ -89,8 +89,8 @@ const { queue, dismiss } = useToast();
 
 // Error
 .toast-container.error {
-  .toast-content { border-left-color: #ef4444; }
-  .toast-icon { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; }
+  .toast-content { border-left-color: var(--danger); }
+  .toast-icon { background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%); color: white; }
 }
 
 // Warning

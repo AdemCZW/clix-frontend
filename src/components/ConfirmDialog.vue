@@ -74,7 +74,7 @@ const emit = defineEmits(["confirm", "cancel"]);
 
   &.danger {
     background: #fef2f2;
-    color: #ef4444;
+    color: var(--danger);
   }
   &.info {
     background: #eff6ff;
@@ -122,7 +122,7 @@ const emit = defineEmits(["confirm", "cancel"]);
 
   .btn-confirm {
     &.danger {
-      background: #ef4444;
+      background: var(--danger);
       color: white;
       box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
       &:hover { background: #dc2626; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35); }

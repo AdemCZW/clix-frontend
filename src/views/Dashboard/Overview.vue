@@ -466,7 +466,7 @@ const selectEvent = (displayEvent) => {
   justify-content: center;
   flex-shrink: 0;
 }
-.si-indigo { background: rgba(22,122,103,.1); color: #167A67; }
+.si-indigo { background: rgba(22,122,103,.1); color: var(--accent); }
 .si-green { background: rgba(16,185,129,.1); color: #10b981; }
 .si-blue { background: rgba(59,130,246,.1); color: #3b82f6; }
 .si-amber { background: rgba(245,158,11,.1); color: #f59e0b; }
@@ -545,7 +545,7 @@ const selectEvent = (displayEvent) => {
 
   &.active {
     background: var(--bg-card);
-    color: #167A67;
+    color: var(--accent);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   }
 
@@ -688,7 +688,7 @@ const selectEvent = (displayEvent) => {
   .event-date {
     width: 60px;
     height: 60px;
-    background: #167A67;
+    background: var(--accent);
     border-radius: 12px;
     display: flex;
     flex-direction: column;
@@ -842,14 +842,14 @@ const selectEvent = (displayEvent) => {
   padding: 10px 24px;
   border-radius: 10px;
   border: none;
-  background: #167A67;
+  background: var(--accent);
   color: white;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #0f5d4e;
+    background: var(--accent-hover);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(22, 122, 103, 0.3);
   }

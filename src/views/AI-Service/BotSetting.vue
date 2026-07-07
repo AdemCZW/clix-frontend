@@ -350,7 +350,7 @@ const saveBotSettings = () => {
     width: 28px;
     height: 28px;
     border: none;
-    background: #ef4444;
+    background: var(--danger);
     color: white;
     border-radius: 6px;
     cursor: pointer;
@@ -370,7 +370,7 @@ const saveBotSettings = () => {
   padding: 10px 16px;
   border: 2px dashed var(--border-light, #d1d5db);
   background: transparent;
-  color: #167A67;
+  color: var(--accent);
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
@@ -392,7 +392,7 @@ const saveBotSettings = () => {
 }
 
 .btn-primary {
-  background: #167A67;
+  background: var(--accent);
   color: white;
   border: none;
   padding: 12px 28px;
@@ -403,7 +403,7 @@ const saveBotSettings = () => {
   transition: all 0.2s ease;
 
   &:hover {
-    background: #0f5d4e;
+    background: var(--accent-hover);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(22, 122, 103, 0.3);
   }

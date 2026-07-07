@@ -521,7 +521,7 @@ onUnmounted(() => {
 }
 
 .btn-start-scan {
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   color: white;
   border: none;
   padding: 16px 40px;
@@ -596,7 +596,7 @@ onUnmounted(() => {
 .scan-box {
   width: 100%;
   height: 100%;
-  border: 3px solid #167A67;
+  border: 3px solid var(--accent);
   border-radius: 16px;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
   animation: pulse 2s ease-in-out infinite;
@@ -625,7 +625,7 @@ onUnmounted(() => {
 }
 
 .btn-stop-scan {
-  background: #ef4444;
+  background: var(--danger);
   color: white;
   border: none;
   padding: 12px 32px;
@@ -684,7 +684,7 @@ onUnmounted(() => {
 }
 
 .result-card.error .result-icon {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
   color: white;
 }
 
@@ -726,7 +726,7 @@ onUnmounted(() => {
 }
 
 .error-message {
-  color: #ef4444;
+  color: var(--danger);
   font-size: 1rem;
   margin-bottom: 24px;
   font-weight: 600;
@@ -748,7 +748,7 @@ onUnmounted(() => {
 .station-icon { font-size: 1.6rem; }
 .send-status { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 600; }
 .success-text { color: #059669; }
-.error-text { color: #ef4444; }
+.error-text { color: var(--danger); }
 
 /* 未登入警告 */
 .login-warning {
@@ -796,7 +796,7 @@ onUnmounted(() => {
 }
 
 .btn-continue {
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   color: white;
   border: none;
   padding: 14px 40px;
@@ -839,7 +839,7 @@ onUnmounted(() => {
   display: block;
   font-size: 1.75rem;
   font-weight: 800;
-  color: #167A67;
+  color: var(--accent);
 }
 
 /* 動畫 */

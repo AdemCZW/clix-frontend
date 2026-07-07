@@ -421,7 +421,7 @@ const getInitials = (name: string) => {
 }
 
 .btn-add-guest {
-  background: #167A67;
+  background: var(--accent);
   color: white;
   border: none;
   padding: 10px 24px;
@@ -436,7 +436,7 @@ const getInitials = (name: string) => {
   box-shadow: 0 4px 12px rgba(22, 122, 103, 0.25);
 
   &:hover {
-    background: #0f5d4e;
+    background: var(--accent-hover);
     box-shadow: 0 6px 16px rgba(22, 122, 103, 0.35);
     transform: translateY(-2px);
   }
@@ -604,7 +604,7 @@ const getInitials = (name: string) => {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #167A67 0%, #0f5d4e 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   background-size: cover;
   background-position: center;
   display: flex;
@@ -655,7 +655,7 @@ const getInitials = (name: string) => {
   border-radius: 50%;
   border: 2px solid var(--border-light, #e5e7eb);
   background: var(--bg-card);
-  color: #167A67;
+  color: var(--accent);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -663,7 +663,7 @@ const getInitials = (name: string) => {
   transition: all 0.3s;
 
   &:hover {
-    background: #167A67;
+    background: var(--accent);
     color: white;
     border-color: var(--accent);
     transform: rotate(90deg);
@@ -853,7 +853,7 @@ const getInitials = (name: string) => {
   border-radius: 12px;
   border: 2px solid #fee2e2;
   background: #fef2f2;
-  color: #ef4444;
+  color: var(--danger);
   font-weight: 700;
   font-size: 0.9rem;
   cursor: pointer;
@@ -861,7 +861,7 @@ const getInitials = (name: string) => {
 
   &:hover {
     background: #fee2e2;
-    border-color: #ef4444;
+    border-color: var(--danger);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
   }
