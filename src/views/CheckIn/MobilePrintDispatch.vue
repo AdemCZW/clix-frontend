@@ -3,7 +3,7 @@ import { ref, computed, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import jsQR from "jsqr";
 import { getAccessToken } from "@/utils/authStorage";
-import { checkinByToken, parseTokenFromQr } from "@/services/checkinService";
+import { checkinByToken, parseTokenFromQr, type RawCheckinParticipant } from "@/services/checkinService";
 import type { Participant } from "@/types";
 import LogoSpinner from '@/components/shared/LogoSpinner.vue';
 
@@ -63,14 +63,7 @@ const stopScanning = () => {
 //   方案 A（第 56 次定案）：報到成功後不再讓使用者選站台，直接送預設站台
 const phase           = ref("scan");
 const scanError       = ref("");
-interface ParticipantData {
-  name?: string
-  company?: string
-  title?: string
-  type?: string
-  [key: string]: unknown
-}
-const currentParticipant = ref<ParticipantData | null>(null); // raw API response participant object
+const currentParticipant = ref<RawCheckinParticipant | null>(null); // raw API response participant object
 const apiError        = ref("");
 const sendError       = ref("");
 
@@ -97,7 +90,7 @@ const onScanSuccess = async (rawToken: string) => {
   const token = parseTokenFromQr(rawToken);
   try {
     const { participant } = await checkinByToken(token);
-    currentParticipant.value = participant as ParticipantData;
+    currentParticipant.value = participant as RawCheckinParticipant;
     // 報到成功後直接送印至預設站台（不再讓使用者選站台）
     await sendToStation(DEFAULT_STATION);
   } catch (err: unknown) {

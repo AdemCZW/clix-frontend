@@ -35,9 +35,17 @@ export class CheckinError extends Error {
     }
 }
 
+export interface RawCheckinParticipant {
+    name?: string
+    company?: string
+    title?: string
+    type?: string
+    [k: string]: unknown
+}
+
 export type CheckinResult = {
     /** 後端回傳的 participant 物件（原 schema，未經 mapParticipant） */
-    participant: Record<string, unknown>
+    participant: RawCheckinParticipant
     /** 後端 message，例如「報到成功」 */
     message: string
 }

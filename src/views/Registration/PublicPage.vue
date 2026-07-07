@@ -802,6 +802,7 @@ const statusText = computed(() => {
 })
 
 const openForm = () => { showForm.value = true }
+const openContact = () => { const link = pageData.value?.eventContactLink; if (link) window.open(link, '_blank', 'noopener'); }
 const backToInfo = () => { showForm.value = false }
 
 // Cookie Consent
@@ -1001,7 +1002,7 @@ const toggleFaq = (i: number) => { faqOpen.value = faqOpen.value === i ? null : 
             <!-- 按鈕 -->
             <div class="sidebar-actions">
               <button class="sb-btn primary" @click="openForm" :disabled="isFull">立即報名</button>
-              <button class="sb-btn outline">聯絡主辦單位</button>
+              <button v-if="pageData.eventContactLink" class="sb-btn outline" @click="openContact">聯絡主辦單位</button>
             </div>
 
             <!-- 橫式：來賓頭像放在右側欄底部 -->

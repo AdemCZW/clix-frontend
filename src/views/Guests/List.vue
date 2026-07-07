@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref, computed } from "vue";
 import { useGuestsStore } from "@/stores/guests";
+import PageLoader from "@/components/shared/PageLoader.vue";
 import { useEventsStore } from "@/stores/events";
 import { useToast } from "@/composables/useToast";
 import { useConfirm } from "@/composables/useConfirm";
@@ -169,8 +170,10 @@ const getInitials = (name: string) => {
       </div>
     </div>
 
-    <!-- 空狀態 -->
-    <div v-if="filteredGuests.length === 0" class="empty-state">
+    <PageLoader v-if="guestsStore.isLoading" text="載入中..." />
+
+    <!-- 空狀態（載入中不顯示，避免閃假空狀態）-->
+    <div v-else-if="filteredGuests.length === 0" class="empty-state">
       <div class="empty-icon">
         <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
