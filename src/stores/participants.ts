@@ -196,20 +196,6 @@ export const useParticipantsStore = defineStore('participants', () => {
             return newUrl
         })
 
-    async function fetchStatistics(eventId?: number) {
-        try {
-            const url = eventId
-                ? `/api/participants/statistics/?event=${eventId}`
-                : '/api/participants/statistics/'
-            const res = await apiRequest(url)
-            if (!res.ok) throw new Error('取得統計資料失敗')
-            return res.json()
-        } catch (err) {
-            error.value = (err as Error).message
-            throw err
-        }
-    }
-
     const importParticipants = (data: Record<string, unknown>[], eventId: number) =>
         run(async () => {
             // 改打 hybrid endpoint：支援逐筆錯誤回報、相容新舊 Excel 格式
@@ -272,7 +258,6 @@ export const useParticipantsStore = defineStore('participants', () => {
         checkIn,
         checkOut,
         regenerateQr,
-        fetchStatistics,
         importParticipants,
         clearError,
         clear,
