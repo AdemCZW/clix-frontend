@@ -5,6 +5,7 @@
  */
 
 import { API_BASE_URL } from '@/utils/api'
+import { formatDrfErrors } from './parseApiError'
 
 const fetchWithTimeout = (url: string, options: RequestInit = {}, timeoutMs = 30000): Promise<Response> => {
     const controller = new AbortController()
@@ -35,10 +36,7 @@ export async function publicPost<T = unknown>(path: string, body: unknown): Prom
         // 嘗試解析後端錯誤
         const errData = await res.json().catch(() => null)
         if (errData && typeof errData === 'object') {
-            const msg = Object.entries(errData as Record<string, unknown>)
-                .map(([, msgs]) => (Array.isArray(msgs) ? msgs.join(', ') : msgs))
-                .join('；')
-            throw new Error(msg)
+            throw new Error(formatDrfErrors(errData as Record<string, unknown>, `請求失敗 (${res.status})`))
         }
         throw new Error(`請求失敗 (${res.status})`)
     }

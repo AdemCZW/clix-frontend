@@ -4,6 +4,7 @@ import { apiRequest } from '@/utils/api'
 import { useStoreRequest } from '@/utils/useStoreRequest'
 import { useCache } from '@/utils/useCache'
 import type { Manager, RawManager, Staff, RawStaff } from '@/types'
+import { formatDrfErrors } from '@/utils/parseApiError'
 
 export const useAdminAccountsStore = defineStore('adminAccounts', () => {
     const adminAccounts = ref<Manager[]>([])
@@ -73,15 +74,7 @@ export const useAdminAccountsStore = defineStore('adminAccounts', () => {
 
     const parseCreateError = async (res: Response, fallback: string) => {
         try {
-            const err: Record<string, unknown> = await res.json()
-            if (err.detail) return err.detail as string
-            const allMsgs: string[] = []
-            for (const [field, val] of Object.entries(err)) {
-                const text = Array.isArray(val) ? val[0] : val
-                if (field === 'non_field_errors') allMsgs.unshift(text as string)
-                else allMsgs.push(`${field}：${text}`)
-            }
-            return allMsgs.length ? allMsgs.join('；') : fallback
+            return formatDrfErrors(await res.json(), fallback)
         } catch {
             return fallback
         }

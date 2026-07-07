@@ -12,3 +12,18 @@ export async function parseApiError(res: Response, fallback?: string): Promise<s
         return defaultMsg
     }
 }
+
+/**
+ * 把 DRF 錯誤 body（{ detail } 或 { 欄位: [訊息] } map）格式化成單一字串。
+ * detail 優先；否則 non_field_errors 放最前、其餘以「欄位：訊息」呈現，用「；」串接。
+ */
+export function formatDrfErrors(body: Record<string, unknown>, fallback: string): string {
+    if (typeof body?.detail === 'string') return body.detail
+    const parts: string[] = []
+    for (const [field, val] of Object.entries(body || {})) {
+        const msg = Array.isArray(val) ? val.join(', ') : String(val)
+        if (field === 'non_field_errors') parts.unshift(msg)
+        else parts.push(`${field}：${msg}`)
+    }
+    return parts.length ? parts.join('；') : fallback
+}
