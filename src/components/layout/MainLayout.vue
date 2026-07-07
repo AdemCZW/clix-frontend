@@ -528,7 +528,7 @@ const selectEvent = (event: any) => {
 
   .role-badge {
     font-size: 0.78rem;
-    background: #c8651c;
+    background: #E0A800;
     color: white;
     padding: 6px 14px;
     border-radius: 999px;

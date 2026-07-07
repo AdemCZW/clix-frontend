@@ -1661,7 +1661,7 @@ label {
     font-size: 0.9rem;
 
     &:hover {
-      background: linear-gradient(135deg, #0f5d4e 0%, #4338ca 100%);
+      background: linear-gradient(135deg, #0f5d4e 0%, #167A67 100%);
       box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
     }
   }
