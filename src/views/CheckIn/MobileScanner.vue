@@ -301,6 +301,18 @@ const stopScanning = () => {
   }
 };
 
+// 掃描回饋：短嗶聲（Web Audio）。不支援/被瀏覽器擋則靜默略過，不影響報到邏輯
+const beep = (freq: number) => {
+  try {
+    const c = new AudioContext();
+    const o = c.createOscillator();
+    o.frequency.value = freq;
+    o.connect(c.destination);
+    o.start();
+    setTimeout(() => { o.stop(); c.close(); }, 120);
+  } catch { /* 裝置不支援音訊：略過 */ }
+};
+
 const validateCheckin = async (token: string) => {
   try {
     const { participant: p } = await checkinByToken(token, { disableAuthRedirect: true });
@@ -321,7 +333,12 @@ const validateCheckin = async (token: string) => {
     sendPhase.value = "idle";
     todayCheckins.value++;
     totalCheckins.value++;
+    navigator.vibrate?.(80);
+    beep(880);
   } catch (err: unknown) {
+    // 失敗回饋放最前，涵蓋下方 unauthorized 提早 return 的情況
+    navigator.vibrate?.([60, 40, 60]);
+    beep(300);
     if (err instanceof CheckinError && err.kind === "unauthorized") {
       errorMessage.value = "請先登入後才能使用掃描功能\n\n點擊下方按鈕前往登入頁面";
       resultType.value = "error";
