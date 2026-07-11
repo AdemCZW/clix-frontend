@@ -110,11 +110,11 @@
     <!-- 統計資訊 -->
     <div class="stats-bar">
       <div class="stat-item">
-        <span class="stat-label">今日報到</span>
+        <span class="stat-label">本次掃描</span>
         <span class="stat-value">{{ todayCheckins }}</span>
       </div>
       <div class="stat-item">
-        <span class="stat-label">累計報到</span>
+        <span class="stat-label">本次累計</span>
         <span class="stat-value">{{ totalCheckins }}</span>
       </div>
     </div>

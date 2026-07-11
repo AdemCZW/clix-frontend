@@ -1,0 +1,1 @@
+import{c as e,n as t}from"./index-zQ0uuhyx.js";import{t as n}from"./events-Vy85jtmk.js";function r(){let r=e(),i=n(),a=t();return{switchEvent:(e,t)=>{i.setCurrentEvent(e,a.user?.id),t&&r.push(t)}}}export{r as t};
