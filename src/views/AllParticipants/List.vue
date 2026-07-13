@@ -110,12 +110,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-const loadXLSX = () => import("xlsx");
 import { useAdminAccountsStore } from "@/stores/adminAccounts";
 import { useParticipantsStore } from "@/stores/participants";
 import { storeToRefs } from "pinia";
 import PageLoader from "@/components/shared/PageLoader.vue";
 import type { Participant } from "@/types";
+import { sanitizeCell, exportRowsToXlsx } from "@/utils/exportXlsx";
 
 interface LocalEvent {
   id: number;
@@ -272,16 +272,7 @@ const formatDate = (date: string) => {
   });
 };
 
-// 匯出 Excel
-// P0.11 第 43 次稽核：公式注入防護
-// 任何儲存格值若以 = + - @ \t \r 開頭，Excel/Numbers 開啟會嘗試當公式執行
-// 修法：對字串型 cell 前綴 ' 字元（Excel 視為文字不執行）
-const FORMULA_PREFIXES = ["=", "+", "-", "@", "\t", "\r"];
-const sanitizeCell = (v: unknown): unknown => {
-  if (typeof v !== "string" || v.length === 0) return v;
-  return FORMULA_PREFIXES.includes(v[0]) ? "'" + v : v;
-};
-
+// 匯出 Excel（sanitizeCell 公式注入防護見 utils/exportXlsx）
 const exportEventData = async (event: LocalEvent) => {
   const data = event.participants.map((p) => ({
     姓名: sanitizeCell(p.name),
@@ -293,11 +284,7 @@ const exportEventData = async (event: LocalEvent) => {
     報名時間: formatDate(p.registeredAt),
   }));
 
-  const XLSX = await loadXLSX();
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "參與者名單");
-  XLSX.writeFile(wb, `${event.name}_參與者名單.xlsx`);
+  await exportRowsToXlsx(data, `${event.name}_參與者名單.xlsx`, "參與者名單");
 };
 </script>
 
