@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
-import jsQR from "jsqr";
 import { getAccessToken } from "@/utils/authStorage";
 import { buildPrintWsUrl } from "@/utils/printWs";
+import { useQrCameraScanner } from "@/composables/useQrCameraScanner";
 import { checkinByToken, parseTokenFromQr, type RawCheckinParticipant } from "@/services/checkinService";
 import type { Participant } from "@/types";
 import LogoSpinner from '@/components/shared/LogoSpinner.vue';
@@ -11,53 +11,13 @@ import LogoSpinner from '@/components/shared/LogoSpinner.vue';
 const route = useRoute();
 const eventId = computed(() => String(route.query.event || ""));
 
-// ===== 相機掃描 =====
-const isScanning   = ref(false);
-const videoElement = ref<HTMLVideoElement | null>(null);
-let stream: MediaStream | null      = null;
-let animationId: number | null = null;
-let canvas: HTMLCanvasElement | null      = null;
-let canvasCtx: CanvasRenderingContext2D | null   = null;
-
-const startScanning = async () => {
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
-    });
-    isScanning.value = true;
-    await new Promise<void>((r) => setTimeout(r, 100));
-    if (videoElement.value) {
-      videoElement.value.srcObject = stream;
-      await new Promise<void>((r) => { videoElement.value!.onloadedmetadata = () => { videoElement.value!.play(); r(); }; });
-      canvas    = document.createElement("canvas");
-      canvasCtx = canvas.getContext("2d");
-      tick();
-    }
-  } catch (err: unknown) {
-    scanError.value = (err as Error).name === "NotAllowedError" ? "請允許相機權限" : ((err as Error).message || "無法啟動相機");
-  }
-};
-
-const tick = () => {
-  if (!isScanning.value || !videoElement.value || !canvas || !canvasCtx) return;
-  if (videoElement.value.readyState === videoElement.value.HAVE_ENOUGH_DATA) {
-    canvas.width  = videoElement.value.videoWidth;
-    canvas.height = videoElement.value.videoHeight;
-    canvasCtx.drawImage(videoElement.value, 0, 0, canvas.width, canvas.height);
-    const imageData = canvasCtx.getImageData(0, 0, canvas.width, canvas.height);
-    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
-    // jsQR 偵測到反光 / 條碼 / 紋路時可能回 { data: "" }，避免誤判跳「無效 QR」錯誤
-    if (code && code.data && code.data.trim()) { onScanSuccess(code.data); return; }
-  }
-  animationId = requestAnimationFrame(tick);
-};
-
-const stopScanning = () => {
-  isScanning.value = false;
-  if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
-  if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
-  if (videoElement.value) videoElement.value.srcObject = null;
-};
+// ===== 相機掃描（收斂至 useQrCameraScanner） =====
+const { videoElement, isScanning, start: startScanning, stop: stopScanning } = useQrCameraScanner({
+  onDecode: (raw) => onScanSuccess(raw),
+  onError: (err) => {
+    scanError.value = err.name === "NotAllowedError" ? "請允許相機權限" : (err.message || "無法啟動相機");
+  },
+});
 
 // ===== 狀態 =====
 // phase: 'scan' | 'loading' | 'sending' | 'sent' | 'error'
