@@ -1,0 +1,1 @@
+function e(){return`https://checksystembackend-production.up.railway.app`.replace(/\/$/,``).replace(/^https/,`wss`).replace(/^http/,`ws`)}function t(t,n){let r=``;return n?.stationToken?r=`?station_token=${encodeURIComponent(n.stationToken)}`:n?.token&&(r=`?token=${n.token}`),`${e()}/ws/print/${t}/${r}`}export{t};

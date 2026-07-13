@@ -3,6 +3,7 @@ import { ref, computed, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import jsQR from "jsqr";
 import { getAccessToken } from "@/utils/authStorage";
+import { buildPrintWsUrl } from "@/utils/printWs";
 import { checkinByToken, parseTokenFromQr, type RawCheckinParticipant } from "@/services/checkinService";
 import type { Participant } from "@/types";
 import LogoSpinner from '@/components/shared/LogoSpinner.vue';
@@ -106,19 +107,13 @@ const sendToStation = async (slot: number) => {
   phase.value = "sending";
 
   const stationSession = `print-${eventId.value}-station-${slot}`;
-  const wsBase = (import.meta.env.VITE_API_BASE_URL || window.location.origin)
-    .replace(/\/$/, "")
-    .replace(/^https/, "wss")
-    .replace(/^http/, "ws");
 
   // 快照資料，避免後續掃描覆蓋
   const participantSnapshot = { ...currentParticipant.value };
 
   try {
     await new Promise<void>((resolve, reject) => {
-      const token = getAccessToken() || "";
-      const tokenParam = token ? `?token=${token}` : "";
-      const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/${tokenParam}`);
+      const ws = new WebSocket(buildPrintWsUrl(stationSession, { token: getAccessToken() || "" }));
 
       let settled = false;
       let connectTimeout: ReturnType<typeof setTimeout> | undefined = undefined;

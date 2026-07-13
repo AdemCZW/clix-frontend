@@ -6,6 +6,7 @@ import { useEventsStore } from "@/stores/events";
 import { useRegistrationPagesStore } from "@/stores/registrationPages";
 import { useEventScopedLoader } from "@/composables/useEventScopedLoader";
 import { getAccessToken } from "@/utils/authStorage";
+import { buildPrintWsUrl } from "@/utils/printWs";
 import {
   BASIC_FIELD_OPTIONS,
   buildCustomFieldOptions,
@@ -293,16 +294,10 @@ async function testStation(slot: number) {
   stationTestStatus.value[slot] = "testing";
 
   const stationSession = `print-${eid}-station-${slot}`;
-  const wsBase = (import.meta.env.VITE_API_BASE_URL || window.location.origin)
-    .replace(/\/$/, "")
-    .replace(/^https/, "wss")
-    .replace(/^http/, "ws");
-  const token = getAccessToken() || "";
-  const tokenParam = token ? `?token=${token}` : "";
 
   try {
     await new Promise<void>((resolve, reject) => {
-      const ws = new WebSocket(`${wsBase}/ws/print/${stationSession}/${tokenParam}`);
+      const ws = new WebSocket(buildPrintWsUrl(stationSession, { token: getAccessToken() || "" }));
       const timeout = setTimeout(() => { ws.close(); reject(); }, 5000);
       ws.onopen = () => { clearTimeout(timeout); ws.close(); resolve(); };
       ws.onerror = () => { clearTimeout(timeout); reject(); };

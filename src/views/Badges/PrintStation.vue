@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import QRCodeLib from "qrcode";
 import { getAccessToken } from "@/utils/authStorage";
+import { buildPrintWsUrl } from "@/utils/printWs";
 
 const route = useRoute();
 const slot = computed(() => String(route.params.slot || "1"));
@@ -83,16 +84,12 @@ const wsStatusLabel = computed(() => ({
 function connectWebSocket() {
   if (!sessionId.value || wsInstance) return;
   wsStatus.value = "connecting";
-  const wsBase = (import.meta.env.VITE_API_BASE_URL || window.location.origin)
-    .replace(/\/$/, "")
-    .replace(/^https/, "wss")
-    .replace(/^http/, "ws");
   // 站台優先用 URL 的 station_token（啞終端免登入、不受 JWT 24h 過期影響）；
   // 沒有才 fallback 使用者 JWT（後台登入態下開預覽視窗用）
-  const authParam = stationToken.value
-    ? `?station_token=${encodeURIComponent(stationToken.value)}`
-    : (getAccessToken() ? `?token=${getAccessToken()}` : "");
-  wsInstance = new WebSocket(`${wsBase}/ws/print/${sessionId.value}/${authParam}`);
+  wsInstance = new WebSocket(buildPrintWsUrl(sessionId.value, {
+    stationToken: stationToken.value || undefined,
+    token: getAccessToken() || undefined,
+  }));
   wsInstance.onopen  = () => { wsStatus.value = "connected"; };
   wsInstance.onclose = () => { wsStatus.value = "disconnected"; wsInstance = null; };
   wsInstance.onerror = () => { wsStatus.value = "error"; };
