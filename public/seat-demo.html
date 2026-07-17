@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>clix · 座位定位示範</title>
 <style>
-:root{--font-sans:system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;--font-mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+:root{--font-sans:system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{min-height:100vh;background:radial-gradient(120% 90% at 50% 0%,#f4f6f9,#e7ecf1);font-family:var(--font-sans);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 14px;color:#2a3a39}
@@ -64,13 +64,13 @@ body{min-height:100vh;background:radial-gradient(120% 90% at 50% 0%,#f4f6f9,#e7e
         </div>
       </div>
       <div class="orn"><span class="ol"></span><span class="od"></span><span class="ol"></span></div>
-      <svg id="venueSvg" width="100%" viewBox="0 0 680 414" role="img" style="display:block;margin-top:6px">
-        <title>華麗劇院座位定位圖</title><desc>帶地毯、出口標示與逐席編號的俯瞰扶手椅座位圖，點亮你的座位</desc>
+      <svg id="venueSvg" width="100%" viewBox="0 0 680 410" role="img" style="display:block;margin-top:6px">
+        <title>緩弧劇院座位定位圖</title><desc>座位一律朝上、編號水平置中的俯瞰座位圖，點亮你的座位</desc>
         <defs>
-          <radialGradient id="amb" cx="50%" cy="96%" r="74%"><stop offset="0%" stop-color="#f6e6b4" stop-opacity="0.65"/><stop offset="100%" stop-color="#f6e6b4" stop-opacity="0"/></radialGradient>
-          <radialGradient id="carp" cx="50%" cy="100%" r="80%"><stop offset="0%" stop-color="#e7e3d6"/><stop offset="100%" stop-color="#eceef0"/></radialGradient>
+          <radialGradient id="amb" cx="50%" cy="90%" r="72%"><stop offset="0%" stop-color="#f6e6b4" stop-opacity="0.6"/><stop offset="100%" stop-color="#f6e6b4" stop-opacity="0"/></radialGradient>
+          <radialGradient id="carp" cx="50%" cy="90%" r="80%"><stop offset="0%" stop-color="#e7e3d6"/><stop offset="100%" stop-color="#eceef0"/></radialGradient>
           <radialGradient id="tglow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#e0a800" stop-opacity="0.55"/><stop offset="60%" stop-color="#e0a800" stop-opacity="0.12"/><stop offset="100%" stop-color="#e0a800" stop-opacity="0"/></radialGradient>
-          <linearGradient id="ray" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#e7c877" stop-opacity="0.14"/><stop offset="100%" stop-color="#e7c877" stop-opacity="0"/></linearGradient>
+          <linearGradient id="ray" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#e7c877" stop-opacity="0.13"/><stop offset="100%" stop-color="#e7c877" stop-opacity="0"/></linearGradient>
           <linearGradient id="stg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1d8f78"/><stop offset="100%" stop-color="#12604f"/></linearGradient>
         </defs>
       </svg>
@@ -89,46 +89,46 @@ body{min-height:100vh;background:radial-gradient(120% 90% at 50% 0%,#f4f6f9,#e7e
   var NS="http://www.w3.org/2000/svg";var svg=document.getElementById("venueSvg");
   function el(n,a){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);return e;}
   function pt(R,ang){return [Fx+R*Math.sin(ang),Fy-R*Math.cos(ang)];}
-  function arc(R,h,sw){var p0=pt(R,-h),p1=pt(R,h);return "M "+p0[0].toFixed(1)+" "+p0[1].toFixed(1)+" A "+R+" "+R+" 0 0 "+(sw==null?1:sw)+" "+p1[0].toFixed(1)+" "+p1[1].toFixed(1);}
+  function arc(R,h){var p0=pt(R,-h),p1=pt(R,h);return "M "+p0[0].toFixed(1)+" "+p0[1].toFixed(1)+" A "+R+" "+R+" 0 0 1 "+p1[0].toFixed(1)+" "+p1[1].toFixed(1);}
   function star(cx,cy,s){var a=s*0.34;return "M "+cx+" "+(cy-s)+" L "+(cx+a)+" "+(cy-a)+" L "+(cx+s)+" "+cy+" L "+(cx+a)+" "+(cy+a)+" L "+cx+" "+(cy+s)+" L "+(cx-a)+" "+(cy+a)+" L "+(cx-s)+" "+cy+" L "+(cx-a)+" "+(cy-a)+" Z";}
   var nm=document.getElementById("nm");
-  if(nm){var s=nm.textContent;nm.textContent="";s.split("").forEach(function(ch,i){var sp=document.createElement("span");sp.className="ch";sp.textContent=ch;sp.style.animationDelay=(0.3+i*0.13)+"s";nm.appendChild(sp);});}
-  var Fx=340,Fy=524;
-  svg.appendChild(el("rect",{x:0,y:0,width:680,height:414,fill:"#eef1f5"}));
-  var cO=502,cI=150,ch=0.92,co0=pt(cO,-ch),co1=pt(cO,ch),ci1=pt(cI,ch),ci0=pt(cI,-ch);
-  svg.appendChild(el("path",{d:"M "+co0[0].toFixed(1)+" "+co0[1].toFixed(1)+" A "+cO+" "+cO+" 0 0 1 "+co1[0].toFixed(1)+" "+co1[1].toFixed(1)+" L "+ci1[0].toFixed(1)+" "+ci1[1].toFixed(1)+" A "+cI+" "+cI+" 0 0 0 "+ci0[0].toFixed(1)+" "+ci0[1].toFixed(1)+" Z",fill:"url(#carp)",opacity:0.85}));
-  svg.appendChild(el("rect",{x:0,y:0,width:680,height:414,fill:"url(#amb)"}));
-  var rayG=el("g",{});for(var k=-3;k<=3;k++){var topx=340+k*66;rayG.appendChild(el("path",{d:"M 330 350 L 350 350 L "+(topx+38)+" 44 L "+(topx-38)+" 44 Z",fill:"url(#ray)"}));}svg.appendChild(rayG);
-  var rows=[{label:"A",blocks:[3,0,3],wheel:true,r:206},{label:"1",blocks:[6,7,6],r:244},{label:"2",blocks:[8,10,8],r:282},{label:"3",blocks:[9,10,9],r:320},{label:"4",blocks:[9,11,9],r:358},{label:"5",blocks:[10,12,10],r:396},{label:"6",blocks:[10,12,10],r:434},{label:"7",blocks:[4,4,4],r:472}];
+  if(nm){var s0=nm.textContent;nm.textContent="";s0.split("").forEach(function(ch,i){var sp=document.createElement("span");sp.className="ch";sp.textContent=ch;sp.style.animationDelay=(0.3+i*0.13)+"s";nm.appendChild(sp);});}
+  var Fx=340,Fy=820;
+  svg.appendChild(el("rect",{x:0,y:0,width:680,height:410,fill:"#eef1f5"}));
+  var cO=795,cI=452,ch=0.46,co0=pt(cO,-ch),co1=pt(cO,ch),ci1=pt(cI,ch),ci0=pt(cI,-ch);
+  svg.appendChild(el("path",{d:"M "+co0[0].toFixed(1)+" "+co0[1].toFixed(1)+" A "+cO+" "+cO+" 0 0 1 "+co1[0].toFixed(1)+" "+co1[1].toFixed(1)+" L "+ci1[0].toFixed(1)+" "+ci1[1].toFixed(1)+" A "+cI+" "+cI+" 0 0 0 "+ci0[0].toFixed(1)+" "+ci0[1].toFixed(1)+" Z",fill:"url(#carp)",opacity:0.82}));
+  svg.appendChild(el("rect",{x:0,y:0,width:680,height:410,fill:"url(#amb)"}));
+  var rayG=el("g",{});for(var k=-3;k<=3;k++){var topx=340+k*62;rayG.appendChild(el("path",{d:"M 330 320 L 350 320 L "+(topx+36)+" 50 L "+(topx-36)+" 50 Z",fill:"url(#ray)"}));}svg.appendChild(rayG);
+  var rows=[{label:"A",blocks:[3,0,3],wheel:true,r:520},{label:"1",blocks:[6,7,6],r:554},{label:"2",blocks:[8,10,8],r:588},{label:"3",blocks:[9,10,9],r:622},{label:"4",blocks:[9,11,9],r:656},{label:"5",blocks:[10,12,10],r:690},{label:"6",blocks:[10,12,10],r:724},{label:"7",blocks:[4,4,4],r:758}];
   var seatArc=17,aisleArc=30,sw=13,sh=12,target={row:"3",no:15},tx=0,ty=0;
   var tierLayer=el("g",{fill:"none"});svg.appendChild(tierLayer);
-  rows.forEach(function(rw){var tot=rw.blocks.reduce(function(a,c){return a+c;},0),h=Math.min((tot*seatArc/2+aisleArc)/rw.r,0.86);tierLayer.appendChild(el("path",{d:arc(rw.r+sh/2+2,h),stroke:"#aebbb2","stroke-width":4,opacity:0.4}));tierLayer.appendChild(el("path",{d:arc(rw.r+sh/2+4.4,h),stroke:"#fbfcfd","stroke-width":1.4,opacity:0.85}));});
-  var seatLayer=el("g",{style:"filter:drop-shadow(0 1.6px 1.3px rgba(55,75,68,.3))"}),numLayer=el("g",{opacity:0,style:"animation:fin .6s ease .55s forwards"});
+  rows.forEach(function(rw){var tot=rw.blocks.reduce(function(a,c){return a+c;},0),h=(tot*seatArc/2+aisleArc)/rw.r;tierLayer.appendChild(el("path",{d:arc(rw.r+sh/2+2,h),stroke:"#aebbb2","stroke-width":4,opacity:0.38}));tierLayer.appendChild(el("path",{d:arc(rw.r+sh/2+4.4,h),stroke:"#fbfcfd","stroke-width":1.4,opacity:0.85}));});
+  var seatLayer=el("g",{style:"filter:drop-shadow(0 1.6px 1.3px rgba(55,75,68,.28))"}),numLayer=el("g",{opacity:0,style:"animation:fin .6s ease .55s forwards"});
   svg.appendChild(seatLayer);svg.appendChild(numLayer);
-  function chair(g,c,deg,frame,cush,strokeC,strokeW){var rot="rotate("+deg.toFixed(2)+" "+c[0].toFixed(1)+" "+c[1].toFixed(1)+")";
-    g.appendChild(el("rect",{x:c[0]-sw/2,y:c[1]-sh/2,width:sw,height:sh,rx:3,transform:rot,fill:frame,stroke:strokeC||"none","stroke-width":strokeW||0}));
-    g.appendChild(el("rect",{x:c[0]-sw/2+1.8,y:c[1]-sh/2+2.7,width:sw-3.6,height:sh-4.4,rx:2,transform:rot,fill:cush}));}
+  function chair(g,c,frame,cush,strokeC,strokeW){
+    g.appendChild(el("rect",{x:c[0]-sw/2,y:c[1]-sh/2,width:sw,height:sh,rx:3,fill:frame,stroke:strokeC||"none","stroke-width":strokeW||0}));
+    g.appendChild(el("rect",{x:c[0]-sw/2+1.8,y:c[1]-sh/2+2.7,width:sw-3.6,height:sh-4.4,rx:2,fill:cush}));}
   rows.forEach(function(rw,ri){
     var seq=[],cur=0;rw.blocks.forEach(function(c){for(var i=0;i<c;i++){seq.push(cur);cur+=seatArc;}cur+=aisleArc;});
     var mid=(cur-aisleArc-seatArc)/2,seatNo=0;
     var g=el("g",{opacity:0,style:"animation:fin .5s ease "+(ri*70)+"ms forwards"});
-    seq.forEach(function(pos){seatNo++;var s=pos-mid,ang=s/rw.r,deg=ang*180/Math.PI,c=pt(rw.r,ang),isT=(rw.label===target.row&&seatNo===target.no);
-      if(rw.wheel)chair(g,c,deg,"#ffffff","#eaf6f1","#167A67",1.2);
-      else if(isT){chair(g,c,deg,"#c8920a","#f2c02a");tx=c[0];ty=c[1];}
-      else chair(g,c,deg,"#aebeb4","#d2ddd5");
-      var num=el("text",{x:c[0].toFixed(1),y:(c[1]+3.7).toFixed(1),"text-anchor":"middle","font-size":6.3,fill:isT?"#3a2b04":"#5c6d73","font-family":"var(--font-sans)","font-weight":isT?"500":"400"});num.textContent=seatNo;numLayer.appendChild(num);});
+    seq.forEach(function(pos){seatNo++;var s=pos-mid,ang=s/rw.r,c=pt(rw.r,ang),isT=(rw.label===target.row&&seatNo===target.no);
+      if(rw.wheel)chair(g,c,"#ffffff","#eaf6f1","#167A67",1.2);
+      else if(isT){chair(g,c,"#c8920a","#f2c02a");tx=c[0];ty=c[1];}
+      else chair(g,c,"#aebeb4","#d2ddd5");
+      var num=el("text",{x:c[0].toFixed(1),y:(c[1]+2.5).toFixed(1),"text-anchor":"middle","font-size":6.6,fill:isT?"#3a2b04":"#5c6d73","font-family":"var(--font-sans)","font-weight":isT?"500":"400"});num.textContent=seatNo;numLayer.appendChild(num);});
     seatLayer.appendChild(g);
-    var ll=pt(rw.r,-mid/rw.r-0.055);
+    var ll=pt(rw.r,-mid/rw.r-0.028);
     svg.appendChild(el("circle",{cx:ll[0].toFixed(1),cy:ll[1].toFixed(1),r:7.5,fill:"#167A67",stroke:"#e0a800","stroke-width":0.8,opacity:0,style:"animation:fin .5s ease "+(ri*70+120)+"ms forwards"}));
     var t=el("text",{x:ll[0].toFixed(1),y:(ll[1]+3).toFixed(1),"text-anchor":"middle","font-size":9,fill:"#fff","font-weight":500,"font-family":"var(--font-sans)",opacity:0,style:"animation:fin .5s ease "+(ri*70+150)+"ms forwards"});t.textContent=rw.label;svg.appendChild(t);
   });
   function exitSign(x,y){var g=el("g",{});g.appendChild(el("rect",{x:x-20,y:y-9,width:40,height:18,rx:4,fill:"#167A67"}));g.appendChild(el("path",{d:"M "+(x+6)+" "+(y-4)+" L "+(x+13)+" "+y+" L "+(x+6)+" "+(y+4)+" Z",fill:"#eafff7"}));g.appendChild(el("text",{x:x-4,y:y+3.4,"text-anchor":"middle","font-size":8.5,fill:"#eafff7","font-weight":500,"font-family":"var(--font-sans)"})).textContent="出口";svg.appendChild(g);}
-  exitSign(52,58);exitSign(628,58);
-  var sO=186,sI=162,sh2=0.5,po0=pt(sO,-sh2),po1=pt(sO,sh2),pi1=pt(sI,sh2),pi0=pt(sI,-sh2);
+  exitSign(52,54);exitSign(628,54);
+  var sO=506,sI=482,sh2=0.34,po0=pt(sO,-sh2),po1=pt(sO,sh2),pi1=pt(sI,sh2),pi0=pt(sI,-sh2);
   svg.appendChild(el("path",{d:"M "+po0[0].toFixed(1)+" "+po0[1].toFixed(1)+" A "+sO+" "+sO+" 0 0 1 "+po1[0].toFixed(1)+" "+po1[1].toFixed(1)+" L "+pi1[0].toFixed(1)+" "+pi1[1].toFixed(1)+" A "+sI+" "+sI+" 0 0 0 "+pi0[0].toFixed(1)+" "+pi0[1].toFixed(1)+" Z",fill:"url(#stg)",stroke:"#e0a800","stroke-width":1.2,style:"filter:drop-shadow(0 3px 8px rgba(18,96,79,.4))"}));
-  for(var fx=-0.44;fx<=0.44;fx+=0.088){var fp=pt(159,fx);svg.appendChild(el("circle",{cx:fp[0].toFixed(1),cy:fp[1].toFixed(1),r:1.7,fill:"#ffe07a"}));}
-  svg.appendChild(el("text",{x:340,y:(Fy-172).toFixed(1),"text-anchor":"middle","font-size":12,fill:"#eafff7","font-weight":500,"font-family":"var(--font-sans)","letter-spacing":"0.1em"})).textContent="捷運展演主舞台";
-  svg.appendChild(el("text",{x:340,y:390,"text-anchor":"middle","font-size":9.5,fill:"#93a0ac","font-family":"var(--font-sans)","letter-spacing":"0.2em"})).textContent="一 樓 觀 眾 席";
+  for(var fa=-0.3;fa<=0.3;fa+=0.075){var fp=pt(478,fa);svg.appendChild(el("circle",{cx:fp[0].toFixed(1),cy:fp[1].toFixed(1),r:1.7,fill:"#ffe07a"}));}
+  svg.appendChild(el("text",{x:340,y:330,"text-anchor":"middle","font-size":12,fill:"#eafff7","font-weight":500,"font-family":"var(--font-sans)","letter-spacing":"0.1em"})).textContent="捷運展演主舞台";
+  svg.appendChild(el("text",{x:340,y:392,"text-anchor":"middle","font-size":9.5,fill:"#93a0ac","font-family":"var(--font-sans)","letter-spacing":"0.2em"})).textContent="一 樓 觀 眾 席";
   var burst=el("g",{stroke:"#f0c85a","stroke-width":1,opacity:0.45});for(var r2=0;r2<12;r2++){var a2=r2*Math.PI/6,ln=(r2%2?14:22);burst.appendChild(el("line",{x1:tx+15*Math.sin(a2),y1:ty-15*Math.cos(a2),x2:tx+(15+ln)*Math.sin(a2),y2:ty-(15+ln)*Math.cos(a2)}));}
   burst.appendChild(el("animateTransform",{attributeName:"transform",type:"rotate",from:"0 "+tx+" "+ty,to:"360 "+tx+" "+ty,dur:"30s",repeatCount:"indefinite"}));
   svg.appendChild(el("circle",{cx:tx,cy:ty,r:26,fill:"url(#tglow)"}));svg.appendChild(burst);
@@ -141,9 +141,9 @@ body{min-height:100vh;background:radial-gradient(120% 90% at 50% 0%,#f4f6f9,#e7e
   svg.appendChild(el("path",{d:star(cx2+13,cy2+15,4),fill:"#e0a800"}));
   svg.appendChild(el("text",{x:cx2+24,y:cy2+13.5,"font-size":11,fill:"#2a3a39","font-weight":500,"font-family":"var(--font-sans)"})).textContent="第 3 排 · 15 號";
   svg.appendChild(el("text",{x:cx2+24,y:cy2+24,"font-size":9,fill:"#a9862f","font-family":"var(--font-sans)","letter-spacing":"0.08em"})).textContent="貴賓座位 · VIP";
-  var sp=[[100,100],[560,88],[150,180],[600,220],[92,250],[500,76],[420,92],[250,80],[636,160],[300,70],[646,300],[470,64]];
+  var sp=[[110,110],[560,96],[160,180],[600,150],[92,220],[500,80],[430,96],[250,84],[636,210],[300,74],[646,270],[470,70]];
   sp.forEach(function(p,i){svg.appendChild(el("path",{d:star(p[0],p[1],(i%3?3:4.2)),fill:"#eec559",opacity:0.12,style:"transform-box:fill-box;transform-origin:center;animation:tw "+(1.6+i%4*0.4)+"s ease-in-out "+(i*0.26)+"s infinite"}));});
-  [[28,44,1,1],[652,44,-1,1],[28,396,1,-1],[652,396,-1,-1]].forEach(function(c){var g=el("g",{stroke:"#c9a94a","stroke-width":1.3,fill:"none",opacity:.85});g.appendChild(el("path",{d:"M "+(c[0]+c[2]*20)+" "+c[1]+" L "+c[0]+" "+c[1]+" L "+c[0]+" "+(c[1]+c[3]*20)}));g.appendChild(el("path",{d:star(c[0]+c[2]*5,c[1]+c[3]*5,2.6),fill:"#e0a800",stroke:"none"}));svg.appendChild(g);});
+  [[28,40,1,1],[652,40,-1,1],[28,388,1,-1],[652,388,-1,-1]].forEach(function(c){var g=el("g",{stroke:"#c9a94a","stroke-width":1.3,fill:"none",opacity:.85});g.appendChild(el("path",{d:"M "+(c[0]+c[2]*20)+" "+c[1]+" L "+c[0]+" "+c[1]+" L "+c[0]+" "+(c[1]+c[3]*20)}));g.appendChild(el("path",{d:star(c[0]+c[2]*5,c[1]+c[3]*5,2.6),fill:"#e0a800",stroke:"none"}));svg.appendChild(g);});
   var noEl=document.getElementById("seatNo");
   if(noEl){var goal=15,dur=820,st=null;function ez(t){return 1-Math.pow(1-t,3);}function step(ts){if(!st)st=ts;var p=Math.min(1,(ts-st)/dur);noEl.textContent=Math.round(ez(p)*(goal-1)+1);if(p<1)requestAnimationFrame(step);}setTimeout(function(){requestAnimationFrame(step);},520);}
 })();
