@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>clix — 活動報名 × QR 報到 × 識別證列印 一站搞定</title>
+<meta name="description" content="clix 活動管理平台：報名頁建置、電子票券 Email 自動寄送、現場 QR 秒級報到、識別證即時列印、座位定位引導。一鍵啟動您的全方位活動管理。">
+<style>
+:root{--g:#167A67;--gd:#0f5d4e;--gold:#e0a800;--gold2:#f4c531;--ink:#22322f;--mut:#64748b;--bg:#f4f6f9;--font:system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.6}
+a{color:inherit;text-decoration:none}
+.container{max-width:1080px;margin:0 auto;padding:0 20px}
+/* nav */
+nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.9);backdrop-filter:blur(10px);border-bottom:1px solid #e5e9ee}
+.nav-in{display:flex;align-items:center;gap:26px;height:58px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:20px;letter-spacing:.02em}
+.logo img{height:28px;display:block}
+.nav-links{display:flex;gap:22px;font-size:14px;color:var(--mut);margin-left:auto}
+.nav-links a:hover{color:var(--g)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:10px;padding:10px 22px;font-size:15px;font-weight:600;cursor:pointer;border:none;transition:.18s}
+.btn-primary{background:var(--g);color:#fff}
+.btn-primary:hover{background:var(--gd)}
+.btn-gold{background:var(--gold);color:#3a2b04}
+.btn-gold:hover{background:#c9970a}
+.btn-ghost{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.55)}
+.btn-ghost:hover{border-color:#fff;background:rgba(255,255,255,.08)}
+.btn-sm{padding:7px 14px;font-size:13px;border-radius:8px}
+/* hero */
+.hero{position:relative;background:var(--g);color:#fff;overflow:hidden}
+.hero .geo1{position:absolute;inset:0;background:var(--gold);clip-path:polygon(72% 0,100% 0,100% 58%,52% 0)}
+.hero .geo2{position:absolute;inset:0;background:var(--gold);clip-path:polygon(100% 74%,100% 100%,64% 100%)}
+.hero .geo3{position:absolute;inset:0;background:var(--gd);clip-path:polygon(0 78%,26% 100%,0 100%)}
+.hero-in{position:relative;padding:84px 0 92px;max-width:640px}
+.hero h1{font-size:clamp(30px,5vw,46px);font-weight:800;line-height:1.25;letter-spacing:.01em}
+.hero h1 .au{color:var(--gold2)}
+.hero p.sub{margin-top:18px;font-size:17px;color:#dff0ea;max-width:520px}
+.hero .cta{margin-top:30px;display:flex;gap:14px;flex-wrap:wrap}
+.chips{margin-top:34px;display:flex;gap:10px;flex-wrap:wrap}
+.chip{font-size:13px;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22)}
+/* section */
+section{padding:72px 0}
+.sec-tag{display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.18em;color:var(--g);background:#e3f1ec;border-radius:999px;padding:5px 14px}
+h2.sec-title{font-size:clamp(24px,3.4vw,32px);font-weight:800;margin-top:14px}
+p.sec-sub{color:var(--mut);margin-top:10px;max-width:560px}
+/* demo grid */
+.demo-grid{margin-top:42px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px}
+.demo-card{background:#fff;border:1px solid #e5e9ee;border-radius:18px;padding:22px 20px;box-shadow:0 8px 26px rgba(40,58,57,.07);display:flex;flex-direction:column;gap:14px}
+.demo-card h3{font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px}
+.demo-card h3 .dot{width:9px;height:9px;border-radius:3px;background:var(--gold)}
+.demo-card p.d{font-size:13.5px;color:var(--mut)}
+.demo-stage{background:#f2f5f8;border:1px solid #e5e9ee;border-radius:14px;flex:1;display:flex;align-items:center;justify-content:center;padding:16px;min-height:270px;position:relative;overflow:hidden}
+.demo-actions{display:flex;gap:10px;flex-wrap:wrap}
+/* qr demo */
+.phone{width:180px;background:#101820;border-radius:22px;padding:10px 10px 14px;box-shadow:0 10px 26px rgba(16,24,32,.35)}
+.phone .notch{width:56px;height:5px;border-radius:3px;background:#2a3540;margin:2px auto 8px}
+.cam{position:relative;background:#1b2731;border-radius:12px;height:196px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.cam svg.qr{opacity:.92}
+.cam .frame{position:absolute;inset:26px;border-radius:10px;pointer-events:none}
+.cam .frame i{position:absolute;width:18px;height:18px;border:3px solid var(--gold2);border-radius:2px}
+.cam .frame i:nth-child(1){top:0;left:0;border-right:none;border-bottom:none}
+.cam .frame i:nth-child(2){top:0;right:0;border-left:none;border-bottom:none}
+.cam .frame i:nth-child(3){bottom:0;left:0;border-right:none;border-top:none}
+.cam .frame i:nth-child(4){bottom:0;right:0;border-left:none;border-top:none}
+.laser{position:absolute;left:12%;right:12%;top:14%;height:2.5px;border-radius:2px;background:linear-gradient(90deg,transparent,#35e6a0,transparent);opacity:0;filter:drop-shadow(0 0 6px #35e6a0)}
+.scanning .laser{opacity:1;animation:sweep 1.15s ease-in-out 1}
+@keyframes sweep{0%{top:14%}55%{top:78%}100%{top:40%}}
+.scan-ok{position:absolute;inset:0;background:rgba(10,26,22,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;opacity:0;pointer-events:none;transition:.3s}
+.done .scan-ok{opacity:1}
+.ok-ring{width:44px;height:44px;border-radius:50%;background:var(--g);display:flex;align-items:center;justify-content:center;transform:scale(.4)}
+.done .ok-ring{animation:okpop .5s cubic-bezier(.2,.9,.3,1.4) forwards}
+@keyframes okpop{to{transform:scale(1)}}
+.scan-ok .nm{color:#fff;font-weight:700;font-size:15px;margin-top:4px}
+.scan-ok .st{color:#8fe3c8;font-size:12px}
+.scan-ok .seat-chip{margin-top:6px;background:var(--gold);color:#3a2b04;font-size:12px;font-weight:700;border-radius:999px;padding:3px 12px}
+/* seat demo */
+.seat-wrap{width:100%}
+.seat-wrap svg{display:block;width:100%}
+/* badge demo */
+.badge-form{display:flex;flex-direction:column;gap:8px;width:100%}
+.badge-form input{border:1px solid #d7dde4;border-radius:9px;padding:9px 12px;font-size:14px;font-family:var(--font);outline:none;background:#fff;transition:.15s}
+.badge-form input:focus{border-color:var(--g);box-shadow:0 0 0 3px rgba(22,122,103,.13)}
+.printer{margin-top:6px;background:#dfe5ea;border-radius:12px;padding:10px 10px 0;position:relative}
+.printer .slotlip{height:8px;background:#c6ced6;border-radius:6px 6px 0 0;margin:0 18px}
+.slot{overflow:hidden;padding:0 18px;height:196px;display:flex;justify-content:center}
+.badge{width:132px;height:186px;background:#fff;border-radius:10px;box-shadow:0 6px 18px rgba(30,45,42,.18);overflow:hidden;display:flex;flex-direction:column;transition:transform .8s cubic-bezier(.5,0,.6,1);position:relative}
+.badge .top{height:34px;background:linear-gradient(90deg,var(--g),var(--gd));display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;letter-spacing:.14em}
+.badge .bn{font-size:19px;font-weight:800;text-align:center;margin-top:26px;padding:0 8px;word-break:break-all}
+.badge .bc{font-size:11.5px;color:var(--mut);text-align:center;margin-top:4px;padding:0 8px}
+.badge .bq{position:absolute;bottom:10px;right:10px;opacity:.85}
+.badge .bstar{position:absolute;bottom:12px;left:12px;color:var(--gold);font-size:13px}
+.printing .badge{transform:translateY(112%)}
+.toast{position:absolute;left:50%;bottom:12px;transform:translate(-50%,8px);background:#22322f;color:#fff;font-size:12.5px;border-radius:999px;padding:7px 16px;opacity:0;transition:.3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+/* features */
+.feat-grid{margin-top:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.feat{background:#fff;border:1px solid #e5e9ee;border-radius:14px;padding:20px 18px;transition:.2s}
+.feat:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(40,58,57,.09);border-color:#cfe0da}
+.feat .fi{width:38px;height:38px;border-radius:10px;background:#e3f1ec;color:var(--g);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.feat h4{font-size:15px;font-weight:700}
+.feat p{font-size:13px;color:var(--mut);margin-top:5px}
+/* flow */
+.flow{background:#fff;border-top:1px solid #e9edf1;border-bottom:1px solid #e9edf1}
+.flow-grid{margin-top:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px}
+.step{position:relative;background:var(--bg);border:1px solid #e5e9ee;border-radius:14px;padding:20px 18px}
+.step .num{font-size:26px;font-weight:800;color:var(--gold);letter-spacing:.02em}
+.step h4{font-size:15px;font-weight:700;margin-top:6px}
+.step p{font-size:13px;color:var(--mut);margin-top:5px}
+/* cta */
+.cta-band{position:relative;background:var(--g);border-radius:20px;color:#fff;padding:46px 34px;overflow:hidden;display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between}
+.cta-band .geo{position:absolute;inset:0;background:var(--gold);clip-path:polygon(100% 0,100% 100%,74% 100%)}
+.cta-band h3{position:relative;font-size:clamp(20px,3vw,27px);font-weight:800}
+.cta-band p{position:relative;color:#dff0ea;font-size:14.5px;margin-top:6px}
+.cta-band .btns{position:relative;display:flex;gap:12px;flex-wrap:wrap}
+/* footer */
+footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top:72px}
+.foot-in{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+.foot-in a{color:#cfe0da}
+.foot-in a:hover{color:#fff}
+/* reveal */
+.rv{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+.rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}}
+@media (max-width:640px){.nav-links{display:none}.hero-in{padding:60px 0 66px}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container nav-in">
+    <a class="logo" href="/intro.html"><img src="/clix-logo.svg" alt="clix" onerror="this.style.display='none'">clix</a>
+    <div class="nav-links">
+      <a href="#demos">互動體驗</a>
+      <a href="#features">功能</a>
+      <a href="#flow">導入流程</a>
+    </div>
+    <a class="btn btn-primary btn-sm" href="/#/login">登入系統</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="geo1"></div><div class="geo2"></div><div class="geo3"></div>
+  <div class="container">
+    <div class="hero-in">
+      <h1>一鍵啟動<br>開啟您的<span class="au">全方位活動管理</span></h1>
+      <p class="sub">從報名頁建置、電子票券寄送，到現場 QR 秒級報到、識別證即時列印與座位定位引導 — clix 讓每一場活動流暢登場。</p>
+      <div class="cta">
+        <a class="btn btn-gold" href="#demos">立即體驗互動示範</a>
+        <a class="btn btn-ghost" href="/seat-demo.html">座位定位 Demo</a>
+      </div>
+      <div class="chips">
+        <span class="chip">QR 秒級報到</span>
+        <span class="chip">識別證即印</span>
+        <span class="chip">座位定位引導</span>
+        <span class="chip">Email 自動通知</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="demos">
+  <div class="container">
+    <span class="sec-tag rv">LIVE DEMO</span>
+    <h2 class="sec-title rv">特色功能，現在就試</h2>
+    <p class="sec-sub rv">不用註冊、不用安裝 — 直接在下面三張卡片動手玩，感受活動現場的完整流程。</p>
+    <div class="demo-grid">
+
+      <div class="demo-card rv">
+        <h3><span class="dot"></span>QR 掃碼報到</h3>
+        <p class="d">參與者出示電子票券 QR，工作人員手機一掃即完成報到。</p>
+        <div class="demo-stage" id="qrStage">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="cam" id="cam">
+              <svg class="qr" width="104" height="104" viewBox="0 0 29 29" id="qrSvg"></svg>
+              <div class="frame"><i></i><i></i><i></i><i></i></div>
+              <div class="laser"></div>
+              <div class="scan-ok">
+                <div class="ok-ring"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></div>
+                <div class="nm">王大明 · VIP</div>
+                <div class="st">報到成功</div>
+                <div class="seat-chip">第 3 排 · 15 號</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-actions">
+          <button class="btn btn-primary btn-sm" id="scanBtn">開始掃描</button>
+        </div>
+      </div>
+
+      <div class="demo-card rv">
+        <h3><span class="dot"></span>座位定位引導</h3>
+        <p class="d">報到成功即點亮專屬座位，現場螢幕直接告訴賓客「你在這」。</p>
+        <div class="demo-stage" style="padding:8px">
+          <div class="seat-wrap">
+            <svg id="miniSeat" viewBox="0 0 680 330" role="img"><title>座位定位示範</title></svg>
+          </div>
+        </div>
+        <div class="demo-actions">
+          <button class="btn btn-primary btn-sm" data-seat="2,8">第 2 排 8 號</button>
+          <button class="btn btn-primary btn-sm" data-seat="4,12">第 4 排 12 號</button>
+          <button class="btn btn-gold btn-sm" id="randSeat">隨機座位</button>
+        </div>
+      </div>
+
+      <div class="demo-card rv">
+        <h3><span class="dot"></span>識別證即時列印</h3>
+        <p class="d">輸入姓名馬上預覽識別證，一鍵送印到現場列印站台。</p>
+        <div class="demo-stage" style="flex-direction:column;gap:10px">
+          <div class="badge-form">
+            <input id="bn" maxlength="12" placeholder="姓名" value="王大明">
+            <input id="bc" maxlength="20" placeholder="單位 / 職稱" value="捷運展演廳 · 貴賓">
+          </div>
+          <div class="printer" id="printer" style="width:100%;max-width:220px">
+            <div class="slotlip"></div>
+            <div class="slot">
+              <div class="badge">
+                <div class="top">EVENT PASS</div>
+                <div class="bn" id="pbn">王大明</div>
+                <div class="bc" id="pbc">捷運展演廳 · 貴賓</div>
+                <div class="bstar">★ VIP</div>
+                <svg class="bq" width="40" height="40" viewBox="0 0 29 29" id="qrSvg2"></svg>
+              </div>
+            </div>
+            <div class="toast" id="printToast">已送至站台 1 列印</div>
+          </div>
+        </div>
+        <div class="demo-actions">
+          <button class="btn btn-primary btn-sm" id="printBtn">送印識別證</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="features" style="padding-top:0">
+  <div class="container">
+    <span class="sec-tag rv">FEATURES</span>
+    <h2 class="sec-title rv">辦活動需要的，都在同一個後台</h2>
+    <div class="feat-grid">
+      <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div><h4>報名頁快速建置</h4><p>Banner、票種、自訂欄位、FAQ 拖拉即成，發布就有專屬報名連結。</p></div>
+      <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/></svg></div><h4>電子票券自動寄送</h4><p>報名成功即寄出含 QR 票券的通知信，主旨內文皆可自訂。</p></div>
+      <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z"/></svg></div><h4>QR 秒級報到</h4><p>手機即掃即到，重複報到自動判斷，現場不排隊。</p></div>
+      <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg></div><h4>識別證多站台列印</h4><p>掃碼即派送至現場列印站台，版面自由拖拉設計。</p></div>
+      <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 21s-7-5.1-7-11a7 7 0 0114 0c0 5.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg></div><h4>座位定位引導</h4><p>報到當下點亮專屬座位，賓客一眼找到位置。</p></div>
+      <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div><h4>即時數據總覽</h4><p>報名數、報到率、票種分佈一目瞭然，活動成效即時掌握。</p></div>
+      <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5M17 8.5a2.8 2.8 0 110 5.6M19 15.5c2 .6 3.2 2 3.5 4.5"/></svg></div><h4>名單匯入匯出</h4><p>Excel 一鍵匯入自動產票；匯出內建公式注入防護，安全放心。</p></div>
+      <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3l8 3v6c0 4.6-3.2 7.8-8 9-4.8-1.2-8-4.4-8-9V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg></div><h4>多角色權限管理</h4><p>主辦、管理者、現場人員分權操作，資料隔離有保障。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="flow" class="flow">
+  <div class="container">
+    <span class="sec-tag rv">HOW IT WORKS</span>
+    <h2 class="sec-title rv">四步，讓活動流暢登場</h2>
+    <div class="flow-grid">
+      <div class="step rv"><div class="num">01</div><h4>建立活動與報名頁</h4><p>設定活動資訊、票種與自訂欄位，即刻發布。</p></div>
+      <div class="step rv"><div class="num">02</div><h4>報名與自動寄票</h4><p>賓客線上報名，系統自動寄出含 QR 的電子票券。</p></div>
+      <div class="step rv"><div class="num">03</div><h4>現場掃碼報到</h4><p>QR 一掃即報到，識別證同步送印、座位即時定位。</p></div>
+      <div class="step rv"><div class="num">04</div><h4>數據回顧</h4><p>報到率與名單一鍵匯出，活動成效完整掌握。</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="cta-band rv">
+      <div class="geo"></div>
+      <div>
+        <h3>準備好你的下一場活動了嗎？</h3>
+        <p>登入後台開始建立活動，或先玩玩上面的互動示範。</p>
+      </div>
+      <div class="btns">
+        <a class="btn btn-gold" href="/#/login">登入系統</a>
+        <a class="btn btn-ghost" href="#demos">再看一次示範</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container foot-in">
+    <span>© 2026 clix · 活動報名報到系統</span>
+    <span style="display:flex;gap:18px">
+      <a href="/#/login">登入</a>
+      <a href="/seat-demo.html">座位定位示範</a>
+      <a href="#demos">互動體驗</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  /* reveal on scroll */
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});},{threshold:.12});
+  document.querySelectorAll(".rv").forEach(function(el){io.observe(el);});
+
+  /* decorative QR pattern */
+  function drawQr(id,fg){var s=document.getElementById(id);if(!s)return;var NS="http://www.w3.org/2000/svg";
+    function r(x,y,w,h){var e=document.createElementNS(NS,"rect");e.setAttribute("x",x);e.setAttribute("y",y);e.setAttribute("width",w);e.setAttribute("height",h);e.setAttribute("fill",fg);s.appendChild(e);}
+    [[0,0],[22,0],[0,22]].forEach(function(p){r(p[0],p[1],7,7);var hole=document.createElementNS(NS,"rect");hole.setAttribute("x",p[0]+1.2);hole.setAttribute("y",p[1]+1.2);hole.setAttribute("width",4.6);hole.setAttribute("height",4.6);hole.setAttribute("fill",id==="qrSvg"?"#1b2731":"#fff");s.appendChild(hole);r(p[0]+2.3,p[1]+2.3,2.4,2.4);});
+    for(var i=0;i<29;i++)for(var j=0;j<29;j++){if((i<9&&j<9)||(i>19&&j<9)||(i<9&&j>19))continue;if(((i*7+j*11+i*j)%5)<2)r(i,j,1,1);}}
+  drawQr("qrSvg","#e8f2ee");drawQr("qrSvg2","#22322f");
+
+  /* demo 1: qr scan */
+  var cam=document.getElementById("cam"),btn=document.getElementById("scanBtn"),busy=false;
+  btn.addEventListener("click",function(){
+    if(busy)return;
+    if(cam.classList.contains("done")){cam.classList.remove("done");btn.textContent="開始掃描";return;}
+    busy=true;cam.classList.add("scanning");btn.textContent="掃描中…";
+    setTimeout(function(){cam.classList.remove("scanning");cam.classList.add("done");btn.textContent="重新示範";busy=false;},1250);
+  });
+
+  /* demo 2: mini seat map */
+  var NS="http://www.w3.org/2000/svg",svg=document.getElementById("miniSeat");
+  function el(n,a){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);return e;}
+  var Fx=340,Fy=758;
+  function pt(R,ang){return [Fx+R*Math.sin(ang),Fy-R*Math.cos(ang)];}
+  function arc(R,h){var p0=pt(R,-h),p1=pt(R,h);return "M "+p0[0].toFixed(1)+" "+p0[1].toFixed(1)+" A "+R+" "+R+" 0 0 1 "+p1[0].toFixed(1)+" "+p1[1].toFixed(1);}
+  var rows=[{label:"1",blocks:[5,6,5],r:472},{label:"2",blocks:[6,7,6],r:504},{label:"3",blocks:[6,8,6],r:536},{label:"4",blocks:[7,8,7],r:568},{label:"5",blocks:[7,9,7],r:600},{label:"6",blocks:[8,9,8],r:632}];
+  var seatArc=16.5,aisleArc=24,sw=12.5,sh=11.5;
+  var seatPos={},seatEls={},hlLayer=null;
+  var sO=452,sI=430,sh2=0.3,po0=pt(sO,-sh2),po1=pt(sO,sh2),pi1=pt(sI,sh2),pi0=pt(sI,-sh2);
+  svg.appendChild(el("path",{d:"M "+po0[0].toFixed(1)+" "+po0[1].toFixed(1)+" A "+sO+" "+sO+" 0 0 1 "+po1[0].toFixed(1)+" "+po1[1].toFixed(1)+" L "+pi1[0].toFixed(1)+" "+pi1[1].toFixed(1)+" A "+sI+" "+sI+" 0 0 0 "+pi0[0].toFixed(1)+" "+pi0[1].toFixed(1)+" Z",fill:"#167A67",stroke:"#e0a800","stroke-width":1}));
+  var stx=pt(441,0);
+  var stg=el("text",{x:340,y:(stx[1]+1).toFixed(1),"text-anchor":"middle","font-size":11,fill:"#eafff7","font-weight":"600","letter-spacing":"0.1em"});stg.textContent="主 舞 台";svg.appendChild(stg);
+  var tier=el("g",{fill:"none"});svg.appendChild(tier);
+  rows.forEach(function(rw){var tot=rw.blocks.reduce(function(a,c){return a+c;},0),h=(tot*seatArc/2+aisleArc)/rw.r;tier.appendChild(el("path",{d:arc(rw.r+sh/2+2,h),stroke:"#c3cdc7","stroke-width":3,opacity:.5}));});
+  var seatsG=el("g",{});svg.appendChild(seatsG);
+  rows.forEach(function(rw){
+    var seq=[],cur=0;rw.blocks.forEach(function(c){for(var i=0;i<c;i++){seq.push(cur);cur+=seatArc;}cur+=aisleArc;});
+    var mid=(cur-aisleArc-seatArc)/2,no=0;
+    seq.forEach(function(pos){no++;var ang=(pos-mid)/rw.r,c=pt(rw.r,ang),key=rw.label+"-"+no;
+      seatPos[key]=c;
+      var f=el("rect",{x:c[0]-sw/2,y:c[1]-sh/2,width:sw,height:sh,rx:3,fill:"#aebeb4"});
+      var cu=el("rect",{x:c[0]-sw/2+1.7,y:c[1]-sh/2+2.5,width:sw-3.4,height:sh-4.1,rx:2,fill:"#d2ddd5"});
+      seatsG.appendChild(f);seatsG.appendChild(cu);
+      seatEls[key]=[f,cu];});
+    var ll=pt(rw.r,-(mid/rw.r)-0.03);
+    svg.appendChild(el("circle",{cx:ll[0].toFixed(1),cy:ll[1].toFixed(1),r:7,fill:"#167A67"}));
+    var t=el("text",{x:ll[0].toFixed(1),y:(ll[1]+3).toFixed(1),"text-anchor":"middle","font-size":8.5,fill:"#fff","font-weight":"600"});t.textContent=rw.label;svg.appendChild(t);
+  });
+  var style=document.createElementNS(NS,"style");
+  style.textContent="@keyframes mpz{0%{transform:scale(.5);opacity:.8}80%{transform:scale(2.6);opacity:0}100%{opacity:0}}";
+  svg.appendChild(style);
+  var lastKey=null;
+  function highlight(row,no){
+    var key=row+"-"+no,c=seatPos[key];if(!c)return;
+    if(lastKey&&seatEls[lastKey]){seatEls[lastKey][0].setAttribute("fill","#aebeb4");seatEls[lastKey][1].setAttribute("fill","#d2ddd5");}
+    if(hlLayer)hlLayer.remove();
+    seatEls[key][0].setAttribute("fill","#c8920a");seatEls[key][1].setAttribute("fill","#f2c02a");
+    hlLayer=el("g",{});
+    var glow=el("circle",{cx:c[0],cy:c[1],r:20,fill:"#e0a800",opacity:.18});hlLayer.appendChild(glow);
+    [0,0.5].forEach(function(d){var ring=el("circle",{cx:c[0],cy:c[1],r:10,fill:"none",stroke:"#e0a800","stroke-width":1.7,style:"transform-box:fill-box;transform-origin:center;animation:mpz 2.2s ease-out "+d+"s infinite"});hlLayer.appendChild(ring);});
+    var cw=96,cx2=Math.min(Math.max(c[0]-cw/2,6),674-cw),cy2=c[1]-44;
+    hlLayer.appendChild(el("path",{d:"M "+c[0]+" "+(c[1]-12)+" L "+c[0]+" "+(cy2+24),stroke:"#e0a800","stroke-width":1.1,fill:"none",opacity:.75}));
+    hlLayer.appendChild(el("rect",{x:cx2,y:cy2,width:cw,height:24,rx:7,fill:"#fff",stroke:"#e0a800","stroke-width":1.1}));
+    var lt=el("text",{x:cx2+cw/2,y:cy2+16,"text-anchor":"middle","font-size":11,fill:"#2a3a39","font-weight":"600"});lt.textContent="第 "+row+" 排 · "+no+" 號";hlLayer.appendChild(lt);
+    svg.appendChild(hlLayer);
+    lastKey=key;
+  }
+  document.querySelectorAll("[data-seat]").forEach(function(b){b.addEventListener("click",function(){var p=b.getAttribute("data-seat").split(",");highlight(p[0],parseInt(p[1],10));});});
+  document.getElementById("randSeat").addEventListener("click",function(){
+    var rw=rows[Math.floor(Math.random()*rows.length)];
+    var tot=rw.blocks.reduce(function(a,c){return a+c;},0);
+    highlight(rw.label,1+Math.floor(Math.random()*tot));
+  });
+  highlight("3",10);
+
+  /* demo 3: badge print */
+  var bn=document.getElementById("bn"),bc=document.getElementById("bc"),pbn=document.getElementById("pbn"),pbc=document.getElementById("pbc");
+  bn.addEventListener("input",function(){pbn.textContent=bn.value||"姓名";});
+  bc.addEventListener("input",function(){pbc.textContent=bc.value||"單位";});
+  var printer=document.getElementById("printer"),ptoast=document.getElementById("printToast"),pbusy=false;
+  document.getElementById("printBtn").addEventListener("click",function(){
+    if(pbusy)return;pbusy=true;
+    printer.classList.add("printing");ptoast.classList.add("show");
+    setTimeout(function(){printer.classList.remove("printing");},900);
+    setTimeout(function(){ptoast.classList.remove("show");pbusy=false;},1900);
+  });
+})();
+</script>
+</body>
+</html>
