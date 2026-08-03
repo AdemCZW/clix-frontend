@@ -238,7 +238,7 @@ const editorOptions = {
       [{ header: [1, 2, false] }],
       [{ color: [] }],
       [{ list: "ordered" }, { list: "bullet" }],
-      ["image", "clean"],
+      ["link", "image", "clean"],
     ],
   },
   placeholder: "請在此輸入郵件內文...",
