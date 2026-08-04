@@ -79,7 +79,15 @@ nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.9);backdrop-fi
 .hud.tr{top:22px;right:22px;border-left:0;border-bottom:0}
 .hud.bl{bottom:22px;left:22px;border-right:0;border-top:0}
 .hud.br{bottom:22px;right:22px;border-left:0;border-top:0}
-.hero-in{position:relative;padding:96px 0 190px;max-width:780px;z-index:2}
+.hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:minmax(220px,.8fr) 1.2fr;gap:54px;align-items:center;padding:92px 0 186px}
+.hero-brand{display:flex;justify-content:center}
+.hero-logo{width:100%;max-width:290px;filter:brightness(0) invert(1);opacity:.96}
+.hero-in{position:relative;z-index:2}
+@media (max-width:900px){
+  .hero-grid{grid-template-columns:1fr;gap:26px;padding:64px 0 150px}
+  .hero-brand{justify-content:flex-start}
+  .hero-logo{max-width:168px}
+}
 .kicker{display:inline-flex;align-items:center;gap:12px;font-family:var(--mono);font-size:11.5px;font-weight:500;letter-spacing:.26em;color:#4fd6b4}
 .kicker::before{content:"";width:26px;height:1px;background:#2b8f79}
 .hero h1{margin-top:20px;font-size:clamp(38px,6.4vw,66px);font-weight:900;line-height:1.16;letter-spacing:.01em}
@@ -87,12 +95,6 @@ nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.9);backdrop-fi
 .hero p.sub{margin-top:20px;font-size:17px;color:#9fbcb2;max-width:552px}
 .hero .cta{margin-top:32px;display:flex;gap:14px;flex-wrap:wrap}
 .mag{will-change:transform;transition:transform .16s ease}
-/* 遙測讀數 */
-.telem{position:absolute;right:34px;top:50%;transform:translateY(-50%);z-index:2;display:flex;flex-direction:column;gap:16px;text-align:right;pointer-events:none}
-.telem div{font-family:var(--mono)}
-.telem .tv{font-size:21px;font-weight:600;color:#7ff0d2;letter-spacing:.02em}
-.telem .tl{font-size:10px;letter-spacing:.2em;color:#4a7d72;margin-top:2px}
-@media (max-width:1080px){.telem{display:none}}
 /* 終端機狀態列 */
 .ticker{margin-top:36px;display:inline-flex;align-items:center;gap:11px;height:40px;min-width:min(400px,88vw);
   border:1px solid rgba(45,214,178,.24);background:rgba(6,26,24,.6);border-radius:6px;padding:0 15px;backdrop-filter:blur(4px);font-family:var(--mono)}
@@ -250,7 +252,7 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
 .rv{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
 .rv.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}}
-@media (max-width:640px){.nav-links{display:none}.hero-in{padding:60px 0 66px}}
+@media (max-width:640px){.nav-links{display:none}}
 </style>
 </head>
 <body>
@@ -280,12 +282,12 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
   <div class="spot" id="spot"></div>
   <div class="scan"></div>
   <span class="hud tl"></span><span class="hud tr"></span><span class="hud bl"></span><span class="hud br"></span>
-  <div class="telem" aria-hidden="true">
-    <div><div class="tv" id="tvA">0.4s</div><div class="tl">CHECK-IN LATENCY</div></div>
-    <div><div class="tv" id="tvB">1,284</div><div class="tl">SCANS TODAY</div></div>
-    <div><div class="tv" id="tvC">3 / 3</div><div class="tl">PRINT STATIONS</div></div>
-  </div>
   <div class="container">
+   <div class="hero-grid">
+    <div class="hero-brand">
+      <img class="hero-logo" src="/clix-logo.svg" alt="Clix"
+           onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('span'),{textContent:'Clix',style:'font-size:76px;font-weight:300;letter-spacing:.02em'}))">
+    </div>
     <div class="hero-in">
       <span class="kicker">CLICK &amp; JOIN US</span>
       <h1>管理活動，<br><span class="au">精準到位</span></h1>
@@ -300,6 +302,7 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
         <span class="tk" id="tk"></span>
       </div>
     </div>
+   </div>
   </div>
   <svg id="heroSeats" viewBox="0 0 900 160" aria-hidden="true"></svg>
 </header>
