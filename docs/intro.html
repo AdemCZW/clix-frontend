@@ -491,12 +491,17 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
             <label for="lf-note">補充說明</label>
             <textarea id="lf-note" name="note" placeholder="例如：每年約辦 6 場活動，現場需要識別證即時列印。（非必填）"></textarea>
           </div>
+          <input type="text" id="lf-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+                 style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
         </div>
 
         <div class="form-foot">
           <button type="submit" class="btn btn-primary" id="lfSubmit">送出資訊</button>
           <span class="form-note">送出即表示同意我們與您聯繫，資料僅用於本次洽詢。</span>
         </div>
+
+        <div id="lfErr" style="display:none;margin-top:14px;background:#fdeceb;border:1px solid #f5c6c2;
+             border-radius:10px;padding:12px 14px;font-size:13px;color:#a3352c"></div>
 
         <div class="form-sent" id="lfSent">
           <span class="si"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>
@@ -605,7 +610,8 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
     setTimeout(function(){ptoast.classList.remove("show");pbusy=false;},1900);
   });
 
-  /* 洽詢表單：目前僅前端驗證與資料整理，發送功能尚未串接後端 */
+  /* 洽詢表單 → POST /api/leads/（後端寫入 DB 並寄通知信給業務信箱） */
+  var API_BASE="https://checksystembackend-production.up.railway.app";
   var form=document.getElementById("leadForm");
   if(form){
     var sent=document.getElementById("lfSent"),sentDetail=document.getElementById("lfSentDetail");
@@ -620,6 +626,8 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
     form.addEventListener("submit",function(e){
       e.preventDefault();
       sent.classList.remove("show");
+      var errBox=document.getElementById("lfErr");
+      if(errBox)errBox.style.display="none";
       var ok=true,first=null;
       function check(id,valid){
         var elm=document.getElementById(id);
@@ -633,7 +641,6 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
       check("lf-scale",function(v){return v.length>0;});
       if(!ok){if(first)first.focus();return;}
 
-      /* 之後串接後端時，把這個 payload POST 到 /api/leads/ 即可 */
       var payload={
         name:document.getElementById("lf-name").value.trim(),
         organization:document.getElementById("lf-org").value.trim(),
@@ -641,12 +648,39 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
         email:document.getElementById("lf-email").value.trim(),
         event_type:document.getElementById("lf-type").value,
         avg_attendees:document.getElementById("lf-scale").value,
-        note:document.getElementById("lf-note").value.trim()
+        note:document.getElementById("lf-note").value.trim(),
+        website:document.getElementById("lf-hp").value,
+        source:"intro"
       };
-      console.log("[clix lead form] payload =",payload);
-      sentDetail.textContent="發送功能尚未串接，資料未送出（"+payload.name+" · "+payload.event_type+" · "+payload.avg_attendees+"）。";
-      sent.classList.add("show");
-      sent.scrollIntoView({block:"nearest",behavior:"smooth"});
+
+      var btn=document.getElementById("lfSubmit"),origText=btn.textContent;
+      btn.disabled=true;btn.textContent="送出中…";
+
+      fetch(API_BASE+"/api/leads/",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(payload)
+      }).then(function(res){
+        if(res.ok)return res.json().catch(function(){return {};});
+        return res.json().catch(function(){return {};}).then(function(d){
+          var msg=res.status===429
+            ? "送出過於頻繁，請稍後再試。"
+            : (d && d.error) || "送出失敗，請稍後再試或直接來信 sales.hy8913@gmail.com";
+          throw new Error(msg);
+        });
+      }).then(function(){
+        form.querySelector(".fgrid").style.opacity=".45";
+        btn.style.display="none";
+        sent.querySelector("b").textContent="已收到您的資訊，感謝！";
+        sentDetail.textContent="我們會盡快與您聯繫。";
+        sent.classList.add("show");
+        sent.scrollIntoView({block:"nearest",behavior:"smooth"});
+      }).catch(function(err){
+        btn.disabled=false;btn.textContent=origText;
+        sent.classList.remove("show");
+        var box=document.getElementById("lfErr");
+        box.textContent=err.message;box.style.display="block";
+      });
     });
   }
 
