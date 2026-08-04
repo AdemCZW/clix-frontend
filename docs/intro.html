@@ -119,52 +119,67 @@ h2.sec-title{font-size:clamp(24px,3.4vw,32px);font-weight:800;margin-top:14px}
 p.sec-sub{color:var(--mut);margin-top:10px;max-width:560px}
 /* demo grid */
 .demo-grid{margin-top:42px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px}
-.demo-card{background:#fff;border:1px solid #e5e9ee;border-radius:18px;padding:22px 20px;box-shadow:0 8px 26px rgba(40,58,57,.07);display:flex;flex-direction:column;gap:14px}
-.demo-card h3{font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px}
-.demo-card h3 .dot{width:9px;height:9px;border-radius:3px;background:var(--gold)}
-.demo-card p.d{font-size:13.5px;color:var(--mut)}
-.demo-stage{background:#f2f5f8;border:1px solid #e5e9ee;border-radius:14px;flex:1;display:flex;align-items:center;justify-content:center;padding:16px;min-height:270px;position:relative;overflow:hidden}
-.demo-actions{display:flex;gap:10px;flex-wrap:wrap}
+.demo-card{position:relative;background:#fff;border:1px solid #e8ecf0;border-radius:20px;padding:24px 22px;box-shadow:0 2px 4px rgba(40,58,57,.03),0 12px 32px rgba(40,58,57,.07);display:flex;flex-direction:column;gap:15px;overflow:hidden;transform-style:preserve-3d;will-change:transform}
+.demo-card::before{content:"";position:absolute;top:0;left:24px;right:24px;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.5}
+.demo-head{display:flex;align-items:center;gap:11px}
+.demo-num{flex:none;width:26px;height:26px;border-radius:8px;background:linear-gradient(150deg,#12604f,#167A67);color:#fff;font-family:var(--mono);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;letter-spacing:.02em}
+.demo-card h3{font-size:16.5px;font-weight:700;letter-spacing:.01em}
+.demo-card p.d{font-size:13px;color:var(--mut);line-height:1.65}
+.demo-stage{background:linear-gradient(168deg,#f7f9fb,#eef2f6);border:1px solid #e6ebef;border-radius:16px;flex:1;display:flex;align-items:center;justify-content:center;padding:18px;min-height:286px;position:relative;overflow:hidden;box-shadow:inset 0 1px 3px rgba(40,58,57,.05)}
+.demo-actions{display:flex;gap:9px;flex-wrap:wrap}
 /* qr demo */
-.phone{width:180px;background:#101820;border-radius:22px;padding:10px 10px 14px;box-shadow:0 10px 26px rgba(16,24,32,.35)}
-.phone .notch{width:56px;height:5px;border-radius:3px;background:#2a3540;margin:2px auto 8px}
-.cam{position:relative;background:#1b2731;border-radius:12px;height:196px;overflow:hidden;display:flex;align-items:center;justify-content:center}
-.cam svg.qr{opacity:.92}
-.cam .frame{position:absolute;inset:26px;border-radius:10px;pointer-events:none}
-.cam .frame i{position:absolute;width:18px;height:18px;border:3px solid var(--gold2);border-radius:2px}
+.phone{position:relative;width:172px;background:linear-gradient(160deg,#1c2731,#0c141b);border-radius:26px;padding:9px;box-shadow:0 1px 0 rgba(255,255,255,.09) inset,0 16px 34px rgba(12,20,27,.4)}
+.phone::after{content:"";position:absolute;right:-2px;top:62px;width:2px;height:34px;border-radius:2px;background:#2a3742}
+.phone .notch{position:absolute;top:16px;left:50%;transform:translateX(-50%);width:46px;height:4px;border-radius:3px;background:#2e3b47;z-index:3}
+.cam{position:relative;background:radial-gradient(120% 90% at 50% 20%,#233240,#131d26);border-radius:19px;height:214px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.cam::after{content:"";position:absolute;inset:0;background:linear-gradient(145deg,rgba(255,255,255,.07),transparent 42%);pointer-events:none}
+.cam svg.qr{opacity:.95;filter:drop-shadow(0 2px 8px rgba(0,0,0,.35))}
+.cam .frame{position:absolute;inset:30px;pointer-events:none}
+.cam .frame i{position:absolute;width:20px;height:20px;border:2.5px solid var(--gold2);border-radius:3px;opacity:.9}
 .cam .frame i:nth-child(1){top:0;left:0;border-right:none;border-bottom:none}
 .cam .frame i:nth-child(2){top:0;right:0;border-left:none;border-bottom:none}
 .cam .frame i:nth-child(3){bottom:0;left:0;border-right:none;border-top:none}
 .cam .frame i:nth-child(4){bottom:0;right:0;border-left:none;border-top:none}
-.laser{position:absolute;left:12%;right:12%;top:14%;height:2.5px;border-radius:2px;background:linear-gradient(90deg,transparent,#35e6a0,transparent);opacity:0;filter:drop-shadow(0 0 6px #35e6a0)}
+.scanning .frame i{animation:brk .5s ease-in-out infinite alternate}
+@keyframes brk{to{opacity:.35}}
+.laser{position:absolute;left:14%;right:14%;top:16%;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,#35e6a0,transparent);opacity:0;box-shadow:0 0 14px 2px rgba(53,230,160,.5)}
 .scanning .laser{opacity:1;animation:sweep 1.15s ease-in-out 1}
-@keyframes sweep{0%{top:14%}55%{top:78%}100%{top:40%}}
-.scan-ok{position:absolute;inset:0;background:rgba(10,26,22,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;opacity:0;pointer-events:none;transition:.3s}
+@keyframes sweep{0%{top:16%}55%{top:80%}100%{top:42%}}
+.scan-ok{position:absolute;inset:0;background:linear-gradient(180deg,rgba(9,26,22,.95),rgba(6,18,15,.97));backdrop-filter:blur(3px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;opacity:0;pointer-events:none;transition:opacity .35s}
 .done .scan-ok{opacity:1}
-.ok-ring{width:44px;height:44px;border-radius:50%;background:var(--g);display:flex;align-items:center;justify-content:center;transform:scale(.4)}
-.done .ok-ring{animation:okpop .5s cubic-bezier(.2,.9,.3,1.4) forwards}
+.ok-ring{position:relative;width:46px;height:46px;border-radius:50%;background:var(--g);display:flex;align-items:center;justify-content:center;transform:scale(.4);box-shadow:0 0 0 6px rgba(22,122,103,.22)}
+.done .ok-ring{animation:okpop .55s cubic-bezier(.2,.9,.3,1.45) forwards}
 @keyframes okpop{to{transform:scale(1)}}
-.scan-ok .nm{color:#fff;font-weight:700;font-size:15px;margin-top:4px}
-.scan-ok .st{color:#8fe3c8;font-size:12px}
-.scan-ok .seat-chip{margin-top:6px;background:var(--gold);color:#3a2b04;font-size:12px;font-weight:700;border-radius:999px;padding:3px 12px}
-/* seat demo */
-.seat-wrap{width:100%}
-.seat-wrap svg{display:block;width:100%}
+.scan-ok .nm{color:#fff;font-weight:700;font-size:15.5px;margin-top:9px;letter-spacing:.02em}
+.scan-ok .st{color:#7fd9bd;font-size:11px;font-family:var(--mono);letter-spacing:.14em}
+.scan-ok .seat-chip{margin-top:9px;background:linear-gradient(160deg,#f4c531,var(--gold));color:#3a2b04;font-size:12px;font-weight:700;border-radius:7px;padding:5px 13px;box-shadow:0 4px 12px rgba(224,168,0,.3)}
+/* seat demo — 局部區塊簡易顯示 */
+.seatblock{width:100%;display:flex;flex-direction:column;align-items:center}
+.seatpick{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:#6d8c82;background:#fff;border:1px solid #dfe7e3;border-radius:7px;padding:5px 13px;margin-bottom:16px;transition:.3s}
+.seatpick.on{color:#8a6205;background:linear-gradient(160deg,#fff6dd,#ffeec2);border-color:#e9cd7e;font-weight:600}
+.srow{display:flex;align-items:center;gap:5px;margin-bottom:6px}
+.srow .rl{width:15px;font-family:var(--mono);font-size:10px;font-weight:600;color:#9bb0a8;text-align:center}
+.srow .aisle{width:13px}
+.s{width:25px;height:22px;border-radius:6px;background:#dfe6e2;border:1px solid #ccd8d3;display:flex;align-items:center;justify-content:center;font-size:9.5px;color:#83968f;font-style:normal;transition:transform .3s cubic-bezier(.2,.9,.3,1.3),background .3s,box-shadow .3s,color .3s}
+.s.on{background:linear-gradient(160deg,#f4c531,var(--gold));border-color:#e9b829;color:#3a2b04;font-weight:700;transform:translateY(-3px) scale(1.08);box-shadow:0 0 0 4px rgba(224,168,0,.18),0 6px 14px rgba(224,168,0,.4)}
+.stagebar{margin-top:12px;width:74%;height:24px;border-radius:3px 3px 13px 13px;background:linear-gradient(180deg,#1d8f78,var(--gd));color:#d8f5ec;font-family:var(--mono);font-size:10px;letter-spacing:.3em;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 14px rgba(18,96,79,.28)}
 /* badge demo */
-.badge-form{display:flex;flex-direction:column;gap:8px;width:100%}
-.badge-form input{border:1px solid #d7dde4;border-radius:9px;padding:9px 12px;font-size:14px;font-family:var(--font);outline:none;background:#fff;transition:.15s}
-.badge-form input:focus{border-color:var(--g);box-shadow:0 0 0 3px rgba(22,122,103,.13)}
-.printer{margin-top:6px;background:#dfe5ea;border-radius:12px;padding:10px 10px 0;position:relative}
-.printer .slotlip{height:8px;background:#c6ced6;border-radius:6px 6px 0 0;margin:0 18px}
-.slot{overflow:hidden;padding:0 18px;height:196px;display:flex;justify-content:center}
-.badge{width:132px;height:186px;background:#fff;border-radius:10px;box-shadow:0 6px 18px rgba(30,45,42,.18);overflow:hidden;display:flex;flex-direction:column;transition:transform .8s cubic-bezier(.5,0,.6,1);position:relative}
-.badge .top{height:34px;background:linear-gradient(90deg,var(--g),var(--gd));display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;letter-spacing:.14em}
-.badge .bn{font-size:19px;font-weight:800;text-align:center;margin-top:26px;padding:0 8px;word-break:break-all}
-.badge .bc{font-size:11.5px;color:var(--mut);text-align:center;margin-top:4px;padding:0 8px}
-.badge .bq{position:absolute;bottom:10px;right:10px;opacity:.85}
-.badge .bstar{position:absolute;bottom:12px;left:12px;color:var(--gold);font-size:13px}
-.printing .badge{transform:translateY(112%)}
-.toast{position:absolute;left:50%;bottom:12px;transform:translate(-50%,8px);background:#22322f;color:#fff;font-size:12.5px;border-radius:999px;padding:7px 16px;opacity:0;transition:.3s;pointer-events:none;white-space:nowrap}
+.badge-form{display:flex;flex-direction:column;gap:9px;width:100%}
+.badge-form input{border:1px solid #dbe2e7;border-radius:10px;padding:9px 13px;font-size:13.5px;font-family:var(--font);outline:none;background:#fff;transition:.15s;color:var(--ink)}
+.badge-form input:focus{border-color:var(--g);box-shadow:0 0 0 3px rgba(22,122,103,.12)}
+.printer{margin-top:8px;background:linear-gradient(180deg,#e6ebef,#d5dde3);border-radius:14px;padding:11px 11px 0;position:relative;box-shadow:0 6px 18px rgba(40,58,57,.12),inset 0 1px 0 rgba(255,255,255,.7)}
+.printer .slotlip{height:7px;background:linear-gradient(180deg,#aab6bd,#c3ccd3);border-radius:5px 5px 0 0;margin:0 16px;box-shadow:0 2px 5px rgba(0,0,0,.14) inset}
+.slot{overflow:hidden;padding:0 16px;height:200px;display:flex;justify-content:center}
+.badge{position:relative;width:136px;height:190px;background:linear-gradient(175deg,#fff,#fafcfb);border-radius:11px;box-shadow:0 8px 22px rgba(30,45,42,.2),0 1px 0 rgba(255,255,255,.9) inset;overflow:hidden;display:flex;flex-direction:column;transition:transform .85s cubic-bezier(.5,0,.6,1)}
+.badge .lan{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:34px;height:5px;border-radius:3px;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.35);z-index:2}
+.badge .top{height:38px;background:linear-gradient(120deg,var(--gd),#1d8f78);display:flex;align-items:center;justify-content:center;color:#eafff7;font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.22em}
+.badge .bn{font-size:20px;font-weight:800;text-align:center;margin-top:26px;padding:0 8px;word-break:break-all;letter-spacing:.02em}
+.badge .bc{font-size:11px;color:var(--mut);text-align:center;margin-top:5px;padding:0 10px;line-height:1.4}
+.badge .rule{width:34px;height:2px;border-radius:2px;background:var(--gold);margin:11px auto 0;opacity:.75}
+.badge .bq{position:absolute;bottom:11px;right:11px;opacity:.9}
+.badge .bstar{position:absolute;bottom:14px;left:12px;display:flex;align-items:center;gap:3px;color:#8a6205;font-size:10.5px;font-weight:700;background:linear-gradient(160deg,#fff3d1,#ffe8ae);border:1px solid #ecd48d;border-radius:5px;padding:2px 7px}
+.printing .badge{transform:translateY(115%)}
+.toast{position:absolute;left:50%;bottom:13px;transform:translate(-50%,10px);background:rgba(20,34,31,.95);color:#fff;font-size:12px;border-radius:8px;padding:8px 16px;opacity:0;transition:.32s;pointer-events:none;white-space:nowrap;backdrop-filter:blur(4px);box-shadow:0 6px 18px rgba(0,0,0,.2)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 /* features — bento */
 .feat-grid{margin-top:40px;display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
@@ -301,7 +316,7 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
     <div class="demo-grid">
 
       <div class="demo-card rv">
-        <h3><span class="dot"></span>QR 掃碼報到</h3>
+        <div class="demo-head"><span class="demo-num">01</span><h3>QR 掃碼報到</h3></div>
         <p class="d">參與者出示電子票券 QR，工作人員手機一掃即完成報到。</p>
         <div class="demo-stage" id="qrStage">
           <div class="phone">
@@ -325,22 +340,24 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
       </div>
 
       <div class="demo-card rv">
-        <h3><span class="dot"></span>座位定位引導</h3>
+        <div class="demo-head"><span class="demo-num">02</span><h3>座位定位引導</h3></div>
         <p class="d">報到成功即點亮專屬座位，現場螢幕直接告訴賓客「你在這」。</p>
-        <div class="demo-stage" style="padding:8px">
-          <div class="seat-wrap">
-            <svg id="miniSeat" viewBox="0 0 680 330" role="img"><title>座位定位示範</title></svg>
+        <div class="demo-stage">
+          <div class="seatblock">
+            <div class="seatpick" id="seatPick">尚未指定座位</div>
+            <div id="seatRows"></div>
+            <div class="stagebar">舞台</div>
           </div>
         </div>
         <div class="demo-actions">
-          <button class="btn btn-primary btn-sm" data-seat="2,8">第 2 排 8 號</button>
-          <button class="btn btn-primary btn-sm" data-seat="4,12">第 4 排 12 號</button>
+          <button class="btn btn-primary btn-sm" data-seat="B,3">B 排 3 號</button>
+          <button class="btn btn-primary btn-sm" data-seat="D,6">D 排 6 號</button>
           <button class="btn btn-gold btn-sm" id="randSeat">隨機座位</button>
         </div>
       </div>
 
       <div class="demo-card rv">
-        <h3><span class="dot"></span>識別證即時列印</h3>
+        <div class="demo-head"><span class="demo-num">03</span><h3>識別證即時列印</h3></div>
         <p class="d">輸入姓名馬上預覽識別證，一鍵送印到現場列印站台。</p>
         <div class="demo-stage" style="flex-direction:column;gap:10px">
           <div class="badge-form">
@@ -352,10 +369,12 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
             <div class="slot">
               <div class="badge">
                 <div class="top">EVENT PASS</div>
+                <span class="lan"></span>
                 <div class="bn" id="pbn">王大明</div>
                 <div class="bc" id="pbc">捷運展演廳 · 貴賓</div>
+                <div class="rule"></div>
                 <div class="bstar">★ VIP</div>
-                <svg class="bq" width="40" height="40" viewBox="0 0 29 29" id="qrSvg2"></svg>
+                <svg class="bq" width="38" height="38" viewBox="0 0 29 29" id="qrSvg2"></svg>
               </div>
             </div>
             <div class="toast" id="printToast">已送至站台 1 列印</div>
@@ -541,61 +560,38 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
     setTimeout(function(){cam.classList.remove("scanning");cam.classList.add("done");btn.textContent="重新示範";busy=false;},1250);
   });
 
-  /* demo 2: mini seat map */
-  var NS="http://www.w3.org/2000/svg",svg=document.getElementById("miniSeat");
-  function el(n,a){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);return e;}
-  var Fx=340,Fy=758;
-  function pt(R,ang){return [Fx+R*Math.sin(ang),Fy-R*Math.cos(ang)];}
-  function arc(R,h){var p0=pt(R,-h),p1=pt(R,h);return "M "+p0[0].toFixed(1)+" "+p0[1].toFixed(1)+" A "+R+" "+R+" 0 0 1 "+p1[0].toFixed(1)+" "+p1[1].toFixed(1);}
-  var rows=[{label:"1",blocks:[5,6,5],r:472},{label:"2",blocks:[6,7,6],r:504},{label:"3",blocks:[6,8,6],r:536},{label:"4",blocks:[7,8,7],r:568},{label:"5",blocks:[7,9,7],r:600},{label:"6",blocks:[8,9,8],r:632}];
-  var seatArc=16.5,aisleArc=24,sw=12.5,sh=11.5;
-  var seatPos={},seatEls={},hlLayer=null;
-  var sO=452,sI=430,sh2=0.3,po0=pt(sO,-sh2),po1=pt(sO,sh2),pi1=pt(sI,sh2),pi0=pt(sI,-sh2);
-  svg.appendChild(el("path",{d:"M "+po0[0].toFixed(1)+" "+po0[1].toFixed(1)+" A "+sO+" "+sO+" 0 0 1 "+po1[0].toFixed(1)+" "+po1[1].toFixed(1)+" L "+pi1[0].toFixed(1)+" "+pi1[1].toFixed(1)+" A "+sI+" "+sI+" 0 0 0 "+pi0[0].toFixed(1)+" "+pi0[1].toFixed(1)+" Z",fill:"#167A67",stroke:"#e0a800","stroke-width":1}));
-  var stx=pt(441,0);
-  var stg=el("text",{x:340,y:(stx[1]+1).toFixed(1),"text-anchor":"middle","font-size":11,fill:"#eafff7","font-weight":"600","letter-spacing":"0.1em"});stg.textContent="主 舞 台";svg.appendChild(stg);
-  var tier=el("g",{fill:"none"});svg.appendChild(tier);
-  rows.forEach(function(rw){var tot=rw.blocks.reduce(function(a,c){return a+c;},0),h=(tot*seatArc/2+aisleArc)/rw.r;tier.appendChild(el("path",{d:arc(rw.r+sh/2+2,h),stroke:"#c3cdc7","stroke-width":3,opacity:.5}));});
-  var seatsG=el("g",{});svg.appendChild(seatsG);
-  rows.forEach(function(rw){
-    var seq=[],cur=0;rw.blocks.forEach(function(c){for(var i=0;i<c;i++){seq.push(cur);cur+=seatArc;}cur+=aisleArc;});
-    var mid=(cur-aisleArc-seatArc)/2,no=0;
-    seq.forEach(function(pos){no++;var ang=(pos-mid)/rw.r,c=pt(rw.r,ang),key=rw.label+"-"+no;
-      seatPos[key]=c;
-      var f=el("rect",{x:c[0]-sw/2,y:c[1]-sh/2,width:sw,height:sh,rx:3,fill:"#aebeb4"});
-      var cu=el("rect",{x:c[0]-sw/2+1.7,y:c[1]-sh/2+2.5,width:sw-3.4,height:sh-4.1,rx:2,fill:"#d2ddd5"});
-      seatsG.appendChild(f);seatsG.appendChild(cu);
-      seatEls[key]=[f,cu];});
-    var ll=pt(rw.r,-(mid/rw.r)-0.03);
-    svg.appendChild(el("circle",{cx:ll[0].toFixed(1),cy:ll[1].toFixed(1),r:7,fill:"#167A67"}));
-    var t=el("text",{x:ll[0].toFixed(1),y:(ll[1]+3).toFixed(1),"text-anchor":"middle","font-size":8.5,fill:"#fff","font-weight":"600"});t.textContent=rw.label;svg.appendChild(t);
-  });
-  var style=document.createElementNS(NS,"style");
-  style.textContent="@keyframes mpz{0%{transform:scale(.5);opacity:.8}80%{transform:scale(2.6);opacity:0}100%{opacity:0}}";
-  svg.appendChild(style);
-  var lastKey=null;
-  function highlight(row,no){
-    var key=row+"-"+no,c=seatPos[key];if(!c)return;
-    if(lastKey&&seatEls[lastKey]){seatEls[lastKey][0].setAttribute("fill","#aebeb4");seatEls[lastKey][1].setAttribute("fill","#d2ddd5");}
-    if(hlLayer)hlLayer.remove();
-    seatEls[key][0].setAttribute("fill","#c8920a");seatEls[key][1].setAttribute("fill","#f2c02a");
-    hlLayer=el("g",{});
-    var glow=el("circle",{cx:c[0],cy:c[1],r:20,fill:"#e0a800",opacity:.18});hlLayer.appendChild(glow);
-    [0,0.5].forEach(function(d){var ring=el("circle",{cx:c[0],cy:c[1],r:10,fill:"none",stroke:"#e0a800","stroke-width":1.7,style:"transform-box:fill-box;transform-origin:center;animation:mpz 2.2s ease-out "+d+"s infinite"});hlLayer.appendChild(ring);});
-    var cw=96,cx2=Math.min(Math.max(c[0]-cw/2,6),674-cw),cy2=c[1]-44;
-    hlLayer.appendChild(el("path",{d:"M "+c[0]+" "+(c[1]-12)+" L "+c[0]+" "+(cy2+24),stroke:"#e0a800","stroke-width":1.1,fill:"none",opacity:.75}));
-    hlLayer.appendChild(el("rect",{x:cx2,y:cy2,width:cw,height:24,rx:7,fill:"#fff",stroke:"#e0a800","stroke-width":1.1}));
-    var lt=el("text",{x:cx2+cw/2,y:cy2+16,"text-anchor":"middle","font-size":11,fill:"#2a3a39","font-weight":"600"});lt.textContent="第 "+row+" 排 · "+no+" 號";hlLayer.appendChild(lt);
-    svg.appendChild(hlLayer);
-    lastKey=key;
-  }
-  document.querySelectorAll("[data-seat]").forEach(function(b){b.addEventListener("click",function(){var p=b.getAttribute("data-seat").split(",");highlight(p[0],parseInt(p[1],10));});});
-  document.getElementById("randSeat").addEventListener("click",function(){
-    var rw=rows[Math.floor(Math.random()*rows.length)];
-    var tot=rw.blocks.reduce(function(a,c){return a+c;},0);
-    highlight(rw.label,1+Math.floor(Math.random()*tot));
-  });
-  highlight("3",10);
+  /* demo 2: 座位區塊（局部簡易顯示） */
+  var NS="http://www.w3.org/2000/svg";
+  (function(){
+    var host=document.getElementById("seatRows"),pick=document.getElementById("seatPick");
+    if(!host)return;
+    var ROWS=["A","B","C","D","E"],PER=8,cells={};
+    ROWS.forEach(function(rl){
+      var row=document.createElement("div");row.className="srow";
+      var lb=document.createElement("span");lb.className="rl";lb.textContent=rl;row.appendChild(lb);
+      for(var i=1;i<=PER;i++){
+        if(i===5){var g=document.createElement("span");g.className="aisle";row.appendChild(g);}
+        var s=document.createElement("i");s.className="s";s.textContent=i;
+        cells[rl+"-"+i]=s;row.appendChild(s);
+      }
+      host.appendChild(row);
+    });
+    var last=null;
+    function highlight(rl,no){
+      var c=cells[rl+"-"+no];if(!c)return;
+      if(last)last.classList.remove("on");
+      c.classList.add("on");last=c;
+      pick.textContent=rl+" 排 · "+no+" 號";pick.classList.add("on");
+    }
+    document.querySelectorAll("[data-seat]").forEach(function(b){
+      b.addEventListener("click",function(){var p=b.getAttribute("data-seat").split(",");highlight(p[0],parseInt(p[1],10));});
+    });
+    var rnd=document.getElementById("randSeat");
+    if(rnd)rnd.addEventListener("click",function(){
+      highlight(ROWS[Math.floor(Math.random()*ROWS.length)],1+Math.floor(Math.random()*PER));
+    });
+    highlight("C",4);
+  })();
 
   /* demo 3: badge print */
   var bn=document.getElementById("bn"),bc=document.getElementById("bc"),pbn=document.getElementById("pbn"),pbc=document.getElementById("pbc");
