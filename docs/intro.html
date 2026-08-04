@@ -612,6 +612,7 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
 
   /* 洽詢表單 → POST /api/leads/（後端寫入 DB 並寄通知信給業務信箱） */
   var API_BASE="https://checksystembackend-production.up.railway.app";
+  var formLoadedAt=Date.now();   /* 時間陷阱：送出過快視為機器人 */
   var form=document.getElementById("leadForm");
   if(form){
     var sent=document.getElementById("lfSent"),sentDetail=document.getElementById("lfSentDetail");
@@ -650,6 +651,7 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
         avg_attendees:document.getElementById("lf-scale").value,
         note:document.getElementById("lf-note").value.trim(),
         website:document.getElementById("lf-hp").value,
+        elapsed_ms:Date.now()-formLoadedAt,
         source:"intro"
       };
 
