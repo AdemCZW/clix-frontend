@@ -31,7 +31,7 @@
 :root{--g:#167A67;--gd:#0f5d4e;--gold:#e0a800;--gold2:#f4c531;--ink:#22322f;--mut:#64748b;--bg:#f4f6f9;--font:system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
 *{box-sizing:border-box;margin:0}
 html{scroll-behavior:smooth}
-body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.6}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.6;overflow-x:hidden}
 a{color:inherit;text-decoration:none}
 .container{max-width:1080px;margin:0 auto;padding:0 20px}
 /* nav */
@@ -49,18 +49,41 @@ nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.9);backdrop-fi
 .btn-ghost{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.55)}
 .btn-ghost:hover{border-color:#fff;background:rgba(255,255,255,.08)}
 .btn-sm{padding:7px 14px;font-size:13px;border-radius:8px}
-/* hero */
-.hero{position:relative;background:var(--g);color:#fff;overflow:hidden}
-.hero .geo1{position:absolute;inset:0;background:var(--gold);clip-path:polygon(72% 0,100% 0,100% 58%,52% 0)}
-.hero .geo2{position:absolute;inset:0;background:var(--gold);clip-path:polygon(100% 74%,100% 100%,64% 100%)}
-.hero .geo3{position:absolute;inset:0;background:var(--gd);clip-path:polygon(0 78%,26% 100%,0 100%)}
-.hero-in{position:relative;padding:84px 0 92px;max-width:640px}
-.hero h1{font-size:clamp(30px,5vw,46px);font-weight:800;line-height:1.25;letter-spacing:.01em}
-.hero h1 .au{color:var(--gold2)}
-.hero p.sub{margin-top:18px;font-size:17px;color:#dff0ea;max-width:520px}
-.hero .cta{margin-top:30px;display:flex;gap:14px;flex-wrap:wrap}
-.chips{margin-top:34px;display:flex;gap:10px;flex-wrap:wrap}
-.chip{font-size:13px;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22)}
+/* hero — 劇場開演 */
+.hero{position:relative;background:#081210;color:#fff;overflow:hidden}
+.hero .aur{position:absolute;width:58vw;height:58vw;border-radius:50%;filter:blur(90px);pointer-events:none}
+.hero .aur.a1{background:#134f42;top:-20vw;left:-14vw;opacity:.55}
+.hero .aur.a2{background:#3d2f05;bottom:-26vw;right:-12vw;opacity:.5}
+.hero .beam{position:absolute;top:-12%;width:34%;height:135%;background:linear-gradient(180deg,rgba(244,197,49,.15),rgba(244,197,49,0) 72%);clip-path:polygon(43% 0,57% 0,100% 100%,0 100%);transform-origin:50% 0;pointer-events:none;mix-blend-mode:screen}
+.hero .beam.b1{left:4%;animation:sway 9s ease-in-out infinite alternate}
+.hero .beam.b2{right:6%;animation:sway 11s ease-in-out infinite alternate-reverse}
+@keyframes sway{from{transform:rotate(-7deg)}to{transform:rotate(7deg)}}
+.hero .spot{position:absolute;inset:0;background:radial-gradient(430px circle at var(--mx,72%) var(--my,26%),rgba(244,197,49,.13),transparent 62%);pointer-events:none}
+.hero-in{position:relative;padding:96px 0 200px;max-width:760px;z-index:2}
+.kicker{display:inline-flex;align-items:center;gap:12px;font-size:12px;font-weight:600;letter-spacing:.34em;color:#c9b562}
+.kicker::before{content:"";width:28px;height:1px;background:#c9b562}
+.hero h1{margin-top:20px;font-size:clamp(38px,6.4vw,66px);font-weight:900;line-height:1.16;letter-spacing:.01em}
+.hero h1 .au{background:linear-gradient(92deg,#f8e08a,#f4c531 40%,#e0a800);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.sub{margin-top:20px;font-size:17px;color:#b8cfc6;max-width:540px}
+.hero .cta{margin-top:32px;display:flex;gap:14px;flex-wrap:wrap}
+.mag{will-change:transform;transition:transform .16s ease}
+.ticker{margin-top:38px;display:inline-flex;align-items:center;gap:11px;height:42px;min-width:min(360px,86vw);border:1px solid rgba(244,197,49,.28);background:rgba(255,255,255,.05);border-radius:999px;padding:0 18px;backdrop-filter:blur(4px)}
+.ticker .dot{flex:none;width:7px;height:7px;border-radius:50%;background:#35e6a0;box-shadow:0 0 9px #35e6a0;animation:blk 1.6s infinite}
+@keyframes blk{0%,100%{opacity:1}50%{opacity:.3}}
+.ticker .lbl{flex:none;font-size:11px;letter-spacing:.18em;color:#7fa294}
+.ticker .tk{position:relative;flex:1;height:100%;overflow:hidden}
+.ticker .tk span{position:absolute;left:0;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:13.5px;color:#e9f4ef;opacity:0;transition:opacity .4s ease,transform .4s ease}
+.ticker .tk span.cur{opacity:1}
+.ticker .tk span.out{opacity:0;transform:translateY(-150%)}
+#heroSeats{position:absolute;left:50%;transform:translateX(-50%);bottom:-12px;width:min(1150px,124%);z-index:1;pointer-events:none}
+/* grain */
+.grain{position:fixed;inset:0;z-index:98;pointer-events:none;opacity:.05;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2"/></filter><rect width="160" height="160" filter="url(%23n)" opacity="0.6"/></svg>')}
+/* marquee */
+.mq{position:relative;background:#0e1a16;border-top:1px solid #1d2f28;border-bottom:1px solid #1d2f28;transform:rotate(-1.2deg) scale(1.03);margin-top:-30px;z-index:3;overflow:hidden;box-shadow:0 14px 30px rgba(8,18,16,.25)}
+.mq-track{display:flex;white-space:nowrap;width:max-content;animation:mqs 26s linear infinite;padding:13px 0}
+.mq-track span{font-size:14.5px;font-weight:700;letter-spacing:.22em;color:#e8c94e;padding:0 24px}
+.mq-track i{font-style:normal;color:#40604f}
+@keyframes mqs{to{transform:translateX(-50%)}}
 /* section */
 section{padding:72px 0}
 .sec-tag{display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.18em;color:var(--g);background:#e3f1ec;border-radius:999px;padding:5px 14px}
@@ -115,13 +138,22 @@ p.sec-sub{color:var(--mut);margin-top:10px;max-width:560px}
 .printing .badge{transform:translateY(112%)}
 .toast{position:absolute;left:50%;bottom:12px;transform:translate(-50%,8px);background:#22322f;color:#fff;font-size:12.5px;border-radius:999px;padding:7px 16px;opacity:0;transition:.3s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translate(-50%,0)}
-/* features */
-.feat-grid{margin-top:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
-.feat{background:#fff;border:1px solid #e5e9ee;border-radius:14px;padding:20px 18px;transition:.2s}
-.feat:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(40,58,57,.09);border-color:#cfe0da}
-.feat .fi{width:38px;height:38px;border-radius:10px;background:#e3f1ec;color:var(--g);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+/* features — bento */
+.feat-grid{margin-top:40px;display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
+.feat{background:#fff;border:1px solid #e5e9ee;border-radius:16px;padding:22px 20px;transition:box-shadow .2s,border-color .2s;grid-column:span 3;transform-style:preserve-3d;will-change:transform}
+.feat:hover{box-shadow:0 14px 30px rgba(40,58,57,.1);border-color:#cfe0da}
+.feat.s2{grid-column:span 2}
+.feat.s6{grid-column:span 6;display:flex;gap:20px;align-items:center}
+.feat.s6 .fi{margin-bottom:0;flex:none}
+.feat.dark{background:linear-gradient(135deg,#0e1a16,#12241d);border-color:#24382f}
+.feat.dark h4{color:#eef7f2}
+.feat.dark p{color:#8fa79c}
+.feat.dark .fi{background:rgba(244,197,49,.14);color:#f4c531}
+.feat .fi{width:40px;height:40px;border-radius:11px;background:#e3f1ec;color:var(--g);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
 .feat h4{font-size:15px;font-weight:700}
 .feat p{font-size:13px;color:var(--mut);margin-top:5px}
+@media (max-width:900px){.feat,.feat.s2{grid-column:span 3}}
+@media (max-width:560px){.feat,.feat.s2,.feat.s6{grid-column:span 6}.feat.s6{flex-direction:column;align-items:flex-start;gap:10px}}
 /* flow */
 .flow{background:#fff;border-top:1px solid #e9edf1;border-bottom:1px solid #e9edf1}
 .flow-grid{margin-top:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px}
@@ -193,25 +225,34 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
   </div>
 </nav>
 
-<header class="hero">
-  <div class="geo1"></div><div class="geo2"></div><div class="geo3"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="hero" id="hero">
+  <div class="aur a1"></div><div class="aur a2"></div>
+  <div class="beam b1"></div><div class="beam b2"></div>
+  <div class="spot" id="spot"></div>
   <div class="container">
     <div class="hero-in">
-      <h1>一鍵啟動<br>開啟您的<span class="au">全方位活動管理</span></h1>
-      <p class="sub">從報名頁建置、電子票券寄送，到現場 QR 秒級報到、識別證即時列印與座位定位引導 — clix 讓每一場活動流暢登場。</p>
+      <span class="kicker">EVENT MANAGEMENT PLATFORM</span>
+      <h1>每一場活動，<br>都值得<span class="au">盛大開演</span></h1>
+      <p class="sub">從報名頁建置、電子票券寄送，到現場 QR 秒級報到、識別證即時列印與座位定位引導 — clix 讓活動如期開演。</p>
       <div class="cta">
-        <a class="btn btn-gold" href="#demos">立即體驗互動示範</a>
-        <a class="btn btn-ghost" href="/seat-demo.html">座位定位 Demo</a>
+        <a class="btn btn-gold mag" href="#demos">立即體驗互動示範</a>
+        <a class="btn btn-ghost mag" href="/seat-demo.html">座位定位 Demo</a>
       </div>
-      <div class="chips">
-        <span class="chip">QR 秒級報到</span>
-        <span class="chip">識別證即印</span>
-        <span class="chip">座位定位引導</span>
-        <span class="chip">Email 自動通知</span>
+      <div class="ticker" aria-hidden="true">
+        <span class="dot"></span>
+        <span class="lbl">LIVE</span>
+        <span class="tk" id="tk"></span>
       </div>
     </div>
   </div>
+  <svg id="heroSeats" viewBox="0 0 900 160" aria-hidden="true"></svg>
 </header>
+
+<div class="mq" aria-hidden="true">
+  <div class="mq-track" id="mqTrack"></div>
+</div>
 
 <section id="demos">
   <div class="container">
@@ -297,12 +338,12 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
     <div class="feat-grid">
       <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div><h4>報名頁快速建置</h4><p>Banner、票種、自訂欄位、FAQ 拖拉即成，發布就有專屬報名連結。</p></div>
       <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/></svg></div><h4>電子票券自動寄送</h4><p>報名成功即寄出含 QR 票券的通知信，主旨內文皆可自訂。</p></div>
-      <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z"/></svg></div><h4>QR 秒級報到</h4><p>手機即掃即到，重複報到自動判斷，現場不排隊。</p></div>
-      <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg></div><h4>識別證多站台列印</h4><p>掃碼即派送至現場列印站台，版面自由拖拉設計。</p></div>
-      <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 21s-7-5.1-7-11a7 7 0 0114 0c0 5.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg></div><h4>座位定位引導</h4><p>報到當下點亮專屬座位，賓客一眼找到位置。</p></div>
+      <div class="feat rv s2 dark"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z"/></svg></div><h4>QR 秒級報到</h4><p>手機即掃即到，重複報到自動判斷，現場不排隊。</p></div>
+      <div class="feat rv s2"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg></div><h4>識別證多站台列印</h4><p>掃碼即派送至現場列印站台，版面自由拖拉設計。</p></div>
+      <div class="feat rv s2"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 21s-7-5.1-7-11a7 7 0 0114 0c0 5.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg></div><h4>座位定位引導</h4><p>報到當下點亮專屬座位，賓客一眼找到位置。</p></div>
       <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div><h4>即時數據總覽</h4><p>報名數、報到率、票種分佈一目瞭然，活動成效即時掌握。</p></div>
       <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5M17 8.5a2.8 2.8 0 110 5.6M19 15.5c2 .6 3.2 2 3.5 4.5"/></svg></div><h4>名單匯入匯出</h4><p>Excel 一鍵匯入自動產票；匯出內建公式注入防護，安全放心。</p></div>
-      <div class="feat rv"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3l8 3v6c0 4.6-3.2 7.8-8 9-4.8-1.2-8-4.4-8-9V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg></div><h4>多角色權限管理</h4><p>主辦、管理者、現場人員分權操作，資料隔離有保障。</p></div>
+      <div class="feat rv s6"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3l8 3v6c0 4.6-3.2 7.8-8 9-4.8-1.2-8-4.4-8-9V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg></div><div><h4>多角色權限管理</h4><p>主辦、管理者、現場人員分權操作，資料隔離有保障 — 大型活動多團隊協作也不混亂。</p></div></div>
     </div>
   </div>
 </section>
@@ -573,6 +614,94 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
       sent.scrollIntoView({block:"nearest",behavior:"smooth"});
     });
   }
+
+  /* ===== 劇場 hero 動效 ===== */
+  var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* 底部座席剪影 + 隨機亮起 */
+  (function(){
+    var hs=document.getElementById("heroSeats");if(!hs)return;
+    var HF={x:450,y:640};
+    function hpt(R,ang){return [HF.x+R*Math.sin(ang),HF.y-R*Math.cos(ang)];}
+    var hrows=[{r:492,n:24},{r:524,n:26},{r:556,n:28},{r:588,n:30}];
+    var cells=[];
+    hrows.forEach(function(rw,ri){
+      var arcStep=26,mid=(rw.n-1)*arcStep/2;
+      for(var i=0;i<rw.n;i++){
+        var ang=(i*arcStep-mid)/rw.r,c=hpt(rw.r,ang);
+        if(c[0]<-10||c[0]>910)continue;
+        var r2=document.createElementNS(NS,"rect");
+        r2.setAttribute("x",(c[0]-8).toFixed(1));r2.setAttribute("y",(c[1]-7).toFixed(1));
+        r2.setAttribute("width","16");r2.setAttribute("height","14");r2.setAttribute("rx","3.5");
+        r2.setAttribute("fill","#13221c");r2.setAttribute("stroke","#1e332a");r2.setAttribute("stroke-width","1");
+        r2.style.transition="fill .55s ease";
+        hs.appendChild(r2);cells.push(r2);
+      }
+    });
+    if(!reduce&&cells.length){
+      setInterval(function(){
+        var s=cells[Math.floor(Math.random()*cells.length)];
+        s.style.fill="#e0a800";
+        setTimeout(function(){s.style.fill="#13221c";},700);
+      },520);
+    }
+  })();
+
+  /* LIVE ticker */
+  (function(){
+    var tk=document.getElementById("tk");if(!tk)return;
+    var feed=["林小姐 已完成報到 · C 排 8 號","陳先生 識別證已送印 · 站台 2","張小姐 已完成報名 · VIP 票","李先生 已完成報到 · F 排 21 號","票券通知信已寄出 · 42 封","黃先生 已完成報到 · B 排 3 號"];
+    var idx=0,cur=document.createElement("span");
+    cur.className="cur";cur.textContent=feed[0];tk.appendChild(cur);
+    if(reduce)return;
+    setInterval(function(){
+      idx=(idx+1)%feed.length;
+      var nx=document.createElement("span");
+      nx.textContent=feed[idx];tk.appendChild(nx);
+      var old=cur;cur=nx;
+      requestAnimationFrame(function(){requestAnimationFrame(function(){old.className="out";nx.className="cur";setTimeout(function(){old.remove();},500);});});
+    },2600);
+  })();
+
+  /* 跑馬燈內容（兩份供無縫循環） */
+  (function(){
+    var t=document.getElementById("mqTrack");if(!t)return;
+    var items=["QR 秒級報到","識別證即印","座位定位引導","EMAIL 自動通知","報名頁建置","即時數據總覽"];
+    var half=items.map(function(s){return "<span>"+s+"</span><i>✦</i>";}).join("");
+    t.innerHTML=half+half;
+  })();
+
+  /* 聚光燈跟隨滑鼠 + 磁吸按鈕 */
+  (function(){
+    var hero=document.getElementById("hero"),spotEl=document.getElementById("spot");
+    if(!hero||reduce)return;
+    var mags=hero.querySelectorAll(".mag");
+    hero.addEventListener("mousemove",function(e){
+      var hr=hero.getBoundingClientRect();
+      spotEl.style.setProperty("--mx",((e.clientX-hr.left)/hr.width*100).toFixed(1)+"%");
+      spotEl.style.setProperty("--my",((e.clientY-hr.top)/hr.height*100).toFixed(1)+"%");
+      mags.forEach(function(b){
+        var r=b.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
+        var d=Math.hypot(dx,dy);
+        if(d<130){var f=(1-d/130)*8;b.style.transform="translate("+(dx/d*f).toFixed(1)+"px,"+(dy/d*f).toFixed(1)+"px)";}
+        else b.style.transform="";
+      });
+    });
+    hero.addEventListener("mouseleave",function(){mags.forEach(function(b){b.style.transform="";});});
+  })();
+
+  /* 卡片 3D tilt */
+  (function(){
+    if(reduce)return;
+    document.querySelectorAll(".demo-card,.feat").forEach(function(card){
+      card.addEventListener("mousemove",function(e){
+        var r=card.getBoundingClientRect();
+        var rx=((e.clientY-r.top)/r.height-0.5)*-5,ry=((e.clientX-r.left)/r.width-0.5)*5;
+        card.style.transform="perspective(800px) rotateX("+rx.toFixed(2)+"deg) rotateY("+ry.toFixed(2)+"deg)";
+      });
+      card.addEventListener("mouseleave",function(){card.style.transform="";card.style.transition="transform .4s ease";setTimeout(function(){card.style.transition="";},400);});
+    });
+  })();
 })();
 </script>
 </body>
