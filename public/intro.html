@@ -79,14 +79,14 @@ nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.9);backdrop-fi
 .hud.tr{top:22px;right:22px;border-left:0;border-bottom:0}
 .hud.bl{bottom:22px;left:22px;border-right:0;border-top:0}
 .hud.br{bottom:22px;right:22px;border-left:0;border-top:0}
-.hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:minmax(220px,.8fr) 1.2fr;gap:54px;align-items:center;padding:92px 0 186px}
-.hero-brand{display:flex;justify-content:flex-start;align-items:center}
-.hero-logo{width:100%;max-width:290px;filter:brightness(0) invert(1);opacity:.96}
+.hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:auto minmax(0,1fr);gap:40px;align-items:start;padding:92px 0 186px}
+.hero-brand{display:flex;justify-content:flex-start;align-items:flex-start;padding-top:4px}
+.hero-logo{display:block;width:clamp(160px,20vw,250px);filter:brightness(0) invert(1);opacity:.96}
 .hero-in{position:relative;z-index:2}
 @media (max-width:900px){
   .hero-grid{grid-template-columns:1fr;gap:26px;padding:64px 0 150px}
   .hero-brand{justify-content:flex-start}
-  .hero-logo{max-width:168px}
+  .hero-logo{width:150px}
 }
 .hero h1{font-size:clamp(34px,5.6vw,58px);font-weight:900;line-height:1.2;letter-spacing:.01em}
 .hero h1 .au{margin-left:.42em;background:linear-gradient(96deg,#7ff0d2,#2dd6b2 42%,#e0a800);-webkit-background-clip:text;background-clip:text;color:transparent}
