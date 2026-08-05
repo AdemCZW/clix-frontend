@@ -79,14 +79,14 @@ nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.9);backdrop-fi
 .hud.tr{top:22px;right:22px;border-left:0;border-bottom:0}
 .hud.bl{bottom:22px;left:22px;border-right:0;border-top:0}
 .hud.br{bottom:22px;right:22px;border-left:0;border-top:0}
-.hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:auto minmax(0,1fr);gap:40px;align-items:start;padding:92px 0 186px}
-.hero-brand{display:flex;justify-content:flex-start;align-items:flex-start;padding-top:4px}
-.hero-logo{display:block;width:clamp(160px,20vw,250px);filter:brightness(0) invert(1);opacity:.96}
-.hero-in{position:relative;z-index:2}
+.hero-in{position:relative;z-index:2;padding:92px 0 186px}
+.hero-lockup{display:flex;align-items:center;gap:34px}
+.hero-logo{flex:none;display:block;width:clamp(150px,17vw,224px);filter:brightness(0) invert(1);opacity:.96}
+.hero-heads{min-width:0}
 @media (max-width:900px){
-  .hero-grid{grid-template-columns:1fr;gap:26px;padding:64px 0 150px}
-  .hero-brand{justify-content:flex-start}
-  .hero-logo{width:150px}
+  .hero-in{padding:64px 0 150px}
+  .hero-lockup{gap:22px}
+  .hero-logo{width:clamp(96px,24vw,150px)}
 }
 .hero h1{font-size:clamp(34px,5.6vw,58px);font-weight:900;line-height:1.2;letter-spacing:.01em}
 .hero h1 .au{margin-left:.42em;background:linear-gradient(96deg,#7ff0d2,#2dd6b2 42%,#e0a800);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -283,14 +283,15 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
   <div class="scan"></div>
   <span class="hud tl"></span><span class="hud tr"></span><span class="hud bl"></span><span class="hud br"></span>
   <div class="container">
-   <div class="hero-grid">
-    <div class="hero-brand">
-      <img class="hero-logo" src="/clix-logo.svg" alt="Clix"
-           onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('span'),{textContent:'Clix',style:'font-size:76px;font-weight:300;letter-spacing:.02em'}))">
-    </div>
     <div class="hero-in">
-      <h1>管理活動<span class="au">精準到位</span></h1>
-      <div class="slogan">Click &amp; Join Us</div>
+      <div class="hero-lockup">
+        <img class="hero-logo" src="/clix-logo.svg" alt="Clix"
+             onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('span'),{textContent:'Clix',style:'font-size:76px;font-weight:300;letter-spacing:.02em'}))">
+        <div class="hero-heads">
+          <h1>管理活動<span class="au">精準到位</span></h1>
+          <div class="slogan">Click &amp; Join Us</div>
+        </div>
+      </div>
       <p class="sub">從報名頁建置、電子票券寄送，到現場 QR 秒級報到、識別證即時列印與座位定位引導 — clix 把活動現場變成一套可控的系統。</p>
       <div class="cta">
         <a class="btn btn-gold mag" href="#demos">立即體驗互動示範</a>
@@ -302,7 +303,6 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
         <span class="tk" id="tk"></span>
       </div>
     </div>
-   </div>
   </div>
   <svg id="heroSeats" viewBox="0 0 900 160" aria-hidden="true"></svg>
 </header>
