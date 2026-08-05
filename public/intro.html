@@ -80,7 +80,7 @@ nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.9);backdrop-fi
 .hud.bl{bottom:22px;left:22px;border-right:0;border-top:0}
 .hud.br{bottom:22px;right:22px;border-left:0;border-top:0}
 .hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:minmax(220px,.8fr) 1.2fr;gap:54px;align-items:center;padding:92px 0 186px}
-.hero-brand{display:flex;justify-content:center}
+.hero-brand{display:flex;justify-content:flex-start;align-items:center}
 .hero-logo{width:100%;max-width:290px;filter:brightness(0) invert(1);opacity:.96}
 .hero-in{position:relative;z-index:2}
 @media (max-width:900px){
@@ -88,10 +88,9 @@ nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.9);backdrop-fi
   .hero-brand{justify-content:flex-start}
   .hero-logo{max-width:168px}
 }
-.kicker{display:inline-flex;align-items:center;gap:12px;margin-top:12px;font-family:var(--mono);font-size:11.5px;font-weight:500;letter-spacing:.26em;color:#4fd6b4}
-.kicker::before{content:"";width:26px;height:1px;background:#2b8f79}
-.hero h1{font-size:clamp(38px,6.4vw,66px);font-weight:900;line-height:1.16;letter-spacing:.01em}
-.hero h1 .au{background:linear-gradient(96deg,#7ff0d2,#2dd6b2 42%,#e0a800);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero h1{font-size:clamp(34px,5.6vw,58px);font-weight:900;line-height:1.2;letter-spacing:.01em}
+.hero h1 .au{margin-left:.42em;background:linear-gradient(96deg,#7ff0d2,#2dd6b2 42%,#e0a800);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .slogan{margin-top:2px;font-size:clamp(34px,5.6vw,58px);font-weight:700;line-height:1.2;letter-spacing:.005em;color:#eaf6f1}
 .hero p.sub{margin-top:20px;font-size:17px;color:#9fbcb2;max-width:552px}
 .hero .cta{margin-top:32px;display:flex;gap:14px;flex-wrap:wrap}
 .mag{will-change:transform;transition:transform .16s ease}
@@ -290,8 +289,8 @@ footer{background:#22322f;color:#9fb3ad;font-size:13px;padding:30px 0;margin-top
            onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('span'),{textContent:'Clix',style:'font-size:76px;font-weight:300;letter-spacing:.02em'}))">
     </div>
     <div class="hero-in">
-      <h1>管理活動，<br><span class="au">精準到位</span></h1>
-      <span class="kicker">CLICK &amp; JOIN US</span>
+      <h1>管理活動<span class="au">精準到位</span></h1>
+      <div class="slogan">Click &amp; Join Us</div>
       <p class="sub">從報名頁建置、電子票券寄送，到現場 QR 秒級報到、識別證即時列印與座位定位引導 — clix 把活動現場變成一套可控的系統。</p>
       <div class="cta">
         <a class="btn btn-gold mag" href="#demos">立即體驗互動示範</a>
