@@ -1,1 +1,0 @@
-import{j as e,z as t}from"./vendor-quill-BYCvAx-i.js";import{t as n}from"./events-Vy85jtmk.js";function r(r,i={}){let a=n(),o=async e=>{if(!e){await i.onNoEvent?.();return}await r(e)},s=()=>o(a.currentEvent?.id);return i.immediate!==!1&&e(()=>{s()}),t(()=>a.currentEvent?.id,(e,t)=>{e!==t&&o(e)}),{loadCurrentEvent:s}}export{r as t};

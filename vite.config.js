@@ -6,8 +6,8 @@ import fs from 'node:fs'
 
 export default defineConfig(({ mode }) => {
     return {
-        // 自訂網域不需要子路徑，直接用根目錄
-        base: '/',
+        // 官網首頁改放靜態行銷頁（docs/ 根目錄），Vue 系統本體搬到 /app/ 子路徑
+        base: '/app/',
 
         plugins: [
             vue(),
@@ -37,7 +37,7 @@ export default defineConfig(({ mode }) => {
             },
         },
         build: {
-            outDir: 'docs', // 輸出到 docs 資料夾
+            outDir: 'docs/app', // Vue 系統本體輸出到 docs/app，docs/ 根目錄留給行銷首頁
             emptyOutDir: true, // 每次打包先清空舊檔
             assetsDir: 'assets',
             // 關鍵修正：解決 GitHub Pages 404 底線檔案問題

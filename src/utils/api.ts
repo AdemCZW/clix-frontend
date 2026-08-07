@@ -30,11 +30,12 @@ const clearAuthAndRedirect = (): never => {
     const currentHash = window.location.hash || ''
     const currentPath = currentHash.replace(/^#/, '').split('?')[0]
     // 已經在 /login（或無路徑）就不重導；避免登入頁自身 401 造成 redirect 循環
+    const base = import.meta.env.BASE_URL
     if (!currentPath || currentPath.startsWith('/login')) {
-        window.location.href = '/#/login'
+        window.location.href = `${base}#/login`
     } else {
         const redirectParam = encodeURIComponent(currentPath)
-        window.location.href = `/#/login?redirect=${redirectParam}`
+        window.location.href = `${base}#/login?redirect=${redirectParam}`
     }
     throw new Error('Authentication expired, please login again')
 }
