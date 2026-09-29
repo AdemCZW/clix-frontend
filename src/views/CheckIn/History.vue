@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, nextTick, watch } from "vue";
 import { useToast } from "@/composables/useToast";
+import { parseTokenFromQr, CheckinError } from "@/services/checkinService";
 import { useParticipantsStore } from "@/stores/participants";
 import { useEventsStore } from "@/stores/events";
 import { useEventScopedLoader } from "@/composables/useEventScopedLoader";
@@ -33,6 +34,7 @@ useEventScopedLoader(
     } catch { /* silent */ }
     finally {
       pageLoading.value = false;
+      focusScanner();
     }
   },
   {
@@ -155,9 +157,66 @@ const processCheckIn = async (person: Participant) => {
   }
 };
 
+// 掃描器報到：USB 掃描槍（鍵盤模式）會把 QR 內容打進聚焦中的欄位並送出 Enter
+const scanInputRef = ref<HTMLInputElement | null>(null);
+const scanValue = ref("");
+const scanBusy = ref(false);
+const scanFocused = ref(false);
+const scanResult = ref<{ kind: "ok" | "warn" | "error"; title: string; detail: string } | null>(null);
+let lastScan = { token: "", at: 0 };
+
+const focusScanner = () => nextTick(() => scanInputRef.value?.focus());
+
+const scanErrorText = (err: unknown) => {
+  if (err instanceof CheckinError) {
+    if (err.kind === "not_found") return "找不到對應的參與者，請確認是否為本活動的 QR Code";
+    if (err.kind === "rate_limit") return "掃描過於頻繁，請稍候再試";
+    if (err.kind === "unauthorized") return "登入已過期，請重新登入";
+    return err.message;
+  }
+  return "報到失敗，請重試";
+};
+
+const submitScan = async () => {
+  const token = parseTokenFromQr(scanValue.value);
+  scanValue.value = "";
+  if (!token || scanBusy.value) return focusScanner();
+
+  // 掃描槍偶爾會連續觸發兩次，同一張票 2 秒內只處理一次
+  const now = Date.now();
+  if (token === lastScan.token && now - lastScan.at < 2000) return focusScanner();
+  lastScan = { token, at: now };
+
+  const existing = participantsStore.participants.find(
+    (p) => p.checkInToken === token || (p.externalTicketId && p.externalTicketId === token),
+  );
+  if (existing?.status === "已報到") {
+    scanResult.value = { kind: "warn", title: existing.name, detail: "已經報到過了" };
+    warning(`${existing.name} 已經報到過了`);
+    return focusScanner();
+  }
+
+  scanBusy.value = true;
+  try {
+    const { participant } = await participantsStore.checkinByToken(token);
+    const name = participant.name || "參與者";
+    const extra = [participant.company, participant.type].filter(Boolean).join(" · ");
+    scanResult.value = { kind: "ok", title: name, detail: extra ? `報到成功 · ${extra}` : "報到成功" };
+    success(`${name} 報到成功！`);
+  } catch (err) {
+    const msg = scanErrorText(err);
+    scanResult.value = { kind: "error", title: "報到失敗", detail: msg };
+    warning(msg);
+  } finally {
+    scanBusy.value = false;
+    focusScanner();
+  }
+};
+
 // 取消報到
 const cancelTarget = ref<{ id: number; name: string } | null>(null);
 const showCancelDialog = ref(false);
+watch([showManualModal, showCancelDialog], ([a, b]) => { if (!a && !b) focusScanner(); });
 
 const askCancelCheckIn = (log: { id: number; name: string }) => {
   cancelTarget.value = log;
@@ -222,6 +281,36 @@ const hasActiveFilters = computed(() =>
         </div>
       </div>
       <button class="btn-manual" @click="showManualModal = true">手動報到</button>
+    </div>
+
+    <!-- 掃描器報到 -->
+    <div :class="['scan-card', scanFocused && 'is-ready']" @click="focusScanner">
+      <div class="scan-head">
+        <span :class="['scan-dot', scanFocused && 'on']"></span>
+        <span class="scan-title">掃描器報到</span>
+        <span class="scan-hint">{{ scanFocused ? "待命中，直接掃描 QR Code 即可報到" : "點一下此區塊後再掃描" }}</span>
+      </div>
+      <form class="scan-form" @submit.prevent="submitScan">
+        <input
+          ref="scanInputRef"
+          v-model="scanValue"
+          class="scan-input"
+          placeholder="掃描 QR Code，或手動輸入票號後按 Enter"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          :readonly="scanBusy"
+          @focus="scanFocused = true"
+          @blur="scanFocused = false"
+        />
+        <button type="submit" class="scan-btn" :disabled="scanBusy || !scanValue.trim()">
+          {{ scanBusy ? "報到中..." : "報到" }}
+        </button>
+      </form>
+      <div v-if="scanResult" :class="['scan-result', `is-${scanResult.kind}`]">
+        <strong>{{ scanResult.title }}</strong>
+        <span>{{ scanResult.detail }}</span>
+      </div>
     </div>
 
     <!-- 主要內容：篩選 + 報到紀錄 -->
@@ -414,6 +503,111 @@ const hasActiveFilters = computed(() =>
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   }
+}
+
+/* ── 掃描器報到 ── */
+.scan-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 16px 24px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: text;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &.is-ready {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+  }
+}
+
+.scan-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.scan-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.5;
+
+  &.on {
+    background: #10b981;
+    opacity: 1;
+    animation: scan-pulse 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes scan-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+  50% { box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
+}
+
+.scan-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+.scan-hint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.scan-form {
+  display: flex;
+  gap: 10px;
+}
+
+.scan-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--bg-card);
+  color: var(--text-main);
+  outline: none;
+
+  &:focus { border-color: var(--accent); }
+}
+
+.scan-btn {
+  padding: 0 22px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.scan-result {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+
+  strong { font-size: 1.05rem; }
+
+  &.is-ok { background: rgba(16, 185, 129, 0.1); color: #047857; }
+  &.is-warn { background: rgba(245, 158, 11, 0.12); color: #b45309; }
+  &.is-error { background: rgba(239, 68, 68, 0.1); color: #b91c1c; }
 }
 
 /* ── 主卡片 ── */
