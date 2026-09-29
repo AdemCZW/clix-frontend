@@ -214,9 +214,9 @@ const selectEvent = (event: any) => {
 
       <!-- 頁面內容 -->
       <section class="view-port">
-        <router-view v-slot="{ Component }" :key="route.fullPath">
+        <router-view v-slot="{ Component }">
           <Transition name="page-fade" mode="out-in">
-            <component :is="Component" />
+            <component :is="Component" :key="route.fullPath" />
           </Transition>
         </router-view>
       </section>
@@ -642,16 +642,35 @@ const selectEvent = (event: any) => {
 
 /* 頁面切換淡入動畫 */
 .page-fade-enter-active {
-  transition: opacity .2s ease, transform .2s ease;
+  transition: opacity .24s cubic-bezier(.22, 1, .36, 1);
 }
 .page-fade-leave-active {
-  transition: opacity .15s ease;
+  transition: opacity .12s ease-in;
 }
-.page-fade-enter-from {
-  opacity: 0;
-  transform: translateY(6px);
-}
+.page-fade-enter-from,
 .page-fade-leave-to {
   opacity: 0;
+}
+</style>
+
+<style>
+/* 頁面區塊依序浮現：CSS animation 在元素插入 DOM 時觸發，
+   所以換頁當下與「載入中 → 內容」切換時都會自動播放 */
+.view-port > * > :not(.page-loader) {
+  animation: view-rise .42s cubic-bezier(.22, 1, .36, 1) backwards;
+}
+.view-port > * > :nth-child(2) { animation-delay: .04s; }
+.view-port > * > :nth-child(3) { animation-delay: .08s; }
+.view-port > * > :nth-child(n + 4) { animation-delay: .12s; }
+
+@keyframes view-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-port > * > :not(.page-loader) { animation: none; }
 }
 </style>

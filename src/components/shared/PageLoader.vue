@@ -35,10 +35,16 @@ defineProps<{ text?: string }>();
   justify-content: center;
   padding: 100px 20px;
   gap: 16px;
+  /* 延遲出現：資料很快回來的頁面就不會閃一下載入畫面 */
+  animation: loader-appear 0.3s ease 0.2s backwards;
+}
+
+@keyframes loader-appear {
+  from { opacity: 0; }
 }
 
 .logo-loader {
-  animation: logo-fade-in 0.4s ease;
+  animation: logo-fade-in 0.4s ease 0.2s backwards;
 }
 
 /* 上框線動畫 */
