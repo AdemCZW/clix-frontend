@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { useEventsStore } from "@/stores/events";
@@ -27,6 +27,40 @@ onMounted(async () => {
       isSuperAdmin: userStore.isSuperAdmin,
     });
   } catch { /* silent */ }
+});
+
+// 換頁前要先下載該頁程式碼，期間畫面沒有任何反應；超過 120ms 就顯示頂端進度條
+const navigating = ref(false);
+let navTimer: ReturnType<typeof setTimeout> | undefined;
+const stopNav = () => {
+  clearTimeout(navTimer);
+  navigating.value = false;
+};
+const offBefore = router.beforeEach((to, from) => {
+  if (to.fullPath !== from.fullPath) {
+    clearTimeout(navTimer);
+    navTimer = setTimeout(() => (navigating.value = true), 120);
+  }
+});
+const offAfter = router.afterEach(stopNav);
+const offError = router.onError(stopNav);
+onBeforeUnmount(() => {
+  stopNav();
+  offBefore();
+  offAfter();
+  offError();
+});
+
+// 登入後趁瀏覽器空閒時預先下載各頁程式碼，點選單時就能直接切換
+const prefetchPages = () => {
+  for (const r of router.getRoutes()) {
+    const c = r.components?.default;
+    if (typeof c === "function") (c as () => Promise<unknown>)().catch(() => {});
+  }
+};
+onMounted(() => {
+  const idle = window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 1500));
+  idle(prefetchPages);
 });
 
 const showOnboarding = ref(!eventsStore.currentEvent);
@@ -213,6 +247,9 @@ const selectEvent = (event: any) => {
       </header>
 
       <!-- 頁面內容 -->
+      <Transition name="nav-bar-fade">
+        <div v-if="navigating" class="nav-progress"><span></span></div>
+      </Transition>
       <section class="view-port">
         <router-view v-slot="{ Component }">
           <Transition name="page-fade" mode="out-in">
@@ -642,31 +679,62 @@ const selectEvent = (event: any) => {
 
 /* 頁面切換淡入動畫 */
 .page-fade-enter-active {
-  transition: opacity .24s cubic-bezier(.22, 1, .36, 1);
+  transition: opacity .3s cubic-bezier(.22, 1, .36, 1);
 }
 .page-fade-leave-active {
-  transition: opacity .12s ease-in;
+  transition: opacity .18s ease-in, transform .18s ease-in;
 }
 .page-fade-enter-from,
 .page-fade-leave-to {
   opacity: 0;
 }
+.page-fade-leave-to {
+  transform: translateY(8px) scale(.99);
+}
+
+/* 換頁等待中的頂端進度條 */
+.nav-progress {
+  position: relative;
+  height: 0;
+  z-index: 20;
+
+  span {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 35%;
+    border-radius: 0 3px 3px 0;
+    background: linear-gradient(90deg, transparent, var(--accent, #167a67) 40%, #e0a800);
+    animation: nav-progress-slide 1s cubic-bezier(.4, 0, .2, 1) infinite;
+  }
+}
+
+@keyframes nav-progress-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
+}
+
+.nav-bar-fade-enter-active { transition: opacity .15s ease; }
+.nav-bar-fade-leave-active { transition: opacity .25s ease; }
+.nav-bar-fade-enter-from,
+.nav-bar-fade-leave-to { opacity: 0; }
 </style>
 
 <style>
 /* 頁面區塊依序浮現：CSS animation 在元素插入 DOM 時觸發，
    所以換頁當下與「載入中 → 內容」切換時都會自動播放 */
 .view-port > * > :not(.page-loader) {
-  animation: view-rise .42s cubic-bezier(.22, 1, .36, 1) backwards;
+  animation: view-rise .55s cubic-bezier(.22, 1, .36, 1) backwards;
 }
-.view-port > * > :nth-child(2) { animation-delay: .04s; }
-.view-port > * > :nth-child(3) { animation-delay: .08s; }
-.view-port > * > :nth-child(n + 4) { animation-delay: .12s; }
+.view-port > * > :nth-child(2) { animation-delay: .07s; }
+.view-port > * > :nth-child(3) { animation-delay: .14s; }
+.view-port > * > :nth-child(n + 4) { animation-delay: .2s; }
 
 @keyframes view-rise {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(18px);
   }
 }
 
